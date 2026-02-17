@@ -23,8 +23,8 @@ st.set_page_config(
 
 # ── SUPABASE SETUP ────────────────────────────────────────────────────────────
 # Replace with your actual keys from Supabase dashboard
-SUPABASE_URL = "https://xxxxxxxxxxxx.supabase.co"   # ← paste your URL
-SUPABASE_KEY = "eyJhbGc...."                         # ← paste your anon key
+SUPABASE_URL = "https://nuysoriaairolvbvsnpa.supabase.co"   # ← paste your URL
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51eXNvcmlhYWlyb2x2YnZzbnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMjQ0NTUsImV4cCI6MjA4NjkwMDQ1NX0.eqC5zVOyWG0svGnB8I0-WyTS9AFfWEBDrYoMxjA5X0Q"                         # ← paste your anon key
 
 @st.cache_resource
 def init_supabase():
