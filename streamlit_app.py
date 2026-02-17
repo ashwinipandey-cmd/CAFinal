@@ -26,7 +26,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-EXCEL_FILE = r"C:\CAFinal\CA_Final_Tracker.xlsx"
+EXCEL_FILE = "CA_Final_Tracker.xlsx"
 EXAM_DATE  = date(2027, 1, 1)
 SUBJECTS   = ["FR", "AFM", "AA", "DT", "IDT"]
 SUBJ_FULL  = {
