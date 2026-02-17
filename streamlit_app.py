@@ -110,126 +110,90 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-/* ══ GLOBAL RESET & BASE ══ */
-*, *::before, *::after { box-sizing: border-box; }
-
+/* BASE */
 .stApp, [data-testid="stAppViewContainer"] {
     background: #0A1628 !important;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
-    color: #E2E8F0 !important;
 }
 
-/* ══ DEEP NAVY BLUE ANIMATED BACKGROUND ══ */
+/* BACKGROUND GLOW — pointer-events none so it never blocks clicks */
 [data-testid="stAppViewContainer"]::before {
     content: '';
-    position: fixed; inset: 0; z-index: 0;
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background:
-        radial-gradient(ellipse 100% 80% at -5% -5%,  rgba(59,130,246,0.22)  0%, transparent 50%),
-        radial-gradient(ellipse 80%  70% at 105% 105%, rgba(14,165,233,0.18)  0%, transparent 50%),
-        radial-gradient(ellipse 60%  50% at 50%  0%,   rgba(99,102,241,0.12)  0%, transparent 55%),
-        radial-gradient(ellipse 40%  40% at 80%  30%,  rgba(59,130,246,0.10)  0%, transparent 50%),
-        radial-gradient(ellipse 30%  30% at 20%  70%,  rgba(14,116,144,0.10)  0%, transparent 50%);
-    pointer-events: none;
-    animation: nebulaPulse 18s ease-in-out infinite alternate;
-}
-@keyframes nebulaPulse {
-    0%   { opacity: 0.85; transform: scale(1); }
-    50%  { opacity: 1;    transform: scale(1.02); }
-    100% { opacity: 0.9;  transform: scale(1); }
+        radial-gradient(ellipse 90% 70% at 0% 0%,   rgba(59,130,246,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 100% 100%,rgba(14,165,233,0.14) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 50% at 80% 20%,  rgba(99,102,241,0.10) 0%, transparent 50%);
 }
 
-/* Subtle dot-grid overlay */
-[data-testid="stAppViewContainer"]::after {
-    content: '';
-    position: fixed; inset: 0; z-index: 0;
-    background-image: radial-gradient(circle, rgba(59,130,246,0.12) 1px, transparent 1px);
-    background-size: 48px 48px;
-    pointer-events: none;
-}
-
-/* ══ SIDEBAR ══ */
+/* SIDEBAR */
 [data-testid="stSidebar"] {
-    background: rgba(10,22,40,0.95) !important;
+    background: rgba(8,18,36,0.97) !important;
     border-right: 1px solid rgba(59,130,246,0.18) !important;
-    backdrop-filter: blur(28px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+    backdrop-filter: blur(20px) !important;
 }
-[data-testid="stSidebar"] > div { padding-top: 0 !important; }
-[data-testid="stSidebar"] * { color: #CBD5E1 !important; }
-[data-testid="stSidebar"] .stRadio > div { gap: 3px !important; }
+
+/* ⚠️ DO NOT use * selector inside sidebar — it hides radio buttons
+   Only target text elements explicitly */
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown span,
+[data-testid="stSidebar"] .stCaption {
+    color: #94A3B8 !important;
+}
+
+/* Radio nav items */
 [data-testid="stSidebar"] .stRadio label {
-    background: transparent !important;
-    border-radius: 10px !important;
-    padding: 10px 14px !important;
-    transition: all 0.2s ease !important;
-    border: 1px solid transparent !important;
-    font-size: 13.5px !important;
-    font-weight: 500 !important;
+    border-radius: 8px !important;
+    padding: 9px 12px !important;
+    margin-bottom: 2px !important;
+    transition: background 0.15s ease !important;
     cursor: pointer !important;
     color: #94A3B8 !important;
-    display: flex !important;
-    align-items: center !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
 }
 [data-testid="stSidebar"] .stRadio label:hover {
-    background: rgba(59,130,246,0.10) !important;
-    border-color: rgba(59,130,246,0.20) !important;
+    background: rgba(59,130,246,0.12) !important;
     color: #E2E8F0 !important;
-    transform: translateX(3px) !important;
 }
-[data-testid="stSidebar"] .stRadio label[data-baseweb="radio"] {
+[data-testid="stSidebar"] .stRadio label[data-baseweb="radio"] p {
     color: #94A3B8 !important;
-}
-/* Selected radio item */
-[data-testid="stSidebar"] .stRadio [aria-checked="true"] + div,
-[data-testid="stSidebar"] .stRadio input:checked ~ div {
-    color: #60A5FA !important;
-}
-[data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p {
-    color: #94A3B8 !important;
-    font-size: 13.5px !important;
 }
 
-/* ══ METRIC CARDS — Glass KPI ══ */
+/* METRICS */
 div[data-testid="stMetric"] {
     background: rgba(14,42,86,0.50) !important;
     border: 1px solid rgba(59,130,246,0.20) !important;
     border-radius: 16px !important;
     padding: 20px 18px !important;
-    backdrop-filter: blur(24px) !important;
+    backdrop-filter: blur(20px) !important;
+    transition: transform 0.2s, box-shadow 0.2s !important;
     position: relative !important;
     overflow: hidden !important;
-    transition: all 0.25s cubic-bezier(0.4,0,0.2,1) !important;
 }
 div[data-testid="stMetric"]::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg,transparent,rgba(96,165,250,0.5),transparent);
-}
-div[data-testid="stMetric"]::after {
-    content: '';
-    position: absolute; bottom: 0; left: 10%; right: 10%; height: 2px;
-    background: linear-gradient(90deg,transparent,rgba(59,130,246,0.6),transparent);
-    opacity: 0; transition: opacity 0.3s;
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg,transparent,rgba(96,165,250,0.4),transparent);
+    pointer-events: none;
 }
 div[data-testid="stMetric"]:hover {
-    transform: translateY(-5px) !important;
-    box-shadow: 0 20px 60px rgba(29,78,216,0.3), 0 0 0 1px rgba(96,165,250,0.2) !important;
+    transform: translateY(-4px) !important;
+    box-shadow: 0 16px 48px rgba(29,78,216,0.25) !important;
     border-color: rgba(96,165,250,0.35) !important;
 }
-div[data-testid="stMetric"]:hover::after { opacity: 1; }
 div[data-testid="stMetricValue"] {
     font-family: 'Space Grotesk', sans-serif !important;
     font-size: 28px !important; font-weight: 700 !important;
-    color: #F1F5F9 !important; letter-spacing: -0.5px !important;
+    color: #F1F5F9 !important;
 }
 div[data-testid="stMetricLabel"] {
-    font-size: 10.5px !important; text-transform: uppercase !important;
-    letter-spacing: 1.2px !important; color: #64748B !important;
+    font-size: 11px !important; text-transform: uppercase !important;
+    letter-spacing: 1px !important; color: #64748B !important;
     font-weight: 600 !important;
 }
 div[data-testid="stMetricDelta"] { font-size: 11px !important; }
 
-/* ══ TYPOGRAPHY ══ */
+/* TYPOGRAPHY */
 h1, h2, h3 {
     font-family: 'Space Grotesk', sans-serif !important;
     color: #F1F5F9 !important; letter-spacing: -0.5px !important;
@@ -237,11 +201,9 @@ h1, h2, h3 {
 h1 { font-size: 26px !important; font-weight: 700 !important; }
 h2 { font-size: 18px !important; font-weight: 600 !important; }
 h3 { font-size: 15px !important; font-weight: 600 !important; }
-p, label, .stMarkdown p { color: #CBD5E1 !important; }
 
-/* ══ INPUTS ══ */
-.stTextInput input, .stSelectbox select,
-.stNumberInput input, .stTextArea textarea {
+/* INPUTS */
+.stTextInput input, .stNumberInput input, .stTextArea textarea {
     background: rgba(14,42,86,0.55) !important;
     border: 1px solid rgba(59,130,246,0.22) !important;
     border-radius: 10px !important; color: #F1F5F9 !important;
@@ -250,157 +212,137 @@ p, label, .stMarkdown p { color: #CBD5E1 !important; }
 }
 .stTextInput input:focus, .stTextArea textarea:focus {
     border-color: #3B82F6 !important;
-    background: rgba(29,78,216,0.12) !important;
     box-shadow: 0 0 0 3px rgba(59,130,246,0.18) !important;
-    outline: none !important;
 }
 .stTextInput label, .stSelectbox label,
 .stNumberInput label, .stTextArea label {
     font-size: 11px !important; text-transform: uppercase !important;
-    letter-spacing: 0.7px !important; color: #64748B !important;
+    letter-spacing: 0.6px !important; color: #64748B !important;
     font-weight: 600 !important;
 }
 
-/* ══ BUTTONS ══ */
-.stButton button {
-    background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 50%, #3B82F6 100%) !important;
+/* BUTTONS — only target main content buttons, NOT sidebar */
+section.main .stButton button,
+[data-testid="stVerticalBlock"] .stButton button {
+    background: linear-gradient(135deg, #1D4ED8, #3B82F6) !important;
     border: 1px solid rgba(96,165,250,0.3) !important;
-    border-radius: 10px !important; color: #FFFFFF !important;
+    border-radius: 10px !important; color: white !important;
     font-family: 'Space Grotesk', sans-serif !important;
     font-weight: 600 !important; font-size: 14px !important;
-    padding: 10px 22px !important; letter-spacing: 0.3px !important;
-    transition: all 0.2s cubic-bezier(0.4,0,0.2,1) !important;
-    box-shadow: 0 4px 20px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    transition: all 0.2s !important;
+    box-shadow: 0 4px 20px rgba(37,99,235,0.3) !important;
 }
-.stButton button:hover {
+section.main .stButton button:hover,
+[data-testid="stVerticalBlock"] .stButton button:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 10px 36px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.15) !important;
-    background: linear-gradient(135deg, #2563EB 0%, #3B82F6 50%, #60A5FA 100%) !important;
+    box-shadow: 0 8px 28px rgba(37,99,235,0.45) !important;
 }
-.stButton button:active { transform: translateY(0) !important; }
 
-/* ══ FORMS ══ */
+/* SIDEBAR LOGOUT BUTTON */
+[data-testid="stSidebar"] .stButton button {
+    background: rgba(239,68,68,0.15) !important;
+    border: 1px solid rgba(239,68,68,0.3) !important;
+    color: #FCA5A5 !important;
+    box-shadow: none !important;
+    font-weight: 500 !important;
+}
+[data-testid="stSidebar"] .stButton button:hover {
+    background: rgba(239,68,68,0.25) !important;
+    transform: none !important;
+}
+
+/* FORMS */
 .stForm {
     background: rgba(14,42,86,0.40) !important;
     border: 1px solid rgba(59,130,246,0.20) !important;
-    border-radius: 18px !important;
-    backdrop-filter: blur(24px) !important;
-    padding: 28px !important;
-    position: relative !important; overflow: hidden !important;
-}
-.stForm::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg,transparent,rgba(96,165,250,0.4),transparent);
+    border-radius: 16px !important;
+    padding: 24px !important;
 }
 
-/* ══ TABS ══ */
+/* TABS */
 .stTabs [data-baseweb="tab-list"] {
     background: rgba(14,42,86,0.45) !important;
-    border-radius: 12px !important; padding: 4px !important;
-    gap: 4px !important; border: 1px solid rgba(59,130,246,0.18) !important;
+    border-radius: 10px !important; padding: 3px !important;
+    gap: 3px !important; border: 1px solid rgba(59,130,246,0.18) !important;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 9px !important; color: #64748B !important;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
-    font-size: 13px !important; padding: 8px 18px !important;
-    transition: all 0.2s !important; font-weight: 500 !important;
+    border-radius: 8px !important; color: #64748B !important;
+    font-size: 13px !important; padding: 8px 16px !important;
+    font-weight: 500 !important;
 }
 .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg,rgba(29,78,216,0.55),rgba(37,99,235,0.35)) !important;
+    background: linear-gradient(135deg,rgba(29,78,216,0.5),rgba(37,99,235,0.3)) !important;
     color: #F1F5F9 !important; font-weight: 600 !important;
-    box-shadow: 0 2px 12px rgba(29,78,216,0.25), inset 0 1px 0 rgba(255,255,255,0.08) !important;
 }
 
-/* ══ PROGRESS BARS ══ */
+/* PROGRESS */
 .stProgress > div > div {
     background: rgba(29,78,216,0.12) !important;
     border-radius: 6px !important; height: 6px !important;
 }
 .stProgress > div > div > div {
-    background: linear-gradient(90deg, #1D4ED8, #60A5FA) !important;
+    background: linear-gradient(90deg,#1D4ED8,#60A5FA) !important;
     border-radius: 6px !important;
-    box-shadow: 0 0 10px rgba(96,165,250,0.5) !important;
 }
 
-/* ══ DATAFRAME ══ */
+/* DATAFRAME */
 .stDataFrame {
     border-radius: 12px !important; overflow: hidden !important;
     border: 1px solid rgba(59,130,246,0.18) !important;
 }
-.stDataFrame [data-testid="stDataFrameResizable"] {
-    background: rgba(14,42,86,0.35) !important;
-}
 
-/* ══ ALERTS ══ */
-div[data-testid="stAlert"] {
-    border-radius: 10px !important; border-width: 1px !important;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
-}
+/* ALERTS */
 .stSuccess {
     background: rgba(16,185,129,0.10) !important;
-    border-color: rgba(16,185,129,0.30) !important;
+    border: 1px solid rgba(16,185,129,0.28) !important;
+    border-radius: 10px !important;
 }
 .stError {
     background: rgba(239,68,68,0.09) !important;
-    border-color: rgba(239,68,68,0.28) !important;
+    border: 1px solid rgba(239,68,68,0.28) !important;
+    border-radius: 10px !important;
 }
 .stInfo {
     background: rgba(59,130,246,0.09) !important;
-    border-color: rgba(59,130,246,0.28) !important;
+    border: 1px solid rgba(59,130,246,0.28) !important;
+    border-radius: 10px !important;
 }
 .stWarning {
     background: rgba(245,158,11,0.09) !important;
-    border-color: rgba(245,158,11,0.28) !important;
+    border: 1px solid rgba(245,158,11,0.28) !important;
+    border-radius: 10px !important;
 }
 
-/* ══ MULTISELECT TAGS ══ */
+/* MULTISELECT */
 .stMultiSelect [data-baseweb="tag"] {
-    background: rgba(29,78,216,0.28) !important;
-    border-radius: 6px !important;
-    border: 1px solid rgba(59,130,246,0.40) !important;
-    color: #93C5FD !important;
+    background: rgba(29,78,216,0.25) !important;
+    border: 1px solid rgba(59,130,246,0.35) !important;
+    color: #93C5FD !important; border-radius: 6px !important;
 }
 
-/* ══ SELECT SLIDER ══ */
-.stSelectSlider [data-baseweb="slider"] div {
-    background: linear-gradient(90deg,#1D4ED8,#60A5FA) !important;
-}
-
-/* ══ DIVIDER ══ */
-hr { border-color: rgba(59,130,246,0.15) !important; margin: 22px 0 !important; }
-
-/* ══ SCROLLBAR ══ */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.25); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,0.45); }
-
-/* ══ SPINNER ══ */
-.stSpinner > div { border-top-color: #3B82F6 !important; }
-
-/* ══ CAPTION ══ */
-.stCaption { color: #64748B !important; font-size: 11.5px !important; }
-
-/* ══ DATE INPUT ══ */
+/* DATE INPUT */
 .stDateInput input {
     background: rgba(14,42,86,0.55) !important;
     border: 1px solid rgba(59,130,246,0.22) !important;
     border-radius: 10px !important; color: #F1F5F9 !important;
 }
 
-/* ══ NUMBER INPUT BUTTONS ══ */
-.stNumberInput button {
-    background: rgba(29,78,216,0.3) !important;
-    border-color: rgba(59,130,246,0.25) !important;
-    box-shadow: none !important; padding: 6px !important;
-    transform: none !important;
-}
+/* DIVIDER */
+hr { border-color: rgba(59,130,246,0.15) !important; margin: 20px 0 !important; }
 
-/* ══ HIDE STREAMLIT CHROME ══ */
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,0.4); }
+
+/* CAPTION */
+.stCaption { color: #64748B !important; font-size: 11.5px !important; }
+
+/* HIDE BRANDING */
 #MainMenu { visibility: hidden; }
 footer    { visibility: hidden; }
 header    { visibility: hidden; }
-[data-testid="stToolbar"] { display: none; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -663,50 +605,27 @@ def auth_page():
                     else:  st.error(msg)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SIDEBAR — Professional Navy
+# SIDEBAR — Professional Navy (NO HTML around radio)
 # ══════════════════════════════════════════════════════════════════════════════
 def render_sidebar():
-    prof      = st.session_state.profile
-    name      = prof.get("full_name","Student")
-    uname     = prof.get("username","")
-    initials  = "".join([w[0].upper() for w in name.split()[:2]])
-    exam      = get_exam_date()
-    days_left = max((exam-date.today()).days,0)
-    exam_m    = prof.get("exam_month","—")
-    exam_y    = prof.get("exam_year","—")
+    prof          = st.session_state.profile
+    name          = prof.get("full_name","Student")
+    uname         = prof.get("username","")
+    initials      = "".join([w[0].upper() for w in name.split()[:2]])
+    exam          = get_exam_date()
+    days_left     = max((exam-date.today()).days,0)
+    exam_m        = prof.get("exam_month","—")
+    exam_y        = prof.get("exam_year","—")
     countdown_pct = max(0,min(100,int((1-days_left/500)*100)))
 
     with st.sidebar:
-        # Brand header
-        st.markdown(f"""
-        <div style='padding:24px 16px 20px;
-                    border-bottom:1px solid rgba(59,130,246,0.12);
-                    margin-bottom:12px'>
-            <div style='display:flex;align-items:center;gap:12px'>
-                <div style='width:40px;height:40px;
-                            background:linear-gradient(135deg,#1D4ED8,#3B82F6);
-                            border-radius:12px;display:flex;align-items:center;
-                            justify-content:center;font-size:20px;
-                            box-shadow:0 4px 16px rgba(29,78,216,0.45),
-                                       inset 0 1px 0 rgba(255,255,255,0.1)'>🎓</div>
-                <div>
-                    <p style='font-family:Space Grotesk,sans-serif;font-size:16px;
-                               font-weight:700;color:#F1F5F9;margin:0;
-                               letter-spacing:-0.3px'>CA Final</p>
-                    <p style='font-size:9.5px;color:#3B82F6;margin:0;
-                               font-weight:700;letter-spacing:2px'>TRACKER</p>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
 
-        # Navigation
-        st.markdown("""
-        <p style='font-size:10px;font-weight:700;color:#334155;
-                  text-transform:uppercase;letter-spacing:1.2px;
-                  margin:0 0 8px 14px'>Navigation</p>
-        """, unsafe_allow_html=True)
+        # ── Logo (pure st — no HTML div covering nav)
+        st.markdown("## 🎓 CA Final")
+        st.caption("TRACKER")
+        st.markdown("---")
 
+        # ── Navigation — pure Streamlit radio, NO HTML around it
         page = st.radio(
             "Navigation",
             options=[
@@ -721,57 +640,39 @@ def render_sidebar():
             label_visibility="collapsed"
         )
 
-        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        st.markdown("---")
 
-        # Exam countdown card
-        st.markdown(f"""
-        <div style='margin:0 4px 14px;
-                    background:linear-gradient(135deg,rgba(29,78,216,0.28),rgba(7,89,133,0.18));
-                    border:1px solid rgba(59,130,246,0.28);
-                    border-radius:14px;padding:16px;position:relative;overflow:hidden'>
-            <div style='position:absolute;top:0;left:0;right:0;height:1px;
-                        background:linear-gradient(90deg,transparent,
-                        rgba(96,165,250,0.5),transparent)'></div>
-            <p style='font-size:10px;font-weight:700;color:#64748B;
-                      text-transform:uppercase;letter-spacing:1.2px;margin:0 0 8px'>
-                ⏳ Days to Exam</p>
-            <p style='font-family:Space Grotesk,sans-serif;font-size:34px;
-                      font-weight:800;color:#60A5FA;margin:0;letter-spacing:-1.5px;
-                      text-shadow:0 0 24px rgba(96,165,250,0.35)'>{days_left}</p>
-            <p style='font-size:11.5px;color:#475569;margin:5px 0 12px;font-weight:500'>
-                {exam_m} {exam_y}</p>
-            <div style='height:4px;background:rgba(59,130,246,0.10);
-                        border-radius:4px;overflow:hidden'>
-                <div style='width:{countdown_pct}%;height:100%;border-radius:4px;
-                            background:linear-gradient(90deg,#1D4ED8,#60A5FA);
-                            box-shadow:0 0 10px rgba(96,165,250,0.4)'></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # ── Exam countdown card (HTML safe — below radio)
+        st.markdown(
+            f"<div style='background:rgba(29,78,216,0.2);border:1px solid "
+            f"rgba(59,130,246,0.25);border-radius:12px;padding:14px;margin-bottom:12px'>"
+            f"<p style='font-size:10px;font-weight:700;color:#64748B;"
+            f"text-transform:uppercase;letter-spacing:1px;margin:0 0 4px'>⏳ Days to Exam</p>"
+            f"<p style='font-family:Space Grotesk,sans-serif;font-size:30px;"
+            f"font-weight:800;color:#60A5FA;margin:0'>{days_left}</p>"
+            f"<p style='font-size:11px;color:#475569;margin:4px 0 10px'>{exam_m} {exam_y}</p>"
+            f"<div style='height:4px;background:rgba(59,130,246,0.10);border-radius:4px;overflow:hidden'>"
+            f"<div style='width:{countdown_pct}%;height:100%;border-radius:4px;"
+            f"background:linear-gradient(90deg,#1D4ED8,#60A5FA)'></div></div></div>",
+            unsafe_allow_html=True
+        )
 
-        # User card
-        st.markdown(f"""
-        <div style='margin:0 4px;padding:12px;
-                    background:rgba(14,42,86,0.35);
-                    border:1px solid rgba(59,130,246,0.14);
-                    border-radius:12px;
-                    display:flex;align-items:center;gap:10px'>
-            <div style='width:38px;height:38px;flex-shrink:0;
-                        background:linear-gradient(135deg,#1D4ED8,#0891B2);
-                        border-radius:50%;display:flex;align-items:center;
-                        justify-content:center;font-size:14px;font-weight:700;
-                        color:white;box-shadow:0 0 14px rgba(29,78,216,0.35)'>
-                {initials}</div>
-            <div style='min-width:0'>
-                <p style='font-size:13.5px;font-weight:600;color:#F1F5F9;
-                          margin:0;white-space:nowrap;overflow:hidden;
-                          text-overflow:ellipsis'>{name}</p>
-                <p style='font-size:11px;color:#64748B;margin:0'>@{uname}</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # ── User card (HTML safe — below radio)
+        st.markdown(
+            f"<div style='background:rgba(14,42,86,0.35);border:1px solid "
+            f"rgba(59,130,246,0.14);border-radius:12px;padding:12px;"
+            f"display:flex;align-items:center;gap:10px'>"
+            f"<div style='width:36px;height:36px;flex-shrink:0;"
+            f"background:linear-gradient(135deg,#1D4ED8,#0891B2);"
+            f"border-radius:50%;display:flex;align-items:center;"
+            f"justify-content:center;font-size:13px;font-weight:700;color:white'>"
+            f"{initials}</div>"
+            f"<div><p style='font-size:13px;font-weight:600;color:#F1F5F9;margin:0'>{name}</p>"
+            f"<p style='font-size:11px;color:#64748B;margin:0'>@{uname}</p></div></div>",
+            unsafe_allow_html=True
+        )
 
-        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        st.markdown("")
         if st.button("🚪 Logout", use_container_width=True):
             do_logout()
 
