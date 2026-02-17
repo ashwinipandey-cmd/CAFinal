@@ -379,7 +379,7 @@ def dashboard():
     log = get_logs()
     tst = get_scores()
     rev = get_revision()
-    days_left = max((EXAM_DATE - date.today()).days, 0)
+    days_left = max((get_exam_date() - date.today()).days, 0)
 
     total_hrs = log["hours"].sum() if not log.empty else 0
     avg_score = tst["score_pct"].mean() if not tst.empty else 0
