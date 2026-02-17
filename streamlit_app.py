@@ -1,7 +1,6 @@
 """
-CA Final Dashboard — Streamlit Version
-Install: pip install streamlit plotly pandas openpyxl
-Run:     streamlit run streamlit_app.py
+CA Final Tracker — Multi User Version
+Powered by Supabase + Streamlit
 """
 
 import streamlit as st
@@ -9,24 +8,31 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from datetime import date, timedelta, datetime
-import openpyxl
-from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.datavalidation import DataValidation
-import os
+from datetime import date, timedelta
+from supabase import create_client, Client
 import warnings
 warnings.filterwarnings("ignore")
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="CA Final Dashboard",
+    page_title="CA Final Tracker",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-EXCEL_FILE = "CA_Final_Tracker.xlsx"
+# ── SUPABASE SETUP ────────────────────────────────────────────────────────────
+# Replace with your actual keys from Supabase dashboard
+SUPABASE_URL = "https://xxxxxxxxxxxx.supabase.co"   # ← paste your URL
+SUPABASE_KEY = "eyJhbGc...."                         # ← paste your anon key
+
+@st.cache_resource
+def init_supabase():
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+supabase: Client = init_supabase()
+
+# ── CONSTANTS ─────────────────────────────────────────────────────────────────
 EXAM_DATE  = date(2027, 1, 1)
 SUBJECTS   = ["FR", "AFM", "AA", "DT", "IDT"]
 SUBJ_FULL  = {
@@ -36,8 +42,9 @@ SUBJ_FULL  = {
     "DT" : "Direct Tax & Int'l Tax",
     "IDT": "Indirect Tax"
 }
-TARGET_HRS = {"FR": 200, "AFM": 160, "AA": 150, "DT": 200, "IDT": 180}
-COLORS     = {"FR":"#7C3AED","AFM":"#10B981","AA":"#F59E0B","DT":"#EF4444","IDT":"#3B82F6"}
+TARGET_HRS = {"FR":200,"AFM":160,"AA":150,"DT":200,"IDT":180}
+COLORS     = {"FR":"#7C3AED","AFM":"#10B981","AA":"#F59E0B",
+              "DT":"#EF4444","IDT":"#3B82F6"}
 
 TOPICS = {
 "FR":["Ind AS 1 – Presentation of FS","Ind AS 2 – Inventories",
@@ -100,487 +107,572 @@ TOPICS = {
 # ── CUSTOM CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    .main { background-color: #1E1E2E; }
-    .stApp { background-color: #1E1E2E; }
-    [data-testid="stSidebar"] { background-color: #2D2D3F; }
-    .metric-card {
-        background: #2D2D3F;
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin: 4px;
-        border-left: 4px solid;
-    }
-    .success-msg {
-        background: #064E3B;
-        color: #6EE7B7;
-        padding: 10px 16px;
-        border-radius: 8px;
-        margin: 8px 0;
-    }
-    div[data-testid="stMetric"] {
-        background: #2D2D3F;
-        border-radius: 12px;
-        padding: 12px 16px;
-    }
-    .stSelectbox > div, .stNumberInput > div {
-        background: #2D2D3F !important;
-    }
-    h1,h2,h3,p,label { color: #E2E8F0 !important; }
-    .stTabs [data-baseweb="tab"] { color: #94A3B8; }
-    .stTabs [aria-selected="true"] { color: #7C3AED !important; }
+  .stApp { background-color: #1E1E2E; }
+  [data-testid="stSidebar"] { background-color: #2D2D3F; }
+  div[data-testid="stMetric"] {
+      background:#2D2D3F; border-radius:12px; padding:12px 16px;
+  }
+  h1,h2,h3,p,label,.stMarkdown { color: #E2E8F0 !important; }
+  .stTabs [aria-selected="true"] { color: #7C3AED !important; }
+  .rank-card {
+      background:#2D2D3F; border-radius:12px;
+      padding:14px 18px; margin:6px 0;
+      border-left:4px solid #7C3AED;
+  }
 </style>
 """, unsafe_allow_html=True)
 
-# ── DATA LOADER ───────────────────────────────────────────────────────────────
-@st.cache_data(ttl=30)
-def load_data():
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTH FUNCTIONS
+# ══════════════════════════════════════════════════════════════════════════════
+def sign_up(email, password, username, full_name):
     try:
-        log = pd.read_excel(EXCEL_FILE, sheet_name="Daily_Log",        header=1)
-        rev = pd.read_excel(EXCEL_FILE, sheet_name="Revision_Tracker", header=1)
-        tst = pd.read_excel(EXCEL_FILE, sheet_name="Test_Scores",      header=1)
-        top = pd.read_excel(EXCEL_FILE, sheet_name="Topics_Master",    header=1)
+        res = supabase.auth.sign_up({"email": email, "password": password})
+        if res.user:
+            supabase.table("profiles").insert({
+                "id":        res.user.id,
+                "username":  username,
+                "full_name": full_name
+            }).execute()
+            # Pre-fill revision tracker for new user
+            rows = []
+            for subj, topics in TOPICS.items():
+                for topic in topics:
+                    rows.append({
+                        "user_id": res.user.id,
+                        "subject": subj,
+                        "topic":   topic
+                    })
+            supabase.table("revision_tracker").insert(rows).execute()
+            return True, "✅ Account created! Please verify your email then log in."
+        return False, "Signup failed"
     except Exception as e:
-        return None, None, None, None, str(e)
+        return False, str(e)
 
-    # Clean Daily Log
-    log.columns = [str(c).strip() for c in log.columns]
-    log = log.dropna(subset=["Date","Subject","Hours"])
-    log["Date"]    = pd.to_datetime(log["Date"], errors="coerce")
-    log["Hours"]   = pd.to_numeric(log["Hours"], errors="coerce").fillna(0)
-    log["Subject"] = log["Subject"].astype(str).str.strip().str.upper()
-    log = log[log["Subject"].isin(SUBJECTS)]
-
-    # Clean Test Scores
-    tst.columns  = [str(c).strip() for c in tst.columns]
-    tst = tst.dropna(subset=["Marks","Max Marks"])
-    tst["Marks"]     = pd.to_numeric(tst["Marks"],      errors="coerce")
-    tst["Max Marks"] = pd.to_numeric(tst["Max Marks"],  errors="coerce")
-    tst["Score %"]   = (tst["Marks"]/tst["Max Marks"]*100).round(1)
-    tst["Date"]      = pd.to_datetime(tst["Date"],      errors="coerce")
-    tst["Subject"]   = tst["Subject"].astype(str).str.strip().str.upper()
-
-    # Clean Revision
-    rev.columns  = [str(c).strip() for c in rev.columns]
-    rev["Subject"] = rev["Subject"].astype(str).str.strip().str.upper()
-
-    return log, rev, tst, top, None
-
-# ── EXCEL WRITER ──────────────────────────────────────────────────────────────
-def append_to_excel(sheet_name, row_data):
-    """Append a row to the specified sheet"""
+def sign_in(email, password):
     try:
-        wb = openpyxl.load_workbook(EXCEL_FILE)
-        ws = wb[sheet_name]
-        # Find next empty row (skip header rows)
-        next_row = ws.max_row + 1
-        for col, val in enumerate(row_data, 1):
-            ws.cell(row=next_row, column=col, value=val)
-        wb.save(EXCEL_FILE)
-        return True, "✅ Saved successfully!"
+        res = supabase.auth.sign_in_with_password(
+            {"email": email, "password": password}
+        )
+        if res.user:
+            profile = supabase.table("profiles")\
+                .select("*").eq("id", res.user.id).execute()
+            return True, res.user, profile.data[0] if profile.data else {}
+        return False, None, {}
     except Exception as e:
-        return False, f"❌ Error: {e}"
+        return False, None, str(e)
 
-def update_revision(subject, topic, field, value):
-    """Update a specific cell in revision tracker"""
+def sign_out():
+    supabase.auth.sign_out()
+    for key in ["user","profile","logged_in"]:
+        st.session_state.pop(key, None)
+    st.rerun()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DATA FUNCTIONS
+# ══════════════════════════════════════════════════════════════════════════════
+def get_user_id():
+    return st.session_state.get("user").id
+
+def load_logs():
     try:
-        wb = openpyxl.load_workbook(EXCEL_FILE)
-        ws = wb["Revision_Tracker"]
-        col_map = {
-            "1st Read": 3, "R1 Date": 4,
-            "R2 Date": 5, "R3 Date": 6,
-            "Confidence(1-5)": 7, "Due Revision": 8, "Notes": 9
-        }
-        col = col_map.get(field)
-        if not col:
-            return False, "Invalid field"
-        for row in range(3, ws.max_row + 1):
-            s = str(ws.cell(row=row, column=1).value).strip().upper()
-            t = str(ws.cell(row=row, column=2).value).strip()
-            if s == subject.upper() and t == topic:
-                ws.cell(row=row, column=col).value = value
-                wb.save(EXCEL_FILE)
-                return True, "✅ Revision updated!"
-        return False, "❌ Topic not found"
-    except Exception as e:
-        return False, f"❌ Error: {e}"
+        res = supabase.table("daily_log")\
+            .select("*").eq("user_id", get_user_id())\
+            .order("date", desc=True).execute()
+        df = pd.DataFrame(res.data)
+        if not df.empty:
+            df["date"]  = pd.to_datetime(df["date"])
+            df["hours"] = pd.to_numeric(df["hours"])
+        return df
+    except: return pd.DataFrame()
 
-# ── SIDEBAR ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("## 🎓 CA Final Tracker")
-    st.markdown("---")
-    page = st.radio("Navigate", [
-        "📊 Dashboard",
-        "📝 Log Today's Study",
-        "🏆 Add Test Score",
-        "🔄 Update Revision",
-        "📋 View All Data"
-    ], label_visibility="collapsed")
-    st.markdown("---")
+def load_scores():
+    try:
+        res = supabase.table("test_scores")\
+            .select("*").eq("user_id", get_user_id())\
+            .order("date", desc=True).execute()
+        df = pd.DataFrame(res.data)
+        if not df.empty:
+            df["date"]      = pd.to_datetime(df["date"])
+            df["score_pct"] = pd.to_numeric(df["score_pct"])
+        return df
+    except: return pd.DataFrame()
+
+def load_revision():
+    try:
+        res = supabase.table("revision_tracker")\
+            .select("*").eq("user_id", get_user_id()).execute()
+        return pd.DataFrame(res.data)
+    except: return pd.DataFrame()
+
+def load_leaderboard():
+    try:
+        res = supabase.table("leaderboard").select("*").execute()
+        return pd.DataFrame(res.data)
+    except: return pd.DataFrame()
+
+def save_log(data):
+    try:
+        data["user_id"] = get_user_id()
+        supabase.table("daily_log").insert(data).execute()
+        return True, "✅ Study session saved!"
+    except Exception as e:
+        return False, f"❌ {e}"
+
+def save_score(data):
+    try:
+        data["user_id"] = get_user_id()
+        supabase.table("test_scores").insert(data).execute()
+        return True, "✅ Test score saved!"
+    except Exception as e:
+        return False, f"❌ {e}"
+
+def save_revision(subject, topic, field, value):
+    try:
+        supabase.table("revision_tracker")\
+            .update({field: value})\
+            .eq("user_id", get_user_id())\
+            .eq("subject", subject)\
+            .eq("topic",   topic).execute()
+        return True, "✅ Revision updated!"
+    except Exception as e:
+        return False, f"❌ {e}"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LOGIN / SIGNUP PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+def show_auth_page():
+    st.markdown("""
+    <div style='text-align:center; padding:40px 0 20px'>
+        <h1 style='color:#7C3AED; font-size:48px'>🎓</h1>
+        <h1 style='color:#E2E8F0'>CA Final Tracker</h1>
+        <p style='color:#94A3B8'>Track your preparation. Ace the exam.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
+
+    with tab1:
+        with st.form("login_form"):
+            st.subheader("Welcome Back!")
+            email    = st.text_input("📧 Email")
+            password = st.text_input("🔒 Password", type="password")
+            submit   = st.form_submit_button("Login →", use_container_width=True)
+            if submit:
+                ok, user, profile = sign_in(email, password)
+                if ok:
+                    st.session_state["logged_in"] = True
+                    st.session_state["user"]       = user
+                    st.session_state["profile"]    = profile
+                    st.success(f"Welcome back, {profile.get('full_name','!')} 🎉")
+                    st.rerun()
+                else:
+                    st.error(f"Login failed: {profile}")
+
+    with tab2:
+        with st.form("signup_form"):
+            st.subheader("Create Your Account")
+            c1, c2   = st.columns(2)
+            full_name= c1.text_input("👤 Full Name")
+            username = c2.text_input("🏷️ Username (public)")
+            email    = st.text_input("📧 Email")
+            password = st.text_input("🔒 Password (min 6 chars)", type="password")
+            submit   = st.form_submit_button("Create Account →",
+                                             use_container_width=True)
+            if submit:
+                if len(password) < 6:
+                    st.error("Password must be at least 6 characters")
+                elif not username or not full_name:
+                    st.error("Please fill all fields")
+                else:
+                    ok, msg = sign_up(email, password, username, full_name)
+                    st.success(msg) if ok else st.error(msg)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN APP (after login)
+# ══════════════════════════════════════════════════════════════════════════════
+def show_main_app():
+    profile = st.session_state.get("profile", {})
+    name    = profile.get("full_name", "Student")
+
+    # ── SIDEBAR
+    with st.sidebar:
+        st.markdown(f"### 👋 Hello, {name}!")
+        st.caption(f"@{profile.get('username','')}")
+        st.markdown("---")
+        page = st.radio("Navigate", [
+            "📊 My Dashboard",
+            "📝 Log Study",
+            "🏆 Add Test Score",
+            "🔄 Update Revision",
+            "📋 My Data",
+            "🥇 Leaderboard"
+        ], label_visibility="collapsed")
+        st.markdown("---")
+        days_left = max((EXAM_DATE - date.today()).days, 0)
+        st.markdown(f"### ⏳ {days_left} days left")
+        st.progress(max(0, min(1, 1 - days_left/365)))
+        st.caption("CA Final — Jan 2027")
+        st.markdown("---")
+        if st.button("🚪 Logout", use_container_width=True):
+            sign_out()
+
+    # ── PAGE ROUTING
+    if   page == "📊 My Dashboard":   show_dashboard()
+    elif page == "📝 Log Study":       show_log_study()
+    elif page == "🏆 Add Test Score":  show_add_score()
+    elif page == "🔄 Update Revision": show_revision()
+    elif page == "📋 My Data":         show_my_data()
+    elif page == "🥇 Leaderboard":     show_leaderboard()
+
+# ── DASHBOARD PAGE ────────────────────────────────────────────────────────────
+def show_dashboard():
+    st.title("📊 My Performance Dashboard")
+    log = load_logs(); tst = load_scores(); rev = load_revision()
     days_left = max((EXAM_DATE - date.today()).days, 0)
-    st.markdown(f"### ⏳ {days_left} days to exam")
-    progress = max(0, min(1, 1 - days_left/365))
-    st.progress(progress)
-    st.caption(f"Exam: January 2027")
-    st.markdown("---")
-    if st.button("🔄 Refresh Data"):
-        st.cache_data.clear()
-        st.rerun()
 
-# ── LOAD DATA ─────────────────────────────────────────────────────────────────
-log, rev, tst, top, err = load_data()
+    # KPIs
+    total_hrs = log["hours"].sum() if not log.empty else 0
+    avg_score = tst["score_pct"].mean() if not tst.empty else 0
+    sh   = log.groupby("subject")["hours"].sum() if not log.empty else pd.Series()
+    need = max(sum(TARGET_HRS.values()) - total_hrs, 0)
+    dpd  = round(need/days_left, 1) if days_left > 0 else 0
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE 1 — DASHBOARD
-# ══════════════════════════════════════════════════════════════════════════════
-if page == "📊 Dashboard":
-    st.title("📊 CA Final — Performance Dashboard")
-
-    if err:
-        st.error(f"Could not load Excel file: {err}")
-        st.info("Make sure CA_Final_Tracker.xlsx exists. Run build_tracker.py first.")
-        st.stop()
-
-    # ── KPI Row
-    total_hrs = log["Hours"].sum() if log is not None else 0
-    total_tgt = sum(TARGET_HRS.values())
-    avg_score = tst["Score %"].mean() if tst is not None and not tst.empty else 0
-    sh = log.groupby("Subject")["Hours"].sum() if log is not None else pd.Series()
-    need = max(total_tgt - total_hrs, 0)
-    dpd  = round(need / days_left, 1) if days_left > 0 else 0
-
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("⏳ Days Left",       f"{days_left}",       "to Jan 2027")
-    c2.metric("📚 Total Hours",     f"{total_hrs:.0f}h",  f"{dpd}h/day needed")
-    c3.metric("🎯 Avg Test Score",  f"{avg_score:.1f}%",  "Target: 60%+")
-    c4.metric("📈 Sessions Logged", f"{len(log)}",        "total sessions")
-    c5.metric("✅ Target Hours",    f"{total_tgt}h",      f"{total_hrs:.0f}h done")
+    c1,c2,c3,c4,c5 = st.columns(5)
+    c1.metric("⏳ Days Left",      f"{days_left}",      "to exam")
+    c2.metric("📚 Hours Studied",  f"{total_hrs:.0f}h", f"{dpd}h/day needed")
+    c3.metric("🎯 Avg Score",      f"{avg_score:.1f}%", "Target 60%+")
+    c4.metric("📅 Days Studied",
+              f"{log['date'].dt.date.nunique() if not log.empty else 0}",
+              "unique days")
+    c5.metric("📝 Tests Taken",    f"{len(tst)}",       "total tests")
 
     st.markdown("---")
 
-    # ── Subject Progress Bars
-    st.subheader("📚 Subject Progress")
+    # Subject progress
+    st.subheader("📚 Subject-wise Progress")
     cols = st.columns(5)
     for i, s in enumerate(SUBJECTS):
-        done = sh.get(s, 0)
+        done = float(sh.get(s, 0))
         tgt  = TARGET_HRS[s]
         pct  = min(done/tgt*100, 100)
         with cols[i]:
             st.markdown(f"**{s}**")
             st.progress(int(pct))
-            st.caption(f"{done:.0f}h / {tgt}h ({pct:.0f}%)")
+            st.caption(f"{done:.0f}h/{tgt}h ({pct:.0f}%)")
 
     st.markdown("---")
 
-    # ── Charts Row 1
-    col1, col2 = st.columns([2, 1])
-
+    # Charts
+    col1, col2 = st.columns([2,1])
     with col1:
-        # Daily hours stacked bar (last 30 days)
-        end   = date.today()
-        start = end - timedelta(days=29)
-        daily = log[log["Date"].dt.date >= start].copy()
-        if not daily.empty:
-            daily_grp = daily.groupby([daily["Date"].dt.date, "Subject"])["Hours"].sum().reset_index()
-            daily_grp.columns = ["Date","Subject","Hours"]
-            fig = px.bar(daily_grp, x="Date", y="Hours", color="Subject",
-                         color_discrete_map=COLORS, barmode="stack",
-                         title="📆 Daily Study Hours — Last 30 Days")
-            fig.add_hline(y=6, line_dash="dash", line_color="#F59E0B",
-                          annotation_text="6h target")
-            fig.update_layout(paper_bgcolor="#2D2D3F", plot_bgcolor="#2D2D3F",
-                              font_color="#E2E8F0", legend=dict(bgcolor="#2D2D3F"))
-            st.plotly_chart(fig, use_container_width=True)
+        if not log.empty:
+            start = date.today() - timedelta(days=29)
+            d30   = log[log["date"].dt.date >= start]
+            if not d30.empty:
+                grp = d30.groupby([d30["date"].dt.date,"subject"])["hours"]\
+                         .sum().reset_index()
+                grp.columns = ["Date","Subject","Hours"]
+                fig = px.bar(grp, x="Date", y="Hours", color="Subject",
+                             color_discrete_map=COLORS, barmode="stack",
+                             title="📆 Daily Study Hours — Last 30 Days")
+                fig.add_hline(y=6, line_dash="dash", line_color="#F59E0B",
+                              annotation_text="6h target")
+                fig.update_layout(paper_bgcolor="#2D2D3F",
+                                  plot_bgcolor="#2D2D3F", font_color="#E2E8F0")
+                st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        # Subject hours vs target
-        sh_df = pd.DataFrame({
-            "Subject": SUBJECTS,
-            "Done":    [sh.get(s,0) for s in SUBJECTS],
-            "Target":  [TARGET_HRS[s] for s in SUBJECTS]
-        })
         fig2 = go.Figure()
-        for _, row in sh_df.iterrows():
-            pct = min(row["Done"]/row["Target"]*100,100)
+        for s in SUBJECTS:
+            done = float(sh.get(s,0))
             fig2.add_trace(go.Bar(
-                x=[row["Done"]], y=[SUBJ_FULL[row["Subject"]]],
-                orientation="h", name=row["Subject"],
-                marker_color=COLORS[row["Subject"]],
-                text=f"{row['Done']:.0f}h/{row['Target']}h",
+                x=[done], y=[SUBJ_FULL[s]], orientation="h",
+                name=s, marker_color=COLORS[s],
+                text=f"{done:.0f}h/{TARGET_HRS[s]}h",
                 textposition="inside", showlegend=False
             ))
         fig2.update_layout(title="🎯 Hours vs Target",
                            paper_bgcolor="#2D2D3F", plot_bgcolor="#2D2D3F",
                            font_color="#E2E8F0",
-                           xaxis=dict(range=[0, max(TARGET_HRS.values())+20]))
+                           xaxis=dict(range=[0,210]))
         st.plotly_chart(fig2, use_container_width=True)
 
-    # ── Charts Row 2
-    col3, col4 = st.columns([2,1])
-
-    with col3:
-        if tst is not None and not tst.empty:
-            tst_s = tst.sort_values("Date")
-            fig3  = go.Figure()
+    # Score trend
+    if not tst.empty:
+        col3, col4 = st.columns([2,1])
+        with col3:
+            fig3 = go.Figure()
             for s in SUBJECTS:
-                df = tst_s[tst_s["Subject"]==s]
+                df = tst[tst["subject"]==s].sort_values("date")
                 if df.empty: continue
                 fig3.add_trace(go.Scatter(
-                    x=df["Date"], y=df["Score %"],
-                    name=SUBJ_FULL.get(s,s), mode="lines+markers",
-                    line=dict(color=COLORS[s], width=2), marker=dict(size=8)
+                    x=df["date"], y=df["score_pct"],
+                    name=SUBJ_FULL[s], mode="lines+markers",
+                    line=dict(color=COLORS[s], width=2)
                 ))
             fig3.add_hline(y=50, line_dash="dash", line_color="#EF4444",
-                           annotation_text="Pass Line 50%")
+                           annotation_text="Pass 50%")
             fig3.add_hline(y=60, line_dash="dot",  line_color="#10B981",
                            annotation_text="Target 60%")
-            fig3.update_layout(title="📈 Test Score Trends",
-                               paper_bgcolor="#2D2D3F", plot_bgcolor="#2D2D3F",
-                               font_color="#E2E8F0", yaxis=dict(range=[0,105]),
-                               legend=dict(bgcolor="#2D2D3F"))
+            fig3.update_layout(title="📈 Score Trends",
+                               paper_bgcolor="#2D2D3F",
+                               plot_bgcolor="#2D2D3F",
+                               font_color="#E2E8F0",
+                               yaxis=dict(range=[0,105]))
             st.plotly_chart(fig3, use_container_width=True)
 
-    with col4:
-        if tst is not None and not tst.empty:
-            by_s = tst.groupby("Subject")["Score %"].mean().reindex(SUBJECTS).fillna(0)
-            clrs = ["#EF4444" if v<50 else ("#F59E0B" if v<60 else "#10B981")
-                    for v in by_s.values]
-            fig4 = go.Figure(go.Bar(
-                x=by_s.index, y=by_s.values,
-                marker_color=clrs,
+        with col4:
+            by_s  = tst.groupby("subject")["score_pct"].mean()\
+                       .reindex(SUBJECTS).fillna(0)
+            clrs  = ["#EF4444" if v<50 else ("#F59E0B" if v<60 else "#10B981")
+                     for v in by_s.values]
+            fig4  = go.Figure(go.Bar(
+                x=by_s.index, y=by_s.values, marker_color=clrs,
                 text=[f"{v:.1f}%" for v in by_s.values],
                 textposition="outside"
             ))
             fig4.add_hline(y=50, line_dash="dash", line_color="#EF4444")
-            fig4.add_hline(y=60, line_dash="dot",  line_color="#10B981")
-            fig4.update_layout(title="🎯 Avg Score by Subject",
-                               paper_bgcolor="#2D2D3F", plot_bgcolor="#2D2D3F",
-                               font_color="#E2E8F0", yaxis=dict(range=[0,105]))
+            fig4.update_layout(title="🎯 Avg Score",
+                               paper_bgcolor="#2D2D3F",
+                               plot_bgcolor="#2D2D3F",
+                               font_color="#E2E8F0",
+                               yaxis=dict(range=[0,105]))
             st.plotly_chart(fig4, use_container_width=True)
 
-    # ── Revision Status
-    st.subheader("🔄 Revision Status")
-    if rev is not None and not rev.empty:
+    # Revision donuts
+    if not rev.empty:
+        st.subheader("🔄 Revision Status")
         fig5 = make_subplots(rows=1, cols=5,
                              specs=[[{"type":"pie"}]*5],
                              subplot_titles=list(SUBJ_FULL.values()))
         for i, s in enumerate(SUBJECTS, 1):
-            df    = rev[rev["Subject"]==s]
+            df    = rev[rev["subject"]==s]
             total = len(df)
             if total == 0: continue
-            r3 = df["R3 Date"].notna().sum() if "R3 Date" in df.columns else 0
-            r2 = max(df["R2 Date"].notna().sum() - r3, 0) if "R2 Date" in df.columns else 0
-            r1 = max(df["R1 Date"].notna().sum() - r3 - r2, 0) if "R1 Date" in df.columns else 0
-            rd = max(df["1st Read"].isin(["Done","✓","done"]).sum() - r3-r2-r1, 0) if "1st Read" in df.columns else 0
-            ns = max(total - r3 - r2 - r1 - rd, 0)
+            r3 = df["r3_date"].notna().sum()
+            r2 = max(df["r2_date"].notna().sum()-r3, 0)
+            r1 = max(df["r1_date"].notna().sum()-r3-r2, 0)
+            rd = max(df["first_read"].sum()-r3-r2-r1, 0)
+            ns = max(total-r3-r2-r1-rd, 0)
             fig5.add_trace(go.Pie(
                 values=[r3,r2,r1,rd,ns],
-                labels=["R3 Done","R2 Done","R1 Done","1st Read","Not Started"],
+                labels=["R3","R2","R1","1st Read","Not Started"],
                 marker_colors=["#10B981","#3B82F6","#F59E0B","#7C3AED","#4B5563"],
                 hole=0.5, showlegend=(i==1), textinfo="percent"
             ), row=1, col=i)
-        fig5.update_layout(paper_bgcolor="#2D2D3F", font_color="#E2E8F0",
-                           legend=dict(bgcolor="#2D2D3F"), height=300)
+        fig5.update_layout(paper_bgcolor="#2D2D3F",
+                           font_color="#E2E8F0", height=280)
         st.plotly_chart(fig5, use_container_width=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE 2 — LOG TODAY'S STUDY
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "📝 Log Today's Study":
-    st.title("📝 Log Today's Study Session")
-    st.markdown("Fill in what you studied today — takes less than 1 minute!")
-
-    with st.form("study_form", clear_on_submit=True):
+# ── LOG STUDY PAGE ────────────────────────────────────────────────────────────
+def show_log_study():
+    st.title("📝 Log Today's Study")
+    with st.form("log_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
-            study_date  = st.date_input("📅 Date", value=date.today())
-            subject     = st.selectbox("📚 Subject", SUBJECTS,
-                                       format_func=lambda x: f"{x} — {SUBJ_FULL[x]}")
-            hours       = st.number_input("⏱️ Hours Studied", 0.5, 12.0, 2.0, 0.5)
+            study_date = st.date_input("📅 Date", value=date.today())
+            subject    = st.selectbox("📚 Subject", SUBJECTS,
+                                      format_func=lambda x: f"{x} — {SUBJ_FULL[x]}")
+            hours      = st.number_input("⏱️ Hours", 0.5, 12.0, 2.0, 0.5)
         with c2:
-            topic       = st.selectbox("📖 Topic", TOPICS.get(subject, []))
-            pages       = st.number_input("📄 Pages / Questions Done", 0, 500, 20, 5)
-            difficulty  = st.select_slider("💪 Difficulty", [1,2,3,4,5],
-                                           value=3,
-                                           format_func=lambda x:
-                                           ["","⭐ Very Easy","⭐⭐ Easy",
-                                            "⭐⭐⭐ Medium","⭐⭐⭐⭐ Hard",
-                                            "⭐⭐⭐⭐⭐ Very Hard"][x])
-        notes = st.text_area("📝 Notes (optional)", placeholder="Key points, doubts, etc.")
+            topic      = st.selectbox("📖 Topic", TOPICS.get(subject,[]))
+            pages      = st.number_input("📄 Pages/Questions", 0, 500, 20)
+            difficulty = st.select_slider("💪 Difficulty", [1,2,3,4,5],
+                         format_func=lambda x:
+                         ["","⭐ Easy","⭐⭐ Easy+","⭐⭐⭐ Medium",
+                          "⭐⭐⭐⭐ Hard","⭐⭐⭐⭐⭐ Very Hard"][x])
+        notes = st.text_area("📝 Notes", placeholder="Key points, doubts...")
+        if st.form_submit_button("✅ Save Session", use_container_width=True):
+            ok, msg = save_log({
+                "date":       str(study_date),
+                "subject":    subject,
+                "topic":      topic,
+                "hours":      hours,
+                "pages_done": pages,
+                "difficulty": difficulty,
+                "notes":      notes
+            })
+            st.success(msg) if ok else st.error(msg)
+            if ok: st.balloons()
 
-        submitted = st.form_submit_button("✅ Save Study Session", use_container_width=True)
-
-        if submitted:
-            # Find next session number
-            session_num = len(log) + 1 if log is not None else 1
-            row = [study_date.strftime("%d-%b-%Y"), subject, topic,
-                   hours, pages, difficulty, notes, session_num]
-            ok, msg = append_to_excel("Daily_Log", row)
-            if ok:
-                st.success(msg)
-                st.balloons()
-                st.cache_data.clear()
-            else:
-                st.error(msg)
-
-    # Show recent logs
-    if log is not None and not log.empty:
+    log = load_logs()
+    if not log.empty:
         st.markdown("---")
-        st.subheader("📋 Recent Study Sessions")
-        recent = log.sort_values("Date", ascending=False).head(10).copy()
-        recent["Date"] = recent["Date"].dt.strftime("%d %b %Y")
-        st.dataframe(recent[["Date","Subject","Topic Studied","Hours",
-                              "Pages/Qs","Difficulty (1-5)"]].reset_index(drop=True),
+        st.subheader("📋 Recent Sessions")
+        recent = log.head(10).copy()
+        recent["date"] = recent["date"].dt.strftime("%d %b %Y")
+        st.dataframe(recent[["date","subject","topic","hours",
+                              "pages_done","difficulty"]],
                      use_container_width=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE 3 — ADD TEST SCORE
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "🏆 Add Test Score":
-    st.title("🏆 Add Mock Test / Practice Score")
-
-    with st.form("test_form", clear_on_submit=True):
+# ── ADD SCORE PAGE ────────────────────────────────────────────────────────────
+def show_add_score():
+    st.title("🏆 Add Test Score")
+    with st.form("score_form", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
-            test_date   = st.date_input("📅 Test Date", value=date.today())
-            subject     = st.selectbox("📚 Subject", SUBJECTS + ["All"],
-                                       format_func=lambda x:
-                                       f"{x} — {SUBJ_FULL.get(x,'Full Syllabus')}")
-            test_name   = st.text_input("📝 Test Name / Source",
-                                        placeholder="e.g. ICAI Mock 1, Module Test")
+            test_date = st.date_input("📅 Date", value=date.today())
+            subject   = st.selectbox("📚 Subject", SUBJECTS+["All"],
+                                     format_func=lambda x:
+                                     f"{x} — {SUBJ_FULL.get(x,'Full Syllabus')}")
+            test_name = st.text_input("📝 Test Name",
+                                      placeholder="e.g. ICAI Mock 1")
         with c2:
-            marks       = st.number_input("✅ Marks Obtained", 0, 200, 55)
-            max_marks   = st.number_input("📊 Maximum Marks",  0, 200, 100)
-            pct         = round(marks/max_marks*100,1) if max_marks > 0 else 0
-            color       = "🟢" if pct>=60 else ("🟡" if pct>=50 else "🔴")
-            st.metric("Score %", f"{color} {pct}%",
-                      "Pass ✅" if pct>=50 else "Below Pass ❌")
+            marks     = st.number_input("✅ Marks Obtained", 0, 200, 55)
+            max_marks = st.number_input("📊 Maximum Marks",  0, 200, 100)
+            pct       = round(marks/max_marks*100,1) if max_marks>0 else 0
+            icon      = "🟢" if pct>=60 else ("🟡" if pct>=50 else "🔴")
+            st.metric("Score", f"{icon} {pct}%",
+                      "✅ Pass" if pct>=50 else "❌ Below Pass")
+        c3,c4   = st.columns(2)
+        weak    = c3.text_area("❌ Weak Areas")
+        strong  = c4.text_area("✅ Strong Areas")
+        action  = st.text_area("📌 Action Plan")
+        if st.form_submit_button("✅ Save Score", use_container_width=True):
+            ok, msg = save_score({
+                "date":        str(test_date),
+                "subject":     subject,
+                "test_name":   test_name,
+                "marks":       marks,
+                "max_marks":   max_marks,
+                "weak_areas":  weak,
+                "strong_areas":strong,
+                "action_plan": action
+            })
+            st.success(msg) if ok else st.error(msg)
+            if ok: st.balloons()
 
-        c3, c4 = st.columns(2)
-        with c3:
-            weak  = st.text_area("❌ Weak Areas", placeholder="Topics to revise...")
-        with c4:
-            strong= st.text_area("✅ Strong Areas", placeholder="Topics you aced...")
-        action = st.text_area("📌 Action Plan",  placeholder="What will you do to improve?")
-
-        submitted = st.form_submit_button("✅ Save Test Score", use_container_width=True)
-        if submitted:
-            row = [test_date.strftime("%d-%b-%Y"), subject, test_name,
-                   marks, max_marks, pct,
-                   "Yes" if pct>=50 else "No", weak, strong, action]
-            ok, msg = append_to_excel("Test_Scores", row)
-            if ok:
-                st.success(msg)
-                st.balloons()
-                st.cache_data.clear()
-            else:
-                st.error(msg)
-
-    # Show recent scores
-    if tst is not None and not tst.empty:
-        st.markdown("---")
-        st.subheader("📋 Recent Test Scores")
-        recent = tst.sort_values("Date", ascending=False).head(10).copy()
-        recent["Date"] = recent["Date"].dt.strftime("%d %b %Y")
-        st.dataframe(recent[["Date","Subject","Test Name / Source",
-                              "Marks","Max Marks","Score %"]].reset_index(drop=True),
-                     use_container_width=True)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE 4 — UPDATE REVISION
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "🔄 Update Revision":
-    st.title("🔄 Update Revision Status")
-
+# ── REVISION PAGE ─────────────────────────────────────────────────────────────
+def show_revision():
+    st.title("🔄 Update Revision")
     c1, c2 = st.columns(2)
-    with c1:
-        subject = st.selectbox("📚 Subject", SUBJECTS,
-                               format_func=lambda x: f"{x} — {SUBJ_FULL[x]}")
-    with c2:
-        topic = st.selectbox("📖 Topic", TOPICS.get(subject, []))
+    subject = c1.selectbox("📚 Subject", SUBJECTS,
+                           format_func=lambda x: f"{x} — {SUBJ_FULL[x]}")
+    topic   = c2.selectbox("📖 Topic", TOPICS.get(subject,[]))
 
     st.markdown("---")
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.markdown("### 📖 First Read")
-        if st.button("✅ Mark as Done", key="r0", use_container_width=True):
-            ok, msg = update_revision(subject, topic, "1st Read", "Done")
+        if st.button("✅ Mark Done", use_container_width=True):
+            ok, msg = save_revision(subject, topic, "first_read", True)
             st.success(msg) if ok else st.error(msg)
-            st.cache_data.clear()
 
     with col2:
         st.markdown("### 🔄 Revision Dates")
-        r1_date = st.date_input("R1 Date", key="r1d")
-        if st.button("💾 Save R1", key="r1", use_container_width=True):
-            ok, msg = update_revision(subject, topic, "R1 Date",
-                                      r1_date.strftime("%d-%b-%Y"))
-            st.success(msg) if ok else st.error(msg)
-            st.cache_data.clear()
-
-        r2_date = st.date_input("R2 Date", key="r2d")
-        if st.button("💾 Save R2", key="r2", use_container_width=True):
-            ok, msg = update_revision(subject, topic, "R2 Date",
-                                      r2_date.strftime("%d-%b-%Y"))
-            st.success(msg) if ok else st.error(msg)
-            st.cache_data.clear()
-
-        r3_date = st.date_input("R3 Date", key="r3d")
-        if st.button("💾 Save R3", key="r3", use_container_width=True):
-            ok, msg = update_revision(subject, topic, "R3 Date",
-                                      r3_date.strftime("%d-%b-%Y"))
-            st.success(msg) if ok else st.error(msg)
-            st.cache_data.clear()
+        for r_num in [1,2,3]:
+            r_date = st.date_input(f"R{r_num} Date", key=f"r{r_num}d")
+            if st.button(f"💾 Save R{r_num}", key=f"r{r_num}b",
+                         use_container_width=True):
+                ok, msg = save_revision(subject, topic,
+                                        f"r{r_num}_date", str(r_date))
+                st.success(msg) if ok else st.error(msg)
 
     with col3:
         st.markdown("### ⭐ Confidence")
-        conf = st.select_slider("Rate yourself", [1,2,3,4,5],
-                                format_func=lambda x:
-                                ["","😰 1","😕 2","😐 3","😊 4","🔥 5"][x])
-        if st.button("💾 Save Confidence", use_container_width=True):
-            ok, msg = update_revision(subject, topic, "Confidence(1-5)", conf)
+        conf = st.select_slider("Rate",  [0,1,2,3,4,5],
+               format_func=lambda x:
+               ["Not rated","😰 1","😕 2","😐 3","😊 4","🔥 5"][x])
+        if st.button("💾 Save", use_container_width=True):
+            ok, msg = save_revision(subject, topic, "confidence", conf)
             st.success(msg) if ok else st.error(msg)
-            st.cache_data.clear()
-
-        due = st.selectbox("Due for Revision?", ["Yes","No","Soon"])
-        if st.button("💾 Save Due Status", use_container_width=True):
-            ok, msg = update_revision(subject, topic, "Due Revision", due)
+        due = st.selectbox("Due for Revision?", ["No","Yes","Soon"])
+        if st.button("💾 Save Due", use_container_width=True):
+            ok, msg = save_revision(subject, topic, "due_revision", due)
             st.success(msg) if ok else st.error(msg)
-            st.cache_data.clear()
 
-    # Show current revision status for selected subject
-    if rev is not None and not rev.empty:
+    rev = load_revision()
+    if not rev.empty:
         st.markdown("---")
-        st.subheader(f"📋 {subject} — Revision Status")
-        df = rev[rev["Subject"]==subject].copy()
-        if not df.empty:
-            cols_show = ["Topic","1st Read","R1 Date","R2 Date",
-                         "R3 Date","Confidence(1-5)","Due Revision"]
-            cols_show = [c for c in cols_show if c in df.columns]
-            st.dataframe(df[cols_show].reset_index(drop=True),
+        st.subheader(f"📋 {subject} — All Topics")
+        df = rev[rev["subject"]==subject][
+            ["topic","first_read","r1_date","r2_date",
+             "r3_date","confidence","due_revision"]
+        ].reset_index(drop=True)
+        st.dataframe(df, use_container_width=True)
+
+# ── MY DATA PAGE ──────────────────────────────────────────────────────────────
+def show_my_data():
+    st.title("📋 My Data")
+    tab1, tab2, tab3 = st.tabs(["📚 Study Log","🏆 Test Scores","🔄 Revision"])
+    with tab1:
+        log = load_logs()
+        if not log.empty:
+            f = st.multiselect("Filter Subject", SUBJECTS, default=SUBJECTS)
+            d = log[log["subject"].isin(f)].copy()
+            d["date"] = d["date"].dt.strftime("%d %b %Y")
+            st.dataframe(d[["date","subject","topic","hours",
+                            "pages_done","difficulty","notes"]],
+                         use_container_width=True)
+            st.caption(f"Total: {len(d)} sessions | {d['hours'].sum():.1f}h")
+    with tab2:
+        tst = load_scores()
+        if not tst.empty:
+            tst["date"] = tst["date"].dt.strftime("%d %b %Y")
+            st.dataframe(tst[["date","subject","test_name",
+                              "marks","max_marks","score_pct"]],
+                         use_container_width=True)
+    with tab3:
+        rev = load_revision()
+        if not rev.empty:
+            s = st.selectbox("Subject", ["All"]+SUBJECTS)
+            df = rev if s=="All" else rev[rev["subject"]==s]
+            st.dataframe(df.drop(columns=["id","user_id"], errors="ignore"),
                          use_container_width=True)
 
+# ── LEADERBOARD PAGE ──────────────────────────────────────────────────────────
+def show_leaderboard():
+    st.title("🥇 Leaderboard")
+    st.caption("Rankings based on total study hours. Your detailed data stays private.")
+
+    lb = load_leaderboard()
+    if lb.empty:
+        st.info("No data yet — be the first on the leaderboard!")
+        return
+
+    lb = lb.sort_values("total_hours", ascending=False).reset_index(drop=True)
+    my_user = st.session_state.get("profile",{}).get("username","")
+
+    medals = ["🥇","🥈","🥉"]
+    for i, row in lb.iterrows():
+        is_me  = row["username"] == my_user
+        medal  = medals[i] if i < 3 else f"#{i+1}"
+        border = "#7C3AED" if is_me else "#374151"
+        you    = " ← You" if is_me else ""
+        st.markdown(f"""
+        <div style='background:#2D2D3F; border-radius:12px;
+                    padding:14px 20px; margin:6px 0;
+                    border-left:4px solid {border}'>
+            <span style='font-size:20px'>{medal}</span>
+            <strong style='color:#E2E8F0; margin-left:10px'>
+                {row['full_name']} (@{row['username']}){you}
+            </strong>
+            <span style='float:right; color:#94A3B8'>
+                📚 {row['total_hours']:.0f}h &nbsp;|&nbsp;
+                📅 {row['days_studied']} days &nbsp;|&nbsp;
+                🎯 {row['avg_score']:.1f}% avg
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # Bar chart
+    fig = px.bar(lb.head(10), x="username", y="total_hours",
+                 color="total_hours", color_continuous_scale="Purples",
+                 title="Top 10 — Study Hours",
+                 text="total_hours")
+    fig.update_traces(texttemplate="%{text:.0f}h", textposition="outside")
+    fig.update_layout(paper_bgcolor="#2D2D3F", plot_bgcolor="#2D2D3F",
+                      font_color="#E2E8F0", showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE 5 — VIEW ALL DATA
+# APP ENTRY POINT
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "📋 View All Data":
-    st.title("📋 View All Data")
-
-    tab1, tab2, tab3 = st.tabs(["📚 Daily Log","🏆 Test Scores","🔄 Revision"])
-
-    with tab1:
-        if log is not None and not log.empty:
-            subj_filter = st.multiselect("Filter by Subject",SUBJECTS,default=SUBJECTS)
-            filtered = log[log["Subject"].isin(subj_filter)].copy()
-            filtered["Date"] = filtered["Date"].dt.strftime("%d %b %Y")
-            st.dataframe(filtered.reset_index(drop=True), use_container_width=True)
-            st.caption(f"Total: {len(filtered)} sessions | {filtered['Hours'].sum():.1f} hours")
-
-    with tab2:
-        if tst is not None and not tst.empty:
-            st.dataframe(tst.reset_index(drop=True), use_container_width=True)
-
-    with tab3:
-        if rev is not None and not rev.empty:
-            subj_filter2 = st.selectbox("Subject", ["All"] + SUBJECTS)
-            df = rev if subj_filter2 == "All" else rev[rev["Subject"]==subj_filter2]
-            st.dataframe(df.reset_index(drop=True), use_container_width=True)
+if not st.session_state.get("logged_in"):
+    show_auth_page()
+else:
+    show_main_app()
