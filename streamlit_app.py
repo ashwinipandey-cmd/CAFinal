@@ -277,20 +277,43 @@ section.main .stButton button:hover,
     padding: 24px !important;
 }
 
-/* TABS */
+/* TABS — keep selectors simple and HTML-safe so labels always render */
+.stTabs [role="tablist"],
 .stTabs [data-baseweb="tab-list"] {
     background: rgba(14,42,86,0.45) !important;
-    border-radius: 10px !important; padding: 3px !important;
-    gap: 3px !important; border: 1px solid rgba(59,130,246,0.18) !important;
+    border-radius: 10px !important;
+    padding: 3px !important;
+    gap: 4px !important;
+    border: 1px solid rgba(59,130,246,0.18) !important;
 }
+.stTabs [role="tab"],
 .stTabs [data-baseweb="tab"] {
-    border-radius: 8px !important; color: #64748B !important;
-    font-size: 13px !important; padding: 8px 16px !important;
-    font-weight: 500 !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    color: #94A3B8 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 8px 16px !important;
+    min-height: 36px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
+.stTabs [role="tab"] [data-testid="stMarkdownContainer"] p,
+.stTabs [role="tab"] [data-testid="stMarkdownContainer"] span,
+.stTabs [data-baseweb="tab"] [data-testid="stMarkdownContainer"] p,
+.stTabs [data-baseweb="tab"] [data-testid="stMarkdownContainer"] span,
+.stTabs [role="tab"] p,
+.stTabs [role="tab"] span {
+    color: inherit !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+.stTabs [role="tab"][aria-selected="true"],
+.stTabs [data-baseweb="tab"][aria-selected="true"],
 .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg,rgba(29,78,216,0.5),rgba(37,99,235,0.3)) !important;
-    color: #F1F5F9 !important; font-weight: 600 !important;
+    background: linear-gradient(135deg, rgba(29,78,216,0.5), rgba(37,99,235,0.3)) !important;
+    border: 1px solid rgba(96,165,250,0.5) !important;
+    color: #F1F5F9 !important;
 }
 
 /* PROGRESS */
