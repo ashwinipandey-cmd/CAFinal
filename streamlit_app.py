@@ -277,20 +277,34 @@ section.main .stButton button:hover,
     padding: 24px !important;
 }
 
-/* TABS */
-.stTabs [data-baseweb="tab-list"] {
+/* TABS — avoid fragile selectors, support latest Streamlit markup */
+.stTabs [data-baseweb="tab-list"],
+.stTabs [role="tablist"] {
     background: rgba(14,42,86,0.45) !important;
-    border-radius: 10px !important; padding: 3px !important;
-    gap: 3px !important; border: 1px solid rgba(59,130,246,0.18) !important;
+    border-radius: 10px !important;
+    padding: 3px !important;
+    gap: 3px !important;
+    border: 1px solid rgba(59,130,246,0.18) !important;
 }
-.stTabs [data-baseweb="tab"] {
-    border-radius: 8px !important; color: #64748B !important;
-    font-size: 13px !important; padding: 8px 16px !important;
-    font-weight: 500 !important;
+.stTabs [data-baseweb="tab"],
+.stTabs button[role="tab"] {
+    border-radius: 8px !important;
+    color: #94A3B8 !important;
+    font-size: 13px !important;
+    padding: 8px 16px !important;
+    font-weight: 600 !important;
+    opacity: 1 !important;
+}
+.stTabs [data-baseweb="tab"] p,
+.stTabs button[role="tab"] p,
+.stTabs button[role="tab"] span {
+    color: inherit !important;
+    opacity: 1 !important;
 }
 .stTabs [aria-selected="true"] {
     background: linear-gradient(135deg,rgba(29,78,216,0.5),rgba(37,99,235,0.3)) !important;
-    color: #F1F5F9 !important; font-weight: 600 !important;
+    color: #F1F5F9 !important;
+    border: 1px solid rgba(96,165,250,0.5) !important;
 }
 
 /* PROGRESS */
