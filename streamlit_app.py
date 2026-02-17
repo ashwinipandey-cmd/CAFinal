@@ -27,7 +27,8 @@ except Exception as e:
     st.stop()
 
 # ── CONSTANTS ─────────────────────────────────────────────────────────────────
-EXAM_DATE  = date(2027, 1, 1)
+# Exam date is now set per user — not hardcoded
+EXAM_DATE_DEFAULT = date(2027, 1, 1)
 SUBJECTS   = ["FR","AFM","AA","DT","IDT"]
 SUBJ_FULL  = {
     "FR" :"Financial Reporting",
@@ -119,8 +120,19 @@ if "user_id" not in st.session_state:
 if "profile" not in st.session_state:
     st.session_state.profile = {}
 
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+if "profile" not in st.session_state:
+    st.session_state.profile = {}
+
+# ↓ ADD THIS RIGHT HERE ↓
+def get_exam_date():
+    return st.session_state.get("exam_date", date(2027, 1, 1))
+
 # ── AUTH FUNCTIONS ────────────────────────────────────────────────────────────
-def do_signup(email, password, username, full_name):
+def do_signup(email, password, username, full_name, exam_month, exam_year):
     try:
         # Check username taken
         chk = sb.table("profiles")\
@@ -136,11 +148,13 @@ def do_signup(email, password, username, full_name):
 
         uid = res.user.id
 
-        # Create profile
+        # Create profile with exam date
         sb.table("profiles").insert({
-            "id": uid,
-            "username": username,
-            "full_name": full_name
+            "id":         uid,
+            "username":   username,
+            "full_name":  full_name,
+            "exam_month": exam_month,
+            "exam_year":  exam_year
         }).execute()
 
         # Pre-fill revision tracker in batches
@@ -172,12 +186,25 @@ def do_login(email, password):
                   .eq("id", uid)\
                   .execute()
 
-        st.session_state.logged_in = True
-        st.session_state.user_id   = uid
-        st.session_state.profile   = prof.data[0] if prof.data else {
-            "username": email.split("@")[0],
-            "full_name": email.split("@")[0]
+        profile_data = prof.data[0] if prof.data else {
+            "username":   email.split("@")[0],
+            "full_name":  email.split("@")[0],
+            "exam_month": "January",
+            "exam_year":  2027
         }
+
+        # Set exam date from profile
+        month_map = {
+            "January":   1,
+            "May":       5,
+            "September": 9
+        }
+        exam_m = month_map.get(profile_data.get("exam_month","January"), 1)
+        exam_y = int(profile_data.get("exam_year", 2027))
+        st.session_state.exam_date  = date(exam_y, exam_m, 1)
+        st.session_state.logged_in  = True
+        st.session_state.user_id    = uid
+        st.session_state.profile    = profile_data
         return True, "Login successful"
 
     except Exception as e:
@@ -297,14 +324,38 @@ def auth_page():
 
         with tab2:
             c1, c2    = st.columns(2)
-            full_name = c1.text_input("Full Name",  key="su_name",
+            full_name = c1.text_input("Full Name", key="su_name",
                                       placeholder="Ashwa Sharma")
-            username  = c2.text_input("Username",   key="su_user",
+            username  = c2.text_input("Username",  key="su_user",
                                       placeholder="ashwa123")
-            email2    = st.text_input("Email",      key="su_email",
+            email2    = st.text_input("Email",     key="su_email",
                                       placeholder="your@email.com")
             pass2     = st.text_input("Password (min 6 chars)",
                                       type="password", key="su_pass")
+
+            st.markdown("---")
+            st.markdown("🎓 **When is your CA Final Exam?**")
+            ec1, ec2  = st.columns(2)
+
+            exam_month = ec1.selectbox(
+                "Exam Month", 
+                ["January", "May", "September"],
+                key="su_month"
+            )
+            exam_year  = ec2.selectbox(
+                "Exam Year",
+                [2025, 2026, 2027, 2028],
+                index=2,   # default 2027
+                key="su_year"
+            )
+
+            # Show exam date preview
+            month_num = {"January":1,"May":5,"September":9}[exam_month]
+            preview   = date(exam_year, month_num, 1)
+            days_left = max((preview - date.today()).days, 0)
+            st.info(f"📅 Your exam: **{exam_month} {exam_year}** "
+                    f"— {days_left} days from today")
+
             if st.button("Create Account →",
                          use_container_width=True, key="su_btn"):
                 if not all([full_name, username, email2, pass2]):
@@ -313,13 +364,14 @@ def auth_page():
                     st.warning("Password must be at least 6 characters")
                 else:
                     with st.spinner("Creating account..."):
-                        ok, msg = do_signup(email2, pass2,
-                                            username, full_name)
+                        ok, msg = do_signup(
+                            email2, pass2, username,
+                            full_name, exam_month, exam_year
+                        )
                     if ok:
                         st.success(msg)
                     else:
                         st.error(msg)
-
 # ══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
@@ -722,9 +774,13 @@ else:
             "🥇 Leaderboard"
         ])
         st.markdown("---")
-        days_left = max((EXAM_DATE - date.today()).days, 0)
+        exam      = get_exam_date()
+        days_left = max((exam - date.today()).days, 0)
+        prof      = st.session_state.profile
         st.metric("⏳ Days Left", days_left)
         st.progress(max(0, min(1, 1 - days_left/365)))
+        st.caption(f"📅 {prof.get('exam_month','')} "
+                   f"{prof.get('exam_year','')}")
         st.markdown("---")
         if st.button("🚪 Logout", use_container_width=True):
             do_logout()
