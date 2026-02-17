@@ -114,7 +114,7 @@ st.markdown("""
 *, *::before, *::after { box-sizing: border-box; }
 
 .stApp, [data-testid="stAppViewContainer"] {
-    background: #020D1F !important;
+    background: #0A1628 !important;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
     color: #E2E8F0 !important;
 }
@@ -124,11 +124,11 @@ st.markdown("""
     content: '';
     position: fixed; inset: 0; z-index: 0;
     background:
-        radial-gradient(ellipse 100% 80% at -5% -5%,  rgba(29,78,216,0.55)  0%, transparent 50%),
-        radial-gradient(ellipse 80%  70% at 105% 105%, rgba(7,89,133,0.40)   0%, transparent 50%),
-        radial-gradient(ellipse 60%  50% at 50%  0%,   rgba(30,58,138,0.30)  0%, transparent 55%),
-        radial-gradient(ellipse 40%  40% at 80%  30%,  rgba(67,56,202,0.18)  0%, transparent 50%),
-        radial-gradient(ellipse 30%  30% at 20%  70%,  rgba(14,116,144,0.15) 0%, transparent 50%);
+        radial-gradient(ellipse 100% 80% at -5% -5%,  rgba(59,130,246,0.22)  0%, transparent 50%),
+        radial-gradient(ellipse 80%  70% at 105% 105%, rgba(14,165,233,0.18)  0%, transparent 50%),
+        radial-gradient(ellipse 60%  50% at 50%  0%,   rgba(99,102,241,0.12)  0%, transparent 55%),
+        radial-gradient(ellipse 40%  40% at 80%  30%,  rgba(59,130,246,0.10)  0%, transparent 50%),
+        radial-gradient(ellipse 30%  30% at 20%  70%,  rgba(14,116,144,0.10)  0%, transparent 50%);
     pointer-events: none;
     animation: nebulaPulse 18s ease-in-out infinite alternate;
 }
@@ -149,7 +149,7 @@ st.markdown("""
 
 /* ══ SIDEBAR ══ */
 [data-testid="stSidebar"] {
-    background: rgba(2,13,31,0.92) !important;
+    background: rgba(10,22,40,0.95) !important;
     border-right: 1px solid rgba(59,130,246,0.18) !important;
     backdrop-filter: blur(28px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
@@ -164,12 +164,11 @@ st.markdown("""
     transition: all 0.2s ease !important;
     border: 1px solid transparent !important;
     font-size: 13.5px !important;
-    font-weight: 450 !important;
+    font-weight: 500 !important;
     cursor: pointer !important;
-    color: #64748B !important;
+    color: #94A3B8 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
 }
 [data-testid="stSidebar"] .stRadio label:hover {
     background: rgba(59,130,246,0.10) !important;
@@ -177,8 +176,17 @@ st.markdown("""
     color: #E2E8F0 !important;
     transform: translateX(3px) !important;
 }
-[data-testid="stSidebar"] .stRadio label[data-testid*="stMarkdownContainer"] {
-    color: #93C5FD !important;
+[data-testid="stSidebar"] .stRadio label[data-baseweb="radio"] {
+    color: #94A3B8 !important;
+}
+/* Selected radio item */
+[data-testid="stSidebar"] .stRadio [aria-checked="true"] + div,
+[data-testid="stSidebar"] .stRadio input:checked ~ div {
+    color: #60A5FA !important;
+}
+[data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p {
+    color: #94A3B8 !important;
+    font-size: 13.5px !important;
 }
 
 /* ══ METRIC CARDS — Glass KPI ══ */
@@ -518,7 +526,7 @@ def update_rev(subject, topic, field, value):
     except Exception as e: return False,f"❌ {e}"
 
 # ── CHART THEME ───────────────────────────────────────────────────────────────
-_BG = "rgba(4,15,35,0.85)"
+_BG = "rgba(10,22,40,0.90)"
 def _fig(fig, h=300):
     fig.update_layout(
         paper_bgcolor=_BG, plot_bgcolor=_BG,
@@ -693,14 +701,25 @@ def render_sidebar():
         """, unsafe_allow_html=True)
 
         # Navigation
-        page = st.radio("nav", [
-            "📊  Dashboard",
-            "📝  Log Study",
-            "🏆  Add Score",
-            "🔄  Revision",
-            "📋  My Data",
-            "🥇  Leaderboard"
-        ], label_visibility="collapsed")
+        st.markdown("""
+        <p style='font-size:10px;font-weight:700;color:#334155;
+                  text-transform:uppercase;letter-spacing:1.2px;
+                  margin:0 0 8px 14px'>Navigation</p>
+        """, unsafe_allow_html=True)
+
+        page = st.radio(
+            "Navigation",
+            options=[
+                "📊  Dashboard",
+                "📝  Log Study",
+                "🏆  Add Score",
+                "🔄  Revision",
+                "📋  My Data",
+                "🥇  Leaderboard"
+            ],
+            key="main_nav",
+            label_visibility="collapsed"
+        )
 
         st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
@@ -1195,3 +1214,4 @@ else:
     elif "Revision"    in page: revision()
     elif "My Data"     in page: my_data()
     elif "Leaderboard" in page: leaderboard()
+    else: dashboard()
