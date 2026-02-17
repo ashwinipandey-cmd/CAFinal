@@ -141,11 +141,12 @@ st.markdown("""
     color: #94A3B8 !important;
 }
 
-/* Radio nav items */
-[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] {
+/* Radio nav items — robust selectors for Streamlit/BaseWeb markup */
+[data-testid="stSidebar"] [data-testid="stRadio"] > div {
     gap: 6px !important;
 }
-[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label {
+[data-testid="stSidebar"] [data-testid="stRadio"] label,
+[data-testid="stSidebar"] [data-testid="stRadio"] label[data-baseweb="radio"] {
     border-radius: 10px !important;
     padding: 10px 12px !important;
     margin-bottom: 0 !important;
@@ -154,18 +155,25 @@ st.markdown("""
     background: rgba(15, 23, 42, 0.45) !important;
     border: 1px solid rgba(59,130,246,0.12) !important;
 }
-[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label:hover {
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover,
+[data-testid="stSidebar"] [data-testid="stRadio"] label[data-baseweb="radio"]:hover {
     background: rgba(59,130,246,0.16) !important;
     border-color: rgba(96,165,250,0.35) !important;
 }
-[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label p,
-[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label span {
+[data-testid="stSidebar"] [data-testid="stRadio"] label [data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] [data-testid="stRadio"] label [data-testid="stMarkdownContainer"] span,
+[data-testid="stSidebar"] [data-testid="stRadio"] label p,
+[data-testid="stSidebar"] [data-testid="stRadio"] label span {
     color: #E2E8F0 !important;
     font-size: 14px !important;
     font-weight: 600 !important;
     opacity: 1 !important;
 }
-[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label:has(input:checked) {
+[data-testid="stSidebar"] [data-testid="stRadio"] input[type="radio"] {
+    accent-color: #60A5FA !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked),
+[data-testid="stSidebar"] [data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
     background: linear-gradient(135deg, rgba(37,99,235,0.28), rgba(14,165,233,0.18)) !important;
     border-color: rgba(96,165,250,0.55) !important;
 }
