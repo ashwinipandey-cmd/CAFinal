@@ -41,6 +41,19 @@ COLORS     = {
     "FR":"#7DD3FC","AFM":"#34D399",
     "AA":"#FBBF24","DT":"#F87171","IDT":"#60A5FA"
 }
+
+
+def hex_to_rgba(hex_color: str, alpha: float) -> str:
+    """Convert #RRGGBB colors to Plotly-safe rgba(r,g,b,a) strings."""
+    color = hex_color.lstrip("#")
+    if len(color) != 6:
+        return hex_color
+    r = int(color[0:2], 16)
+    g = int(color[2:4], 16)
+    b = int(color[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
 TOPICS = {
 "FR":["Ind AS 1 – Presentation of FS","Ind AS 2 – Inventories",
       "Ind AS 7 – Cash Flow Statements","Ind AS 8 – Accounting Policies",
@@ -1864,7 +1877,7 @@ def dashboard():
                 fig2.add_trace(go.Bar(
                     x=[tgt], y=[s],
                     orientation="h",
-                    marker=dict(color=f"{clr}22", line=dict(width=0)),
+                    marker=dict(color=hex_to_rgba(clr, 0.13), line=dict(width=0)),
                     showlegend=False,
                     hoverinfo="skip"
                 ))
