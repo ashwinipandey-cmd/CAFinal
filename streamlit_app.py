@@ -142,7 +142,11 @@ st.markdown("""
     background: rgba(255,255,255,0.07) !important;
     border-color: rgba(255,255,255,0.12) !important;
 }
-
+/* Lock sidebar open */
+section[data-testid="stSidebar"] {
+    min-width: 240px !important;
+    width: 240px !important;
+}
 /* ── METRICS (KPI cards) ── */
 div[data-testid="stMetric"] {
     background: rgba(255,255,255,0.05) !important;
