@@ -969,44 +969,25 @@ def leaderboard():
         st.info("No data yet — be the first on the leaderboard!")
         return
 
-    lb = lb.sort_values("total_hours", ascending=False)\
-           .reset_index(drop=True)
-    my_user = st.session_state.profile.get("username","")
-    medals  = ["🥇","🥈","🥉"]
+    lb = lb.sort_values("total_hours", ascending=False).reset_index(drop=True)
+    my_user = st.session_state.profile.get("username", "")
+    medals = ["🥇", "🥈", "🥉"]
 
     for i, row in lb.iterrows():
-        is_me  = row["username"] == my_user
-        medal  = medals[i] if i < 3 else f"#{i+1}"
+        is_me = row["username"] == my_user
+        medal = medals[i] if i < 3 else f"#{i+1}"
         border = "#7C3AED" if is_me else "#374151"
-        you    = " ← You" if is_me else ""
-st.markdown(f"""
-<div style='background:#2D2D3F;border-radius:12px;
-            padding:14px 20px;margin:6px 0;
-            border-left:4px solid {border}'>
-    <span style='font-size:20px'>{medal}</span>
-    <strong style='color:#E2E8F0;margin-left:10px'>
-        {row['full_name']} (@{row['username']}){you}
-    </strong>
-    <span style='float:right;color:#94A3B8'>
-        Hours: {row['total_hours']:.0f}h &nbsp;|&nbsp;
-        Days: {int(row['days_studied'])} &nbsp;|&nbsp;
-        Avg: {float(row['avg_score']):.1f}%
-    </span>
-</div>
-""", unsafe_allow_html=True)
-    fig = px.bar(lb.head(10), x="username", y="total_hours",
-                 color="total_hours",
-                 color_continuous_scale="Purples",
-                 title="Top 10 — Study Hours",
-                 text="total_hours")
-    fig.update_traces(texttemplate="%{text:.0f}h",
-                      textposition="outside")
-    fig.update_layout(paper_bgcolor="#2D2D3F",
-                      plot_bgcolor="#2D2D3F",
-                      font_color="#E2E8F0",
-                      showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
-
+        you = " ← You" if is_me else ""
+        
+        # Simple version without complex HTML
+        col1, col2, col3 = st.columns([1, 3, 2])
+        with col1:
+            st.markdown(f"### {medal}")
+        with col2:
+            st.markdown(f"**{row['full_name']}** (@{row['username']}){you}")
+        with col3:
+            st.markdown(f"{row['total_hours']:.0f}h | {int(row['days_studied'])} days | {float(row['avg_score']):.1f}%")
+        st.markdown("---")
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
