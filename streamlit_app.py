@@ -1321,29 +1321,32 @@ def profile_page():
             st.session_state.prof_edit_subj = prof.get("exam_month", "January")
 
         p1, p2 = st.columns(2)
-        new_full  = p1.text_input("Full Name", value=prof.get("full_name",""))
-        new_user  = p2.text_input("Username",  value=prof.get("username",""))
+        new_full  = p1.text_input("Full Name", value=prof.get("full_name",""), key="prof_full")
+        new_user  = p2.text_input("Username",  value=prof.get("username",""),  key="prof_user")
 
         p3, p4 = st.columns(2)
         new_srn   = p3.text_input("SRN No. (ICAI Registration)",
                                    value=prof.get("srn_no",""),
-                                   placeholder="e.g. CRO0123456")
+                                   placeholder="e.g. CRO0123456",
+                                   key="prof_srn")
         dob_val   = prof.get("dob", None)
         try:
             dob_default = date.fromisoformat(dob_val) if dob_val else date(2000, 1, 1)
         except:
             dob_default = date(2000, 1, 1)
         new_dob   = p4.date_input("Date of Birth", value=dob_default,
-                                   min_value=date(1970,1,1), max_value=date.today())
+                                   min_value=date(1970,1,1), max_value=date.today(),
+                                   key="prof_dob")
 
         p5, p6 = st.columns(2)
         gender_opts = ["Prefer not to say","Male","Female","Non-binary","Other"]
         cur_gender  = prof.get("gender","Prefer not to say")
         g_idx       = gender_opts.index(cur_gender) if cur_gender in gender_opts else 0
-        new_gender  = p5.selectbox("Gender", gender_opts, index=g_idx)
+        new_gender  = p5.selectbox("Gender", gender_opts, index=g_idx, key="prof_gender")
         new_phone   = p6.text_input("Phone (optional)",
                                     value=prof.get("phone",""),
-                                    placeholder="+91 9XXXXXXXXX")
+                                    placeholder="+91 9XXXXXXXXX",
+                                    key="prof_phone")
 
         st.markdown("---")
         st.markdown('<div class="neon-header">📅 Update Exam Details</div>', unsafe_allow_html=True)
@@ -1351,11 +1354,12 @@ def profile_page():
         month_list = ["January","May","September"]
         cur_month  = prof.get("exam_month","January")
         m_idx      = month_list.index(cur_month) if cur_month in month_list else 0
-        new_month  = ep1.selectbox("Exam Month", month_list, index=m_idx)
+        new_month  = ep1.selectbox("Exam Month", month_list, index=m_idx, key="prof_month")
         new_year   = ep2.selectbox("Exam Year",  [2025,2026,2027,2028],
                                     index=[2025,2026,2027,2028].index(
                                         int(prof.get("exam_year",2027)))
-                                    if int(prof.get("exam_year",2027)) in [2025,2026,2027,2028] else 2)
+                                    if int(prof.get("exam_year",2027)) in [2025,2026,2027,2028] else 2,
+                                    key="prof_year")
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("💾 SAVE PROFILE CHANGES", use_container_width=True):
@@ -1706,7 +1710,7 @@ def log_study():
 
     c1, c2 = st.columns(2)
     with c1:
-        s_date = st.date_input("📅 Date *", value=date.today())
+        s_date = st.date_input("📅 Date *", value=date.today(), key="log_date")
         subj   = st.selectbox("📚 Subject *", SUBJECTS,
                               index=SUBJECTS.index(st.session_state.log_subj),
                               format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
@@ -1714,23 +1718,25 @@ def log_study():
         if subj != st.session_state.log_subj:
             st.session_state.log_subj = subj
             st.rerun()
-        hours  = st.number_input("⏱️ Hours Studied *", 0.5, 12.0, 2.0, 0.5)
+        hours  = st.number_input("⏱️ Hours Studied *", 0.5, 12.0, 2.0, 0.5, key="log_hours")
 
     with c2:
         topic_list = TOPICS.get(st.session_state.log_subj, [])
         topic  = st.selectbox(f"📖 Topic * ({st.session_state.log_subj})", topic_list,
                               key=f"log_topic_{st.session_state.log_subj}")
-        pages  = st.number_input("📄 Pages / Questions Done *", 0, 500, 0)
+        pages  = st.number_input("📄 Pages / Questions Done *", 0, 500, 0, key="log_pages")
         diff   = st.select_slider(
             "💪 Difficulty *",
             options=[1, 2, 3, 4, 5],
             format_func=lambda x: ["", "⭐ Easy", "⭐⭐ Moderate",
                                     "⭐⭐⭐ Hard", "⭐⭐⭐⭐ Tough",
-                                    "⭐⭐⭐⭐⭐ Brutal"][x]
+                                    "⭐⭐⭐⭐⭐ Brutal"][x],
+            key="log_diff"
         )
 
     notes = st.text_area("📝 Notes & Key Points (optional)",
-                         placeholder="What did you study? Any doubts or key takeaways?", height=90)
+                         placeholder="What did you study? Any doubts or key takeaways?", height=90,
+                         key="log_notes")
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("✅ SAVE SESSION", use_container_width=True, key="log_save"):
@@ -1779,7 +1785,7 @@ def add_test_score():
 
     c1, c2 = st.columns(2)
     with c1:
-        t_date    = st.date_input("📅 Date *", value=date.today())
+        t_date    = st.date_input("📅 Date *", value=date.today(), key="score_date")
         subj_opts = SUBJECTS + ["All"]
         cur_idx   = subj_opts.index(st.session_state.score_subj) if st.session_state.score_subj in subj_opts else 0
         subj      = st.selectbox("📚 Subject *", subj_opts,
@@ -1789,20 +1795,20 @@ def add_test_score():
         if subj != st.session_state.score_subj:
             st.session_state.score_subj = subj
             st.rerun()
-        test_name = st.text_input("📝 Test Name *", placeholder="e.g. ICAI Mock 1 — FR")
+        test_name = st.text_input("📝 Test Name *", placeholder="e.g. ICAI Mock 1 — FR", key="score_name")
 
     with c2:
-        marks     = st.number_input("✅ Marks Obtained *", 0, 200, 0)
-        max_marks = st.number_input("📊 Maximum Marks *",  1, 200, 100)
+        marks     = st.number_input("✅ Marks Obtained *", 0, 200, 0, key="score_marks")
+        max_marks = st.number_input("📊 Maximum Marks *",  1, 200, 100, key="score_max")
         pct  = round(marks / max_marks * 100, 1) if max_marks > 0 else 0
         icon = "🟢" if pct >= 60 else ("🟡" if pct >= 50 else "🔴")
         status = "PASS ✅" if pct >= 50 else "FAIL ❌"
         st.metric("Live Score Preview", f"{icon} {pct}%", status)
 
     c3, c4 = st.columns(2)
-    weak   = c3.text_area("❌ Weak Areas", placeholder="Topics to revisit...")
-    strong = c4.text_area("✅ Strong Areas", placeholder="What went well...")
-    action = st.text_area("📌 Action Plan", placeholder="What will you do differently?")
+    weak   = c3.text_area("❌ Weak Areas", placeholder="Topics to revisit...", key="score_weak")
+    strong = c4.text_area("✅ Strong Areas", placeholder="What went well...", key="score_strong")
+    action = st.text_area("📌 Action Plan", placeholder="What will you do differently?", key="score_action")
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("✅ SAVE SCORE", use_container_width=True, key="score_save"):
@@ -1897,7 +1903,7 @@ def revision():
             options=[0, 1, 2, 3, 4, 5],
             format_func=lambda x: ["— Not rated", "😰 1 – Very Low", "😕 2 – Low",
                                     "😐 3 – Medium", "😊 4 – High", "🔥 5 – Expert"][x],
-            key=f"conf_{subj}"
+            key=f"conf_slider_{subj}"
         )
         if st.button("💾 Save Confidence", use_container_width=True, key=f"conf_btn_{subj}"):
             if not topic:
@@ -1963,7 +1969,7 @@ def my_data():
     with tab3:
         rev = get_revision()
         if not rev.empty:
-            s  = st.selectbox("Filter by Subject", ["All"] + SUBJECTS)
+            s  = st.selectbox("Filter by Subject", ["All"] + SUBJECTS, key="mydata_rev_filter")
             df = rev if s == "All" else rev[rev["subject"] == s]
             st.dataframe(
                 df.drop(columns=["id", "user_id"], errors="ignore"),
