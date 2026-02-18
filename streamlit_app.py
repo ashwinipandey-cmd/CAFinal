@@ -235,7 +235,7 @@ GLASSY_CSS = """
 ════════════════════════════════════════ */
 div[data-testid="stMetric"] {
     background: var(--dark-card) !important;
-    border: 1px solid var(--border-glow) !important;
+    border: 2px solid var(--border-glow) !important;
     border-radius: 16px !important;
     padding: 20px 18px !important;
     backdrop-filter: blur(30px) !important;
@@ -337,8 +337,8 @@ p, .stMarkdown p {
 .stNumberInput input,
 .stTextArea textarea,
 .stDateInput input {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(56,189,248,0.20) !important;
+    background: rgba(15, 35, 80, 0.85) !important;
+    border: 2px solid rgba(56,189,248,0.30) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
@@ -348,12 +348,18 @@ p, .stMarkdown p {
     backdrop-filter: blur(10px) !important;
 }
 
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: #4A6A90 !important;
+    opacity: 1 !important;
+}
+
 .stTextInput input:focus,
 .stTextArea textarea:focus,
 .stNumberInput input:focus {
-    border-color: var(--neon-purple) !important;
-    background: rgba(56,189,248,0.07) !important;
-    box-shadow: 0 0 0 3px rgba(56,189,248,0.15), 0 0 20px rgba(56,189,248,0.10) !important;
+    border-color: #38BDF8 !important;
+    background: rgba(20, 50, 110, 0.90) !important;
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.20), 0 0 20px rgba(56,189,248,0.12) !important;
     outline: none !important;
 }
 
@@ -363,19 +369,21 @@ p, .stMarkdown p {
 .stTextArea label,
 .stDateInput label,
 .stSlider label,
-.stSelectSlider label {
+.stSelectSlider label,
+.stRadio label,
+.stCheckbox label {
     font-family: var(--font-ui) !important;
-    font-size: 10px !important;
+    font-size: 11px !important;
     text-transform: uppercase !important;
     letter-spacing: 1.5px !important;
-    color: var(--text-muted) !important;
+    color: #7AB4D0 !important;
     font-weight: 600 !important;
 }
 
 /* Selectbox */
 .stSelectbox > div > div {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(56,189,248,0.20) !important;
+    background: rgba(15, 35, 80, 0.85) !important;
+    border: 2px solid rgba(56,189,248,0.30) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
@@ -383,9 +391,14 @@ p, .stMarkdown p {
     transition: all 0.25s !important;
 }
 
+/* Force white text in selectbox value */
+.stSelectbox > div > div > div {
+    color: #FFFFFF !important;
+}
+
 .stSelectbox > div > div:hover {
-    border-color: rgba(56,189,248,0.45) !important;
-    box-shadow: 0 0 15px rgba(56,189,248,0.12) !important;
+    border-color: rgba(56,189,248,0.55) !important;
+    box-shadow: 0 0 15px rgba(56,189,248,0.15) !important;
 }
 
 /* Select dropdown options */
@@ -453,7 +466,7 @@ p, .stMarkdown p {
 ════════════════════════════════════════ */
 .stForm {
     background: rgba(6,14,38,0.60) !important;
-    border: 1px solid rgba(56,189,248,0.18) !important;
+    border: 2px solid rgba(56,189,248,0.18) !important;
     border-radius: 20px !important;
     backdrop-filter: blur(30px) !important;
     padding: 28px !important;
@@ -796,7 +809,7 @@ hr {
 /* Glassy Cards */
 .glass-card {
     background: rgba(6,14,38,0.70);
-    border: 1px solid rgba(56,189,248,0.18);
+    border: 2px solid rgba(56,189,248,0.18);
     border-radius: 16px;
     padding: 20px;
     backdrop-filter: blur(20px);
@@ -828,7 +841,7 @@ hr {
     padding: 16px 20px;
     margin: 8px 0;
     border-left: 3px solid rgba(56,189,248,0.4);
-    border: 1px solid rgba(56,189,248,0.15);
+    border: 2px solid rgba(56,189,248,0.15);
     backdrop-filter: blur(20px);
     display: flex;
     align-items: center;
@@ -1215,6 +1228,162 @@ def update_rev(subject, topic, field, value):
         return False, f"Error: {e}"
 
 
+def update_profile(data):
+    try:
+        sb.table("profiles").update(data).eq("id", uid()).execute()
+        # Refresh session state profile
+        prof = sb.table("profiles").select("*").eq("id", uid()).execute()
+        if prof.data:
+            st.session_state.profile = prof.data[0]
+            month_map = {"January": 1, "May": 5, "September": 9}
+            exam_m = month_map.get(prof.data[0].get("exam_month", "January"), 1)
+            exam_y = int(prof.data[0].get("exam_year", 2027))
+            st.session_state.exam_date = date(exam_y, exam_m, 1)
+        return True, "Profile updated!"
+    except Exception as e:
+        return False, f"Error: {e}"
+
+
+def set_leaderboard_opt_in(enabled: bool):
+    try:
+        sb.table("profiles").update({"leaderboard_opt_in": enabled}).eq("id", uid()).execute()
+        st.session_state.profile["leaderboard_opt_in"] = enabled
+        return True, "Preference saved!"
+    except Exception as e:
+        return False, f"Error: {e}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROFILE EDIT
+# ══════════════════════════════════════════════════════════════════════════════
+def profile_page():
+    st.markdown("<h1>👤 My Profile</h1>", unsafe_allow_html=True)
+    prof = st.session_state.profile
+
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        init = prof.get("full_name", "U")
+        st.markdown(f"""
+        <div style="text-align:center;padding:30px 20px;
+                    background:rgba(8,18,50,0.80);
+                    border:2px solid rgba(56,189,248,0.25);
+                    border-radius:20px;margin-bottom:16px">
+            <div style="width:80px;height:80px;border-radius:50%;
+                        background:linear-gradient(135deg,#0E5AC8,#38BDF8);
+                        display:flex;align-items:center;justify-content:center;
+                        margin:0 auto 14px;font-size:32px;font-weight:800;color:#FFF;
+                        font-family:'Orbitron',monospace;
+                        box-shadow:0 0 30px rgba(56,189,248,0.5)">{init[0].upper()}</div>
+            <div style="font-family:'Orbitron',monospace;font-size:16px;
+                        font-weight:700;color:#FFF">{prof.get('full_name','')}</div>
+            <div style="font-size:12px;color:#4A6A90;margin-top:4px">
+                @{prof.get('username','')}</div>
+            <div style="margin-top:14px;padding:8px 16px;
+                        background:rgba(56,189,248,0.10);border-radius:8px;
+                        font-size:11px;color:#7AB4D0;letter-spacing:1px">
+                {prof.get('exam_month','')} {prof.get('exam_year','')} Attempt
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Leaderboard opt-in toggle
+        st.markdown('<div class="neon-header">🏆 Leaderboard</div>', unsafe_allow_html=True)
+        current_opt = bool(prof.get("leaderboard_opt_in", False))
+        st.markdown(f"""
+        <div style="background:{'rgba(52,211,153,0.10)' if current_opt else 'rgba(56,189,248,0.07)'};
+                    border:2px solid {'rgba(52,211,153,0.35)' if current_opt else 'rgba(56,189,248,0.18)'};
+                    border-radius:12px;padding:14px;margin-bottom:12px">
+            <div style="font-size:12px;color:#B0D4F0;margin-bottom:6px">
+                {'✅ You are <b>participating</b> in the leaderboard' if current_opt
+                 else '🔒 You are <b>not</b> participating in the leaderboard'}
+            </div>
+            <div style="font-size:10px;color:#4A6A90">
+                {'Others can see your hours, days & avg score.' if current_opt
+                 else 'Enable to appear on leaderboard and see others\' stats.'}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if current_opt:
+            if st.button("🚫 Opt Out of Leaderboard", use_container_width=True):
+                ok, msg = set_leaderboard_opt_in(False)
+                if ok: st.success("Opted out."); st.rerun()
+                else: st.error(msg)
+        else:
+            if st.button("🏆 Join Leaderboard", use_container_width=True):
+                ok, msg = set_leaderboard_opt_in(True)
+                if ok: st.success("You're on the leaderboard!"); st.rerun()
+                else: st.error(msg)
+
+    with c2:
+        st.markdown('<div class="neon-header">✏️ Edit Personal Details</div>', unsafe_allow_html=True)
+
+        if "prof_edit_subj" not in st.session_state:
+            st.session_state.prof_edit_subj = prof.get("exam_month", "January")
+
+        p1, p2 = st.columns(2)
+        new_full  = p1.text_input("Full Name", value=prof.get("full_name",""))
+        new_user  = p2.text_input("Username",  value=prof.get("username",""))
+
+        p3, p4 = st.columns(2)
+        new_srn   = p3.text_input("SRN No. (ICAI Registration)",
+                                   value=prof.get("srn_no",""),
+                                   placeholder="e.g. CRO0123456")
+        dob_val   = prof.get("dob", None)
+        try:
+            dob_default = date.fromisoformat(dob_val) if dob_val else date(2000, 1, 1)
+        except:
+            dob_default = date(2000, 1, 1)
+        new_dob   = p4.date_input("Date of Birth", value=dob_default,
+                                   min_value=date(1970,1,1), max_value=date.today())
+
+        p5, p6 = st.columns(2)
+        gender_opts = ["Prefer not to say","Male","Female","Non-binary","Other"]
+        cur_gender  = prof.get("gender","Prefer not to say")
+        g_idx       = gender_opts.index(cur_gender) if cur_gender in gender_opts else 0
+        new_gender  = p5.selectbox("Gender", gender_opts, index=g_idx)
+        new_phone   = p6.text_input("Phone (optional)",
+                                    value=prof.get("phone",""),
+                                    placeholder="+91 9XXXXXXXXX")
+
+        st.markdown("---")
+        st.markdown('<div class="neon-header">📅 Update Exam Details</div>', unsafe_allow_html=True)
+        ep1, ep2 = st.columns(2)
+        month_list = ["January","May","September"]
+        cur_month  = prof.get("exam_month","January")
+        m_idx      = month_list.index(cur_month) if cur_month in month_list else 0
+        new_month  = ep1.selectbox("Exam Month", month_list, index=m_idx)
+        new_year   = ep2.selectbox("Exam Year",  [2025,2026,2027,2028],
+                                    index=[2025,2026,2027,2028].index(
+                                        int(prof.get("exam_year",2027)))
+                                    if int(prof.get("exam_year",2027)) in [2025,2026,2027,2028] else 2)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("💾 SAVE PROFILE CHANGES", use_container_width=True):
+            errors = []
+            if not new_full.strip():
+                errors.append("Full Name cannot be empty")
+            if not new_user.strip():
+                errors.append("Username cannot be empty")
+            if errors:
+                for e in errors: st.warning(f"⚠️ {e}")
+            else:
+                ok, msg = update_profile({
+                    "full_name":  new_full.strip(),
+                    "username":   new_user.strip(),
+                    "srn_no":     new_srn.strip(),
+                    "dob":        str(new_dob),
+                    "gender":     new_gender,
+                    "phone":      new_phone.strip(),
+                    "exam_month": new_month,
+                    "exam_year":  new_year,
+                })
+                if ok:
+                    st.success(f"✅ {msg}")
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH PAGE
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1316,14 +1485,42 @@ def dashboard():
     # Subject Progress
     st.markdown('<div class="neon-header">📚 Subject Progress</div>', unsafe_allow_html=True)
     cols = st.columns(5)
+    subj_bg = {
+        "FR":  ("rgba(125,211,252,0.12)", "#7DD3FC", "rgba(125,211,252,0.5)"),
+        "AFM": ("rgba(52,211,153,0.12)",  "#34D399", "rgba(52,211,153,0.5)"),
+        "AA":  ("rgba(251,191,36,0.12)",  "#FBBF24", "rgba(251,191,36,0.5)"),
+        "DT":  ("rgba(248,113,113,0.12)", "#F87171", "rgba(248,113,113,0.5)"),
+        "IDT": ("rgba(96,165,250,0.12)",  "#60A5FA", "rgba(96,165,250,0.5)"),
+    }
     for i, s in enumerate(SUBJECTS):
         done = float(sh.get(s, 0))
         tgt  = TARGET_HRS[s]
         pct  = min(done / tgt * 100, 100) if tgt > 0 else 0
+        bg, clr, glow = subj_bg[s]
         with cols[i]:
-            st.markdown(f"<h3 style='color:{COLORS[s]};margin:0 0 6px'>{s}</h3>", unsafe_allow_html=True)
-            st.progress(int(pct))
-            st.caption(f"{done:.0f}h / {tgt}h  ({pct:.0f}%)")
+            st.markdown(f"""
+            <div style="background:{bg};border:2px solid {clr}33;border-radius:14px;
+                        padding:16px 14px;text-align:center;
+                        box-shadow:0 0 20px {clr}22;transition:all 0.3s">
+                <div style="font-family:'Orbitron',monospace;font-size:14px;
+                            font-weight:800;color:{clr};
+                            text-shadow:0 0 14px {glow};margin-bottom:6px">{s}</div>
+                <div style="font-size:10px;color:#7AB4D0;letter-spacing:0.5px;
+                            margin-bottom:12px">{SUBJ_FULL[s]}</div>
+                <div style="background:rgba(255,255,255,0.07);border-radius:6px;
+                            height:8px;overflow:hidden;margin-bottom:8px">
+                    <div style="width:{pct:.0f}%;height:100%;border-radius:6px;
+                                background:linear-gradient(90deg,{clr}99,{clr});
+                                box-shadow:0 0 10px {glow};
+                                transition:width 1s ease"></div>
+                </div>
+                <div style="font-family:'Orbitron',monospace;font-size:18px;
+                            font-weight:700;color:#FFFFFF">{pct:.0f}%</div>
+                <div style="font-size:10px;color:#4A6A90;margin-top:2px">
+                    {done:.0f}h / {tgt}h
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -1336,18 +1533,44 @@ def dashboard():
             if not d30.empty:
                 grp = d30.groupby([d30["date"].dt.date, "subject"])["hours"].sum().reset_index()
                 grp.columns = ["Date", "Subject", "Hours"]
-                fig = px.bar(
-                    grp, x="Date", y="Hours",
-                    color="Subject",
-                    color_discrete_map=COLORS,
-                    barmode="stack",
-                    title="Daily Hours — Last 30 Days"
-                )
+                # Smooth animated area chart
+                fig = go.Figure()
+                for s in SUBJECTS:
+                    sub = grp[grp["Subject"] == s].sort_values("Date")
+                    if sub.empty:
+                        continue
+                    fig.add_trace(go.Scatter(
+                        x=sub["Date"], y=sub["Hours"],
+                        name=SUBJ_FULL[s],
+                        mode="lines+markers",
+                        fill="tozeroy",
+                        line=dict(color=COLORS[s], width=2.5, shape="spline", smoothing=1.3),
+                        marker=dict(size=6, color=COLORS[s],
+                                    line=dict(width=2, color=COLORS[s])),
+                        fillcolor=COLORS[s].replace("#", "rgba(") + ",0.08)" if "#" in COLORS[s] else COLORS[s],
+                        hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>%{{x}}<br>%{{y:.1f}}h<extra></extra>"
+                    ))
+                # Add fill colors properly
+                fill_map = {
+                    "FR": "rgba(125,211,252,0.08)", "AFM": "rgba(52,211,153,0.08)",
+                    "AA": "rgba(251,191,36,0.08)",  "DT":  "rgba(248,113,113,0.08)",
+                    "IDT":"rgba(96,165,250,0.08)"
+                }
+                for trace in fig.data:
+                    sname = [k for k,v in SUBJ_FULL.items() if v == trace.name]
+                    if sname:
+                        trace.fillcolor = fill_map.get(sname[0], "rgba(56,189,248,0.08)")
                 fig.add_hline(y=6, line_dash="dash", line_color="#FBBF24",
-                              annotation_text="6h target",
-                              annotation_font_color="#FBBF24")
-                fig.update_layout(**PLOTLY_LAYOUT)
-                fig.update_traces(marker_line_width=0)
+                              line_width=1.5,
+                              annotation_text="6h daily target",
+                              annotation_font_color="#FBBF24",
+                              annotation_font_size=10)
+                lay = dict(**PLOTLY_LAYOUT)
+                lay["title"] = "Daily Hours — Last 30 Days"
+                lay["hovermode"] = "x unified"
+                lay["xaxis"] = {**PLOTLY_LAYOUT["xaxis"]}
+                lay["yaxis"] = {**PLOTLY_LAYOUT["yaxis"], "rangemode": "tozero"}
+                fig.update_layout(**lay)
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("No sessions in the last 30 days")
@@ -1417,7 +1640,7 @@ def dashboard():
         fig5 = make_subplots(
             rows=1, cols=5,
             specs=[[{"type": "pie"}] * 5],
-            subplot_titles=[SUBJ_FULL[s] for s in SUBJECTS]
+            subplot_titles=["", "", "", "", ""]  # blank — we draw labels below manually
         )
         for i, s in enumerate(SUBJECTS, 1):
             df    = rev[rev["subject"] == s]
@@ -1432,17 +1655,37 @@ def dashboard():
             fig5.add_trace(go.Pie(
                 values=[r3, r2, r1, rd, ns],
                 labels=["R3", "R2", "R1", "1st Read", "Not Started"],
-                marker_colors=["#34D399", "#60A5FA", "#FBBF24", "#7DD3FC", "#374151"],
-                hole=0.55,
+                marker_colors=["#34D399", "#60A5FA", "#FBBF24", "#7DD3FC", "#2D3748"],
+                hole=0.58,
                 showlegend=(i == 1),
                 textinfo="percent",
-                textfont=dict(size=10)
+                textfont=dict(size=9),
+                title=dict(text=f"<b>{s}</b>", font=dict(size=13, color=COLORS[s], family="Orbitron"))
             ), row=1, col=i)
-        fig5.update_layout(
-            **{k: v for k, v in PLOTLY_LAYOUT.items() if k not in ("xaxis", "yaxis")},
-            height=300
+        pie_lay = {k: v for k, v in PLOTLY_LAYOUT.items() if k not in ("xaxis", "yaxis")}
+        pie_lay["height"] = 280
+        pie_lay["margin"] = dict(t=20, b=60, l=10, r=10)
+        pie_lay["legend"] = dict(
+            orientation="h", x=0.5, xanchor="center", y=-0.18,
+            bgcolor="rgba(6,14,38,0.7)",
+            bordercolor="rgba(56,189,248,0.2)", borderwidth=1,
+            font=dict(size=10, color="#B0D4F0")
         )
+        fig5.update_layout(**pie_lay)
         st.plotly_chart(fig5, use_container_width=True)
+        # Subject name labels below each donut — non-overlapping row
+        lbl_cols = st.columns(5)
+        for i, s in enumerate(SUBJECTS):
+            clr = COLORS[s]
+            with lbl_cols[i]:
+                st.markdown(f"""
+                <div style="text-align:center;margin-top:-8px">
+                    <span style="font-family:'Orbitron',monospace;font-size:11px;
+                                 font-weight:700;color:{clr};letter-spacing:1px">{s}</span>
+                    <div style="font-size:9px;color:#4A6A90;letter-spacing:0.3px;
+                                margin-top:2px">{SUBJ_FULL[s]}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
     elif log.empty and tst.empty:
         st.markdown("""
@@ -1460,27 +1703,49 @@ def dashboard():
 def log_study():
     st.markdown("<h1>📝 Log Study Session</h1>", unsafe_allow_html=True)
 
-    with st.form("log_form", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            s_date = st.date_input("Date", value=date.today())
-            subj   = st.selectbox("Subject", SUBJECTS,
-                                  format_func=lambda x: f"{x} — {SUBJ_FULL[x]}")
-            hours  = st.number_input("Hours Studied", 0.5, 12.0, 2.0, 0.5)
-        with c2:
-            topic = st.selectbox("Topic", TOPICS.get(subj, []))
-            pages = st.number_input("Pages / Questions Done", 0, 500, 20)
-            diff  = st.select_slider(
-                "Difficulty",
-                options=[1, 2, 3, 4, 5],
-                format_func=lambda x: ["", "⭐ Easy", "⭐⭐ Moderate",
-                                        "⭐⭐⭐ Hard", "⭐⭐⭐⭐ Tough",
-                                        "⭐⭐⭐⭐⭐ Brutal"][x]
-            )
-        notes = st.text_area("Notes & Key Points", placeholder="What did you study? Any doubts?", height=100)
+    # Use session state to track subject selection for live topic update
+    if "log_subj" not in st.session_state:
+        st.session_state.log_subj = SUBJECTS[0]
 
-        submitted = st.form_submit_button("✅ SAVE SESSION", use_container_width=True)
-        if submitted:
+    c1, c2 = st.columns(2)
+    with c1:
+        s_date = st.date_input("📅 Date *", value=date.today())
+        subj   = st.selectbox("📚 Subject *", SUBJECTS,
+                              index=SUBJECTS.index(st.session_state.log_subj),
+                              format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
+                              key="log_subj_sel")
+        if subj != st.session_state.log_subj:
+            st.session_state.log_subj = subj
+            st.rerun()
+        hours  = st.number_input("⏱️ Hours Studied *", 0.5, 12.0, 2.0, 0.5)
+
+    with c2:
+        topic_list = TOPICS.get(st.session_state.log_subj, [])
+        topic  = st.selectbox(f"📖 Topic * ({st.session_state.log_subj})", topic_list,
+                              key=f"log_topic_{st.session_state.log_subj}")
+        pages  = st.number_input("📄 Pages / Questions Done *", 0, 500, 0)
+        diff   = st.select_slider(
+            "💪 Difficulty *",
+            options=[1, 2, 3, 4, 5],
+            format_func=lambda x: ["", "⭐ Easy", "⭐⭐ Moderate",
+                                    "⭐⭐⭐ Hard", "⭐⭐⭐⭐ Tough",
+                                    "⭐⭐⭐⭐⭐ Brutal"][x]
+        )
+
+    notes = st.text_area("📝 Notes & Key Points (optional)",
+                         placeholder="What did you study? Any doubts or key takeaways?", height=90)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("✅ SAVE SESSION", use_container_width=True, key="log_save"):
+        errors = []
+        if not topic:
+            errors.append("Topic is required")
+        if pages == 0:
+            errors.append("Pages / Questions must be greater than 0")
+        if errors:
+            for e in errors:
+                st.warning(f"⚠️ {e}")
+        else:
             ok, msg = add_log({
                 "date": str(s_date), "subject": subj,
                 "topic": topic, "hours": hours,
@@ -1512,28 +1777,47 @@ def log_study():
 def add_test_score():
     st.markdown("<h1>🏆 Add Test Score</h1>", unsafe_allow_html=True)
 
-    with st.form("score_form", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            t_date    = st.date_input("Date", value=date.today())
-            subj      = st.selectbox("Subject", SUBJECTS + ["All"],
-                                     format_func=lambda x: f"{x} — {SUBJ_FULL.get(x, 'Full Syllabus')}")
-            test_name = st.text_input("Test Name", placeholder="e.g. ICAI Mock 1 — FR")
-        with c2:
-            marks     = st.number_input("Marks Obtained", 0, 200, 55)
-            max_marks = st.number_input("Maximum Marks",  0, 200, 100)
-            pct  = round(marks / max_marks * 100, 1) if max_marks > 0 else 0
-            icon = "🟢" if pct >= 60 else ("🟡" if pct >= 50 else "🔴")
-            status = "PASS ✅" if pct >= 50 else "FAIL ❌"
-            st.metric("Score", f"{icon} {pct}%", status)
+    if "score_subj" not in st.session_state:
+        st.session_state.score_subj = SUBJECTS[0]
 
-        c3, c4 = st.columns(2)
-        weak   = c3.text_area("Weak Areas", placeholder="Topics to revisit...")
-        strong = c4.text_area("Strong Areas", placeholder="What went well...")
-        action = st.text_area("Action Plan", placeholder="What will you do differently next time?")
+    c1, c2 = st.columns(2)
+    with c1:
+        t_date    = st.date_input("📅 Date *", value=date.today())
+        subj_opts = SUBJECTS + ["All"]
+        cur_idx   = subj_opts.index(st.session_state.score_subj) if st.session_state.score_subj in subj_opts else 0
+        subj      = st.selectbox("📚 Subject *", subj_opts,
+                                 index=cur_idx,
+                                 format_func=lambda x: f"{x} — {SUBJ_FULL.get(x, 'Full Syllabus')}",
+                                 key="score_subj_sel")
+        if subj != st.session_state.score_subj:
+            st.session_state.score_subj = subj
+            st.rerun()
+        test_name = st.text_input("📝 Test Name *", placeholder="e.g. ICAI Mock 1 — FR")
 
-        submitted = st.form_submit_button("✅ SAVE SCORE", use_container_width=True)
-        if submitted:
+    with c2:
+        marks     = st.number_input("✅ Marks Obtained *", 0, 200, 0)
+        max_marks = st.number_input("📊 Maximum Marks *",  1, 200, 100)
+        pct  = round(marks / max_marks * 100, 1) if max_marks > 0 else 0
+        icon = "🟢" if pct >= 60 else ("🟡" if pct >= 50 else "🔴")
+        status = "PASS ✅" if pct >= 50 else "FAIL ❌"
+        st.metric("Live Score Preview", f"{icon} {pct}%", status)
+
+    c3, c4 = st.columns(2)
+    weak   = c3.text_area("❌ Weak Areas", placeholder="Topics to revisit...")
+    strong = c4.text_area("✅ Strong Areas", placeholder="What went well...")
+    action = st.text_area("📌 Action Plan", placeholder="What will you do differently?")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("✅ SAVE SCORE", use_container_width=True, key="score_save"):
+        errors = []
+        if not test_name.strip():
+            errors.append("Test Name is required")
+        if marks == 0 and max_marks > 0:
+            errors.append("Marks Obtained cannot be 0 — did you mean to enter something?")
+        if errors:
+            for e in errors:
+                st.warning(f"⚠️ {e}")
+        else:
             ok, msg = add_score({
                 "date": str(t_date), "subject": subj,
                 "test_name": test_name, "marks": marks,
@@ -1547,7 +1831,6 @@ def add_test_score():
             else:
                 st.error(msg)
 
-    # Recent scores
     tst = get_scores()
     if not tst.empty:
         st.markdown("---")
@@ -1566,9 +1849,22 @@ def add_test_score():
 def revision():
     st.markdown("<h1>🔄 Revision Tracker</h1>", unsafe_allow_html=True)
 
+    if "rev_subj" not in st.session_state:
+        st.session_state.rev_subj = SUBJECTS[0]
+
     c1, c2 = st.columns(2)
-    subj   = c1.selectbox("Subject", SUBJECTS, format_func=lambda x: f"{x} — {SUBJ_FULL[x]}")
-    topic  = c2.selectbox("Topic",   TOPICS.get(subj, []))
+    subj = c1.selectbox("📚 Subject *", SUBJECTS,
+                        index=SUBJECTS.index(st.session_state.rev_subj),
+                        format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
+                        key="rev_subj_sel")
+    if subj != st.session_state.rev_subj:
+        st.session_state.rev_subj = subj
+        st.rerun()
+
+    topic_list = TOPICS.get(st.session_state.rev_subj, [])
+    topic = c2.selectbox(f"📖 Topic * ({st.session_state.rev_subj})",
+                         topic_list,
+                         key=f"rev_topic_{st.session_state.rev_subj}")
 
     st.markdown("---")
 
@@ -1576,36 +1872,51 @@ def revision():
 
     with col1:
         st.markdown('<div class="neon-header">📖 First Read</div>', unsafe_allow_html=True)
-        if st.button("✅ Mark First Read Complete", use_container_width=True):
-            ok, msg = update_rev(subj, topic, "first_read", True)
-            st.success(f"✅ {msg}") if ok else st.error(msg)
+        st.markdown("""<p style='color:#7AB4D0;font-size:13px'>
+            Mark when you complete the first reading of this topic.</p>""",
+            unsafe_allow_html=True)
+        if st.button("✅ Mark First Read Complete", use_container_width=True, key="rev_first"):
+            if not topic:
+                st.warning("⚠️ Please select a topic first")
+            else:
+                ok, msg = update_rev(subj, topic, "first_read", True)
+                st.success(f"✅ {msg}") if ok else st.error(msg)
 
     with col2:
         st.markdown('<div class="neon-header">🔄 Revision Rounds</div>', unsafe_allow_html=True)
         for n in [1, 2, 3]:
-            rd = st.date_input(f"Revision {n} Date", key=f"r{n}_date")
-            if st.button(f"💾 Save Revision {n}", key=f"rb{n}", use_container_width=True):
-                ok, msg = update_rev(subj, topic, f"r{n}_date", str(rd))
-                st.success(f"✅ {msg}") if ok else st.error(msg)
+            rd = st.date_input(f"Revision {n} Date", key=f"r{n}_date_{subj}")
+            if st.button(f"💾 Save Revision {n}", key=f"rb{n}_{subj}", use_container_width=True):
+                if not topic:
+                    st.warning("⚠️ Please select a topic first")
+                else:
+                    ok, msg = update_rev(subj, topic, f"r{n}_date", str(rd))
+                    st.success(f"✅ {msg}") if ok else st.error(msg)
 
     with col3:
-        st.markdown('<div class="neon-header">⭐ Confidence Level</div>', unsafe_allow_html=True)
+        st.markdown('<div class="neon-header">⭐ Confidence</div>', unsafe_allow_html=True)
         conf = st.select_slider(
             "Rate your confidence",
             options=[0, 1, 2, 3, 4, 5],
             format_func=lambda x: ["— Not rated", "😰 1 – Very Low", "😕 2 – Low",
-                                    "😐 3 – Medium", "😊 4 – High", "🔥 5 – Expert"][x]
+                                    "😐 3 – Medium", "😊 4 – High", "🔥 5 – Expert"][x],
+            key=f"conf_{subj}"
         )
-        if st.button("💾 Save Confidence", use_container_width=True):
-            ok, msg = update_rev(subj, topic, "confidence", conf)
-            st.success(f"✅ {msg}") if ok else st.error(msg)
+        if st.button("💾 Save Confidence", use_container_width=True, key=f"conf_btn_{subj}"):
+            if not topic:
+                st.warning("⚠️ Please select a topic first")
+            else:
+                ok, msg = update_rev(subj, topic, "confidence", conf)
+                st.success(f"✅ {msg}") if ok else st.error(msg)
 
-        due = st.selectbox("Revision Status", ["No", "Yes", "Soon"])
-        if st.button("💾 Save Status", use_container_width=True):
-            ok, msg = update_rev(subj, topic, "due_revision", due)
-            st.success(f"✅ {msg}") if ok else st.error(msg)
+        due = st.selectbox("Revision Status", ["No", "Yes", "Soon"], key=f"due_{subj}")
+        if st.button("💾 Save Status", use_container_width=True, key=f"due_btn_{subj}"):
+            if not topic:
+                st.warning("⚠️ Please select a topic first")
+            else:
+                ok, msg = update_rev(subj, topic, "due_revision", due)
+                st.success(f"✅ {msg}") if ok else st.error(msg)
 
-    # Subject revision table
     rev = get_revision()
     if not rev.empty:
         st.markdown("---")
@@ -1670,9 +1981,39 @@ def my_data():
 # ══════════════════════════════════════════════════════════════════════════════
 def leaderboard():
     st.markdown("<h1>🥇 Leaderboard</h1>", unsafe_allow_html=True)
-    st.caption("Rankings by total study hours. Only hours, days studied, and avg score are public.")
 
-    lb = get_leaderboard()
+    # Check user opt-in
+    prof = st.session_state.profile
+    user_opted_in = bool(prof.get("leaderboard_opt_in", False))
+
+    if not user_opted_in:
+        st.markdown("""
+        <div class="glass-card" style="text-align:center;padding:50px 30px">
+            <div style="font-size:56px;margin-bottom:18px">🔒</div>
+            <h2 style="color:#FFFFFF;margin-bottom:10px">Leaderboard is Locked</h2>
+            <p style="color:#4A6A90;max-width:380px;margin:0 auto 20px">
+                You haven't opted in to the leaderboard yet. 
+                Opt in from your <b style='color:#38BDF8'>Profile</b> tab to appear on the 
+                leaderboard and see how others are performing.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        _, mid, _ = st.columns([1,1,1])
+        with mid:
+            if st.button("🏆 Go to Profile & Opt In", use_container_width=True):
+                st.info("👉 Click the **👤 Profile** tab above to manage your leaderboard preference.")
+        return
+
+    st.caption("Rankings by total study hours. Only hours, days studied, and avg score are visible.")
+
+    # Only fetch opted-in users
+    try:
+        r  = sb.table("leaderboard").select("*").execute()
+        lb = pd.DataFrame(r.data)
+    except:
+        lb = pd.DataFrame()
+
     if lb.empty:
         st.markdown("""
         <div class="glass-card" style="text-align:center;padding:40px">
@@ -1684,7 +2025,7 @@ def leaderboard():
         return
 
     lb       = lb.sort_values("total_hours", ascending=False).reset_index(drop=True)
-    my_user  = st.session_state.profile.get("username", "")
+    my_user  = prof.get("username", "")
     medals   = ["🥇", "🥈", "🥉"]
     medal_colors = {0: "#FFD700", 1: "#C0C0C0", 2: "#CD7F32"}
     neon_glow    = {0: "rgba(255,215,0,0.15)", 1: "rgba(192,192,192,0.1)", 2: "rgba(205,127,50,0.1)"}
@@ -1717,7 +2058,6 @@ def leaderboard():
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     fig = px.bar(
         lb.head(10), x="username", y="total_hours",
         color="total_hours",
@@ -1725,11 +2065,7 @@ def leaderboard():
         title="Top 10 — Study Hours",
         text="total_hours"
     )
-    fig.update_traces(
-        texttemplate="%{text:.0f}h",
-        textposition="outside",
-        marker_line_width=0
-    )
+    fig.update_traces(texttemplate="%{text:.0f}h", textposition="outside", marker_line_width=0)
     fig.update_layout(showlegend=False, coloraxis_showscale=False, **PLOTLY_LAYOUT)
     st.plotly_chart(fig, use_container_width=True)
 
@@ -1748,7 +2084,7 @@ else:
     days_left = max((exam - date.today()).days, 0)
     prof      = st.session_state.profile
 
-    # ── TOP HEADER BAR (user info + countdown + logout) ──
+    # ── ANIMATED TOP HEADER BAR ──
     st.markdown(f"""
     <div style="
         display:flex; align-items:center; justify-content:space-between;
@@ -1776,30 +2112,53 @@ else:
                 </div>
             </div>
         </div>
-        <div style="display:flex;align-items:center;gap:20px">
-            <div style="text-align:center">
-                <div style="font-family:'Orbitron',monospace;font-size:22px;
-                            font-weight:800;color:#FFF;
-                            text-shadow:0 0 20px rgba(56,189,248,0.7);line-height:1">
-                    {days_left}
-                </div>
-                <div style="font-size:9px;color:#4A6A90;letter-spacing:2px;
-                            text-transform:uppercase">
-                    Days Left · {prof.get('exam_month','')} {prof.get('exam_year','')}
-                </div>
+        <div style="display:flex;align-items:center;gap:10px">
+            <div style="
+                background:rgba(56,189,248,0.08);
+                border:2px solid rgba(56,189,248,0.22);
+                border-radius:14px;padding:8px 20px;text-align:center;
+                position:relative;overflow:hidden;
+            ">
+                <div style="
+                    position:absolute;top:0;left:0;right:0;height:2px;
+                    background:linear-gradient(90deg,transparent,#38BDF8,#7DD3FC,transparent);
+                    animation:scanline 2.5s ease-in-out infinite;
+                "></div>
+                <div style="
+                    font-family:'Orbitron',monospace;font-size:24px;font-weight:800;
+                    color:#FFFFFF;line-height:1;
+                    text-shadow:0 0 20px rgba(56,189,248,0.8),0 0 40px rgba(56,189,248,0.4);
+                    animation:pulse-count 2s ease-in-out infinite;
+                ">{days_left}</div>
+                <div style="
+                    font-family:'Rajdhani',sans-serif;font-size:9px;color:#4A6A90;
+                    letter-spacing:2px;text-transform:uppercase;margin-top:3px;
+                ">DAYS LEFT</div>
+                <div style="
+                    font-family:'Rajdhani',sans-serif;font-size:10px;color:#38BDF8;
+                    letter-spacing:1px;margin-top:1px;
+                ">{prof.get('exam_month','')} {prof.get('exam_year','')}</div>
             </div>
         </div>
     </div>
+    <style>
+    @keyframes pulse-count {{
+        0%, 100% {{ text-shadow: 0 0 20px rgba(56,189,248,0.8), 0 0 40px rgba(56,189,248,0.4); }}
+        50%       {{ text-shadow: 0 0 30px rgba(56,189,248,1.0), 0 0 60px rgba(56,189,248,0.6),
+                                   0 0 80px rgba(125,211,252,0.3); }}
+    }}
+    </style>
     """, unsafe_allow_html=True)
 
     # ── TOP NAV TABS ──
-    tab_dashboard, tab_log, tab_score, tab_revision, tab_data, tab_lb, tab_logout = st.tabs([
+    tab_dashboard, tab_log, tab_score, tab_revision, tab_data, tab_lb, tab_profile, tab_logout = st.tabs([
         "📊  Dashboard",
         "📝  Log Study",
         "🏆  Add Score",
         "🔄  Revision",
         "📋  My Data",
         "🥇  Leaderboard",
+        "👤  Profile",
         "🚪  Logout",
     ])
 
@@ -1820,6 +2179,9 @@ else:
 
     with tab_lb:
         leaderboard()
+
+    with tab_profile:
+        profile_page()
 
     with tab_logout:
         st.markdown("<br>", unsafe_allow_html=True)
