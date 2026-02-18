@@ -1581,6 +1581,35 @@ def profile_page():
                           7:"7 — Very Thorough",8:"8 — Meticulous",9:"9 — Near Perfect",10:"10 — Perfectionist"}
         st.caption(f"Currently set to: **{mastery_labels.get(new_mastery, str(new_mastery))}**")
 
+        st.markdown("---")
+        st.markdown('<div class="neon-header">📅 Backdated Entry Access</div>', unsafe_allow_html=True)
+        st.markdown("""<div style='font-size:12px;color:#7AB4D0;margin-bottom:10px'>
+            Enable this to log study sessions or test scores on past dates beyond the default 3-day limit.
+            Use responsibly — only for genuine missed entries.
+        </div>""", unsafe_allow_html=True)
+        cur_backdate = bool(prof.get("allow_backdate", False))
+        bd_col1, bd_col2 = st.columns([2,1])
+        with bd_col1:
+            st.markdown(f"""
+            <div style="background:{'rgba(251,191,36,0.10)' if cur_backdate else 'rgba(74,106,144,0.10)'};
+                        border:2px solid {'rgba(251,191,36,0.35)' if cur_backdate else 'rgba(74,106,144,0.25)'};
+                        border-radius:10px;padding:12px 14px">
+                <div style="font-size:12px;color:#B0D4F0">
+                    {'⚠️ <b>Backdated entries enabled</b> — all past dates accessible' if cur_backdate
+                     else '🔒 <b>Backdated entries restricted</b> — only last 3 days allowed'}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        with bd_col2:
+            if cur_backdate:
+                if st.button("🔒 Disable Backdating", use_container_width=True, key="bd_disable"):
+                    ok, msg = update_profile({"allow_backdate": False})
+                    if ok: st.rerun()
+            else:
+                if st.button("🔓 Enable Backdating", use_container_width=True, key="bd_enable"):
+                    ok, msg = update_profile({"allow_backdate": True})
+                    if ok: st.rerun()
+
         st.markdown('<div class="neon-header">📅 Update Exam Details</div>', unsafe_allow_html=True)
         ep1, ep2 = st.columns(2)
         month_list = ["January","May","September"]
@@ -1707,7 +1736,15 @@ def dashboard():
     dpd        = round(need / days_left, 1) if days_left > 0 else 0
     days_studied = log["date"].dt.date.nunique() if not log.empty else 0
 
-    st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
+    # ── Header row with refresh ──
+    h1, h2 = st.columns([5, 1])
+    with h1:
+        st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
+    with h2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🔄 Refresh", use_container_width=True, key="dash_refresh"):
+            st.cache_data.clear()
+            st.rerun()
 
     # KPIs
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -1770,28 +1807,19 @@ def dashboard():
             if not d30.empty:
                 grp = d30.groupby([d30["date"].dt.date, "subject"])["hours"].sum().reset_index()
                 grp.columns = ["Date", "Subject", "Hours"]
-                # Smooth animated area chart
-                fill_map = {
-                    "FR":  "rgba(125,211,252,0.10)",
-                    "AFM": "rgba(52,211,153,0.10)",
-                    "AA":  "rgba(251,191,36,0.10)",
-                    "DT":  "rgba(248,113,113,0.10)",
-                    "IDT": "rgba(96,165,250,0.10)"
-                }
                 fig = go.Figure()
                 for s in SUBJECTS:
                     sub = grp[grp["Subject"] == s].sort_values("Date")
                     if sub.empty:
                         continue
-                    fig.add_trace(go.Scatter(
+                    fig.add_trace(go.Bar(
                         x=sub["Date"], y=sub["Hours"],
                         name=SUBJ_FULL[s],
-                        mode="lines+markers",
-                        fill="tozeroy",
-                        fillcolor=fill_map[s],
-                        line=dict(color=COLORS[s], width=2.5, shape="spline", smoothing=1.3),
-                        marker=dict(size=6, color=COLORS[s],
-                                    line=dict(width=2, color=COLORS[s])),
+                        marker=dict(
+                            color=COLORS[s],
+                            opacity=0.85,
+                            line=dict(width=0)
+                        ),
                         hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>%{{x}}<br>%{{y:.1f}}h<extra></extra>"
                     ))
                 fig.add_hline(y=6, line_dash="dash", line_color="#FBBF24",
@@ -1799,6 +1827,25 @@ def dashboard():
                               annotation_text="6h daily target",
                               annotation_font_color="#FBBF24",
                               annotation_font_size=10)
+                # Animation via updatemenus play button
+                fig.update_layout(
+                    barmode="stack",
+                    bargap=0.25,
+                    bargroupgap=0.05,
+                    updatemenus=[dict(
+                        type="buttons", showactive=False,
+                        y=1.12, x=1.0, xanchor="right",
+                        buttons=[dict(
+                            label="▶ Animate",
+                            method="animate",
+                            args=[None, dict(
+                                frame=dict(duration=80, redraw=True),
+                                fromcurrent=True,
+                                transition=dict(duration=60, easing="cubic-in-out")
+                            )]
+                        )]
+                    )]
+                )
                 apply_theme(fig, title="Daily Hours — Last 30 Days")
                 fig.update_layout(hovermode="x unified")
                 fig.update_yaxes(rangemode="tozero")
@@ -1810,16 +1857,44 @@ def dashboard():
             fig2 = go.Figure()
             for s in SUBJECTS:
                 done = float(sh.get(s, 0))
+                tgt  = TARGET_HRS[s]
+                pct  = min(done / tgt * 100, 100) if tgt > 0 else 0
+                clr  = COLORS[s]
+                # Target bar (background)
                 fig2.add_trace(go.Bar(
-                    x=[done], y=[SUBJ_FULL[s]],
-                    orientation="h", name=s,
-                    marker=dict(color=COLORS[s], line=dict(width=0)),
-                    text=f"{done:.0f}h/{TARGET_HRS[s]}h",
-                    textposition="inside",
-                    showlegend=False
+                    x=[tgt], y=[s],
+                    orientation="h",
+                    marker=dict(color=f"{clr}22", line=dict(width=0)),
+                    showlegend=False,
+                    hoverinfo="skip"
                 ))
-            apply_theme(fig2, title="Hours vs Target")
-            fig2.update_xaxes(range=[0, 220])
+                # Done bar (foreground)
+                fig2.add_trace(go.Bar(
+                    x=[done], y=[s],
+                    orientation="h",
+                    name=s,
+                    marker=dict(
+                        color=clr,
+                        opacity=0.9,
+                        line=dict(width=0)
+                    ),
+                    text=f"  {done:.0f}h / {tgt}h  ({pct:.0f}%)",
+                    textposition="outside",
+                    textfont=dict(size=10, color=clr),
+                    showlegend=False,
+                    hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>{done:.0f}h done of {tgt}h<br>{pct:.0f}% complete<extra></extra>"
+                ))
+            apply_theme(fig2, title="Hours vs Target", height=260)
+            fig2.update_layout(
+                barmode="overlay",
+                bargap=0.35,
+                margin=dict(t=50, b=20, l=50, r=80)
+            )
+            fig2.update_xaxes(range=[0, max(TARGET_HRS.values()) * 1.15], title_text="Hours")
+            fig2.update_yaxes(
+                tickfont=dict(size=11, family="Orbitron, monospace"),
+                autorange="reversed"
+            )
             st.plotly_chart(fig2, use_container_width=True)
 
     # Charts row 2
@@ -1914,7 +1989,6 @@ def dashboard():
 
             c_chart, c_stat = st.columns([3, 1])
             with c_chart:
-                # Gantt-style horizontal bar chart — best for showing overdue vs upcoming
                 fig_p = go.Figure()
                 color_map = {"🔴 OVERDUE": "#F87171", "🟡 DUE TODAY": "#FBBF24", "🟢 UPCOMING": "#34D399"}
                 for status_label, color in color_map.items():
@@ -1949,7 +2023,7 @@ def dashboard():
                 st.plotly_chart(fig_p, use_container_width=True)
 
             with c_stat:
-                total_topics  = len(rev[rev["first_read"] == True]) if "first_read" in rev else 0
+                total_read    = len(rev[rev["first_read"] == True]) if "first_read" in rev.columns else 0
                 total_overdue = len(overdue_df)
                 total_up      = len(upcoming_df)
                 st.markdown(f"""
@@ -1969,11 +2043,92 @@ def dashboard():
                     <div style="background:rgba(52,211,153,0.10);border:2px solid rgba(52,211,153,0.3);
                                 border-radius:10px;padding:14px;text-align:center">
                         <div style="font-size:28px;font-weight:800;color:#34D399;
-                                    font-family:'Orbitron',monospace">{total_topics}</div>
+                                    font-family:'Orbitron',monospace">{total_read}</div>
                         <div style="font-size:10px;color:#34D399;letter-spacing:1px">TOPICS READ</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+
+        # ── Donut Charts: Coverage / Revision / Overdue ──
+        st.markdown("---")
+        st.markdown('<div class="neon-header">🍩 Study Coverage Overview</div>', unsafe_allow_html=True)
+
+        donut_filter_opts = ["All"] + SUBJECTS
+        d_col_f, _ = st.columns([1, 3])
+        with d_col_f:
+            donut_filter = st.selectbox("Filter by Subject", donut_filter_opts,
+                                        key="dash_donut_filter",
+                                        format_func=lambda x: x if x == "All" else f"{x} — {SUBJ_FULL[x]}")
+
+        if donut_filter == "All":
+            rev_f   = rev
+            pend_f  = pend if not pend.empty else pd.DataFrame()
+            all_topics_count = sum(len(v) for v in TOPICS.values())
+        else:
+            rev_f   = rev[rev["subject"] == donut_filter]
+            pend_f  = pend[pend["subject"] == donut_filter] if not pend.empty else pd.DataFrame()
+            all_topics_count = len(TOPICS.get(donut_filter, []))
+
+        # Counts
+        topics_read    = int(rev_f["first_read"].sum()) if "first_read" in rev_f.columns and not rev_f.empty else 0
+        topics_not_read = max(all_topics_count - topics_read, 0)
+        topics_revised = int((rev_f["revision_count"] > 0).sum()) if "revision_count" in rev_f.columns and not rev_f.empty else 0
+        read_not_revised = max(topics_read - topics_revised, 0)
+        ov_count       = len(pend_f[pend_f["days_overdue"] > 0]) if not pend_f.empty else 0
+        not_overdue    = max(topics_read - ov_count, 0)
+
+        dc1, dc2, dc3 = st.columns(3)
+
+        def make_donut(vals, labels, colors, title, center_text):
+            fig_d = go.Figure(go.Pie(
+                values=vals, labels=labels,
+                marker_colors=colors,
+                hole=0.62,
+                textinfo="percent",
+                textfont=dict(size=10),
+                hovertemplate="%{label}: %{value}<extra></extra>"
+            ))
+            fig_d.update_layout(
+                paper_bgcolor="rgba(4,10,28,0.95)",
+                plot_bgcolor ="rgba(4,10,28,0.95)",
+                height=220,
+                margin=dict(t=40, b=10, l=10, r=10),
+                title=dict(text=title, font=dict(
+                    family="Orbitron, monospace", size=11, color="#FFFFFF"), x=0.5),
+                showlegend=True,
+                legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.15,
+                            font=dict(size=9, color="#B0D4F0"),
+                            bgcolor="rgba(0,0,0,0)"),
+                annotations=[dict(text=center_text, x=0.5, y=0.5,
+                                  font=dict(size=14, color="#FFFFFF",
+                                            family="Orbitron, monospace"),
+                                  showarrow=False)]
+            )
+            return fig_d
+
+        with dc1:
+            vals = [topics_read, topics_not_read] if (topics_read + topics_not_read) > 0 else [1]
+            lbls = ["Read", "Not Read"] if (topics_read + topics_not_read) > 0 else ["No Data"]
+            clrs = ["#38BDF8", "#1E3A5F"] if len(vals) == 2 else ["#2D3748"]
+            pct_r = f"{int(topics_read/all_topics_count*100)}%" if all_topics_count > 0 else "0%"
+            st.plotly_chart(make_donut(vals, lbls, clrs,
+                "📖 Topics Read", pct_r), use_container_width=True)
+
+        with dc2:
+            vals2 = [topics_revised, read_not_revised] if topics_read > 0 else [1]
+            lbls2 = ["Revised", "Read Only"] if topics_read > 0 else ["No Data"]
+            clrs2 = ["#34D399", "#0F3A2A"] if len(vals2) == 2 else ["#2D3748"]
+            pct_rv = f"{int(topics_revised/topics_read*100)}%" if topics_read > 0 else "0%"
+            st.plotly_chart(make_donut(vals2, lbls2, clrs2,
+                "🔄 Revised", pct_rv), use_container_width=True)
+
+        with dc3:
+            vals3 = [ov_count, max(not_overdue, 0)] if topics_read > 0 else [1]
+            lbls3 = ["Overdue", "On Track"] if topics_read > 0 else ["No Data"]
+            clrs3 = ["#F87171", "#1A3A1A"] if len(vals3) == 2 else ["#2D3748"]
+            pct_ov = f"{int(ov_count/topics_read*100)}%" if topics_read > 0 else "0%"
+            st.plotly_chart(make_donut(vals3, lbls3, clrs3,
+                "⚠️ Overdue", pct_ov), use_container_width=True)
 
     elif log.empty and tst.empty:
         st.markdown("""
@@ -1997,11 +2152,15 @@ def log_study():
 
     c1, c2 = st.columns(2)
     with c1:
+        allow_bd = bool(st.session_state.profile.get("allow_backdate", False))
+        min_date = date(2020, 1, 1) if allow_bd else date.today() - timedelta(days=3)
         s_date = st.date_input("📅 Date *",
                                value=date.today(),
-                               min_value=date.today() - timedelta(days=3),
+                               min_value=min_date,
                                max_value=date.today(),
                                key="log_date")
+        if allow_bd:
+            st.caption("⚠️ Backdated mode ON — go to 👤 Profile to disable")
         subj   = st.selectbox("📚 Subject *", SUBJECTS,
                               index=SUBJECTS.index(st.session_state.log_subj),
                               format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
@@ -2100,7 +2259,13 @@ def add_test_score():
 
     c1, c2 = st.columns(2)
     with c1:
-        t_date    = st.date_input("📅 Date *", value=date.today(), key="score_date")
+        allow_bd_s = bool(st.session_state.profile.get("allow_backdate", False))
+        min_date_s = date(2020, 1, 1) if allow_bd_s else date.today() - timedelta(days=3)
+        t_date    = st.date_input("📅 Date *", value=date.today(),
+                                  min_value=min_date_s, max_value=date.today(),
+                                  key="score_date")
+        if allow_bd_s:
+            st.caption("⚠️ Backdated mode ON — go to 👤 Profile to disable")
         subj_opts = SUBJECTS + ["All"]
         cur_idx   = subj_opts.index(st.session_state.score_subj) if st.session_state.score_subj in subj_opts else 0
         subj      = st.selectbox("📚 Subject *", subj_opts,
@@ -2163,31 +2328,26 @@ def add_test_score():
 
 # ══════════════════════════════════════════════════════════════════════════════
 # REVISION
-# ══════════════════════════════════════════════════════════════════════════════
-# REVISION TRACKER
-# ══════════════════════════════════════════════════════════════════════════════
 def revision():
     st.markdown("<h1>🔄 Revision Tracker</h1>", unsafe_allow_html=True)
 
-    # ── Settings: revisions needed to master ──
-    prof = st.session_state.profile
+    prof           = st.session_state.profile
     mastery_target = int(prof.get("mastery_revisions", 3))
-
-    rev_df  = get_revision()
-    log_df  = get_logs()
+    rev_df         = get_revision()
+    log_df         = get_logs()
 
     if "rev_subj" not in st.session_state:
-        st.session_state.rev_subj = SUBJECTS[0]
+        st.session_state.rev_subj = "ALL"
 
-    # ── Subject selector ──
-    subj_cols = st.columns(5)
-    for i, s in enumerate(SUBJECTS):
+    # ── Subject selector with ALL option ──
+    subj_opts_display = ["ALL"] + SUBJECTS
+    btn_cols = st.columns(len(subj_opts_display))
+    for i, s in enumerate(subj_opts_display):
         active = st.session_state.rev_subj == s
-        clr    = COLORS[s]
-        bg     = f"background:{clr}22;border:2px solid {clr}88;" if active else \
-                 "background:rgba(6,14,38,0.7);border:2px solid rgba(56,189,248,0.15);"
-        with subj_cols[i]:
-            if st.button(f"{s}", key=f"rev_subj_btn_{s}", use_container_width=True):
+        clr    = "#38BDF8" if s == "ALL" else COLORS[s]
+        with btn_cols[i]:
+            label = "🌐 ALL" if s == "ALL" else s
+            if st.button(label, key=f"rev_subj_btn_{s}", use_container_width=True):
                 st.session_state.rev_subj = s
                 st.rerun()
 
@@ -2196,162 +2356,268 @@ def revision():
 
     # ── Build topic timeline from daily_log ──
     from collections import defaultdict
-    topic_sessions = defaultdict(list)
+    topic_sessions_all = defaultdict(list)   # key = (subj, topic)
     if not log_df.empty:
-        for _, r in log_df[log_df["subject"] == subj].iterrows():
+        for _, r in log_df.iterrows():
             d = r["date"].date() if hasattr(r["date"], "date") else date.fromisoformat(str(r["date"]))
-            topic_sessions[r["topic"]].append(d)
-    for k in topic_sessions:
-        topic_sessions[k] = sorted(set(topic_sessions[k]))
+            topic_sessions_all[(r["subject"], r["topic"])].append(d)
+    for k in topic_sessions_all:
+        topic_sessions_all[k] = sorted(set(topic_sessions_all[k]))
 
     today = date.today()
 
+    # Build display list of subjects
+    display_subjects = SUBJECTS if subj == "ALL" else [subj]
+
     # ── Per-topic status table ──
-    st.markdown(f'<div class="neon-header">📋 {subj} — {SUBJ_FULL[subj]} · Topic Status</div>',
+    header_txt = "All Subjects" if subj == "ALL" else f"{subj} — {SUBJ_FULL[subj]}"
+    st.markdown(f'<div class="neon-header">📋 {header_txt} · Topic Status</div>',
                 unsafe_allow_html=True)
 
-    topic_list = TOPICS.get(subj, [])
     topic_rows = []
-    for topic in topic_list:
-        sessions = topic_sessions.get(topic, [])
-        n        = len(sessions)
-        if n == 0:
-            status_icon = "⬜"
-            status_txt  = "Not Started"
-            last_date   = "—"
-            revs_done   = 0
-            next_due    = "—"
-            days_info   = "—"
-            conf_pct    = 0
-        else:
-            first_dt    = sessions[0]
-            revs_done   = n - 1
-            last_dt     = sessions[-1]
-            last_date   = last_dt.strftime("%d %b %Y")
-            # Compute next due
-            sched_idx   = min(revs_done, len(REVISION_SCHEDULE) - 1)
-            gap         = REVISION_SCHEDULE[sched_idx]
-            due         = last_dt + timedelta(days=gap)
-            days_diff   = (today - due).days
-            next_due    = due.strftime("%d %b %Y")
-            if days_diff > 0:
-                status_icon = "🔴"
-                status_txt  = f"Overdue {days_diff}d"
-                days_info   = f"+{days_diff}d"
-            elif days_diff == 0:
-                status_icon = "🟡"
-                status_txt  = "Due Today"
-                days_info   = "Today"
+    for ds in display_subjects:
+        for topic in TOPICS.get(ds, []):
+            sessions = topic_sessions_all.get((ds, topic), [])
+            n        = len(sessions)
+            if n == 0:
+                status_icon = "⬜"; status_txt = "Not Started"
+                last_date = "—"; revs_done = 0; next_due = "—"; conf_pct = 0
             else:
-                status_icon = "🟢"
-                status_txt  = f"In {abs(days_diff)}d"
-                days_info   = f"-{abs(days_diff)}d"
-            # Confidence: revisions done / mastery_target capped at 100%
-            conf_pct = min(int(revs_done / mastery_target * 100), 100)
-
-        topic_rows.append({
-            "Topic":        topic,
-            "Status":       f"{status_icon} {status_txt}",
-            "Reads":        n,
-            "Revisions":    revs_done,
-            "Last Studied": last_date,
-            "Next Due":     next_due,
-            "Confidence":   f"{conf_pct}%",
-        })
+                revs_done   = n - 1
+                last_dt     = sessions[-1]
+                last_date   = last_dt.strftime("%d %b %Y")
+                sched_idx   = min(revs_done, len(REVISION_SCHEDULE) - 1)
+                gap         = REVISION_SCHEDULE[sched_idx]
+                due         = last_dt + timedelta(days=gap)
+                days_diff   = (today - due).days
+                next_due    = due.strftime("%d %b %Y")
+                if days_diff > 0:
+                    status_icon = "🔴"; status_txt = f"Overdue {days_diff}d"
+                elif days_diff == 0:
+                    status_icon = "🟡"; status_txt = "Due Today"
+                else:
+                    status_icon = "🟢"; status_txt = f"In {abs(days_diff)}d"
+                conf_pct = min(int(revs_done / mastery_target * 100), 100)
+            topic_rows.append({
+                "Subj": ds, "Topic": topic,
+                "Status": f"{status_icon} {status_txt}",
+                "Total Reads": n, "Revisions": revs_done,
+                "Last Studied": last_date, "Next Due": next_due,
+                "Confidence": f"{conf_pct}%",
+            })
 
     t_df = pd.DataFrame(topic_rows)
-    st.dataframe(t_df, use_container_width=True, height=350)
+    st.dataframe(t_df, use_container_width=True, height=320)
 
     st.markdown("---")
 
-    # ── Confidence indicators per topic (visual) ──
+    # ── Pendency grouped by revision class ──
+    st.markdown('<div class="neon-header">⏰ Pending Revisions by Class</div>', unsafe_allow_html=True)
+
+    pend_all = compute_revision_pendencies(rev_df, log_df) if not rev_df.empty else pd.DataFrame()
+    if not pend_all.empty:
+        pend_show = pend_all if subj == "ALL" else pend_all[pend_all["subject"] == subj]
+
+        # Overdue section
+        overdue_df = pend_show[pend_show["days_overdue"] > 0].sort_values("days_overdue", ascending=False)
+        if not overdue_df.empty:
+            st.markdown("#### 🔴 Overdue")
+            for _, row in overdue_df.iterrows():
+                urgency_clr = "#F87171" if row["days_overdue"] > 7 else "#FBBF24"
+                st.markdown(f"""
+                <div style="background:rgba(248,113,113,0.07);border:2px solid {urgency_clr}44;
+                            border-left:4px solid {urgency_clr};border-radius:10px;
+                            padding:9px 14px;margin:4px 0;
+                            display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <span style="font-family:'Orbitron',monospace;font-size:10px;
+                                     color:{COLORS.get(row['subject'],'#38BDF8')}">{row['subject']}</span>
+                        <span style="font-size:12px;color:#FFFFFF;margin-left:8px">{row['topic'][:55]}</span>
+                        <span style="font-size:10px;color:#4A6A90;margin-left:8px">{row['round_label']}</span>
+                    </div>
+                    <div style="text-align:right;min-width:90px">
+                        <div style="font-family:'Orbitron',monospace;font-size:13px;
+                                    font-weight:700;color:{urgency_clr}">+{row['days_overdue']}d</div>
+                        <div style="font-size:9px;color:#4A6A90">due {row['due_date']}</div>
+                    </div>
+                </div>""", unsafe_allow_html=True)
+
+        # Upcoming grouped by schedule class
+        upcoming_df = pend_show[pend_show["days_overdue"] < 0].copy()
+        upcoming_df["days_away"] = upcoming_df["days_overdue"].abs()
+        schedule_classes = [
+            (0,  3,  "🟡 Due within 3 days",  "#FBBF24"),
+            (3,  7,  "🟠 Due in 3–7 days",    "#FB923C"),
+            (7,  15, "🔵 Due in 7–15 days",   "#60A5FA"),
+            (15, 30, "🟢 Due in 15–30 days",  "#34D399"),
+            (30, 91, "⚪ Due in 30–90 days",  "#94A3B8"),
+        ]
+        for lo, hi, label, clr in schedule_classes:
+            bucket = upcoming_df[(upcoming_df["days_away"] > lo) & (upcoming_df["days_away"] <= hi)]
+            if bucket.empty:
+                continue
+            st.markdown(f"#### {label}")
+            for _, row in bucket.sort_values("days_away").iterrows():
+                st.markdown(f"""
+                <div style="background:rgba(56,189,248,0.05);border:2px solid {clr}33;
+                            border-left:4px solid {clr};border-radius:10px;
+                            padding:9px 14px;margin:4px 0;
+                            display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <span style="font-family:'Orbitron',monospace;font-size:10px;
+                                     color:{COLORS.get(row['subject'],'#38BDF8')}">{row['subject']}</span>
+                        <span style="font-size:12px;color:#FFFFFF;margin-left:8px">{row['topic'][:55]}</span>
+                        <span style="font-size:10px;color:#4A6A90;margin-left:8px">{row['round_label']}</span>
+                    </div>
+                    <div style="text-align:right;min-width:90px">
+                        <div style="font-family:'Orbitron',monospace;font-size:13px;
+                                    font-weight:700;color:{clr}">in {int(row['days_away'])}d</div>
+                        <div style="font-size:9px;color:#4A6A90">due {row['due_date']}</div>
+                    </div>
+                </div>""", unsafe_allow_html=True)
+    else:
+        st.success("✅ No pending revisions yet. Keep studying!")
+
+    st.markdown("---")
+
+    # ── Topic Reading History (Fix 3) ──
+    st.markdown('<div class="neon-header">📖 Topic Reading History</div>', unsafe_allow_html=True)
+
+    h_subj_opts = SUBJECTS if subj == "ALL" else [subj]
+    hc1, hc2 = st.columns(2)
+    with hc1:
+        h_subj = st.selectbox("Subject", h_subj_opts,
+                               format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
+                               key="hist_subj")
+    with hc2:
+        h_topic_list = TOPICS.get(h_subj, [])
+        studied_topics = [t for t in h_topic_list if topic_sessions_all.get((h_subj, t))]
+        if studied_topics:
+            h_topic = st.selectbox("Topic", studied_topics, key="hist_topic")
+        else:
+            st.info("No sessions logged for this subject yet.")
+            h_topic = None
+
+    if h_topic:
+        sessions = topic_sessions_all.get((h_subj, h_topic), [])
+        if not log_df.empty:
+            topic_log = log_df[
+                (log_df["subject"] == h_subj) &
+                (log_df["topic"]   == h_topic)
+            ].sort_values("date", ascending=False).copy()
+        else:
+            topic_log = pd.DataFrame()
+
+        st.markdown(f"""
+        <div style="background:rgba(8,18,50,0.80);border:2px solid rgba(56,189,248,0.25);
+                    border-radius:14px;padding:16px 20px;margin-bottom:12px">
+            <div style="font-family:'Orbitron',monospace;font-size:12px;color:#38BDF8;
+                        letter-spacing:1px;margin-bottom:10px">
+                {h_subj} · {h_topic} · {len(sessions)} session(s)
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        for i, (_, row) in enumerate(topic_log.iterrows()):
+            d = row["date"].strftime("%d %b %Y") if hasattr(row["date"], "strftime") else str(row["date"])
+            hrs = float(row.get("hours", 0))
+            label = "📖 First Read" if i == len(topic_log) - 1 else f"🔄 Revision {len(topic_log) - 1 - i}"
+            label_clr = "#38BDF8" if i == len(topic_log) - 1 else "#34D399"
+            st.markdown(f"""
+            <div style="display:flex;align-items:center;gap:12px;
+                        padding:10px 14px;margin:4px 0;
+                        background:rgba(56,189,248,0.05);
+                        border:2px solid rgba(56,189,248,0.12);border-radius:10px">
+                <div style="font-size:18px">✅</div>
+                <div style="flex:1">
+                    <span style="font-family:'Orbitron',monospace;font-size:10px;
+                                 color:{label_clr};font-weight:700">{label}</span>
+                    <span style="font-size:12px;color:#FFFFFF;margin-left:10px">{d}</span>
+                </div>
+                <div style="font-size:11px;color:#4A6A90;font-weight:600">⏱ {hrs:.1f}h</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # ── Confidence indicators ──
     st.markdown('<div class="neon-header">⭐ Confidence Indicators</div>', unsafe_allow_html=True)
-    st.caption(f"Based on your mastery target: **{mastery_target} revisions** = 100% confident  ·  Change in 👤 Profile → Settings")
+    st.caption(f"Mastery target: **{mastery_target} revisions** = 100% · Change in 👤 Profile → Settings")
 
-    done_topics   = [(t, topic_sessions[t]) for t in topic_list if topic_sessions.get(t)]
-    notdone_count = len(topic_list) - len(done_topics)
+    conf_topics = []
+    for ds in display_subjects:
+        for t in TOPICS.get(ds, []):
+            s = topic_sessions_all.get((ds, t), [])
+            if s:
+                conf_topics.append((f"{ds} · {t}", s))
 
-    if done_topics:
-        # Show as a horizontal bar chart
+    if conf_topics:
         conf_fig = go.Figure()
         labels, values, colors_bar, hover_texts = [], [], [], []
-        for t, sessions in sorted(done_topics, key=lambda x: len(x[1]), reverse=True):
-            revs    = len(sessions) - 1
-            conf    = min(revs / mastery_target * 100, 100)
-            labels.append(t[:35] + ("…" if len(t) > 35 else ""))
+        for lbl, sessions in sorted(conf_topics, key=lambda x: len(x[1]), reverse=True):
+            revs = len(sessions) - 1
+            conf = min(revs / mastery_target * 100, 100)
+            labels.append(lbl[:40] + ("…" if len(lbl) > 40 else ""))
             values.append(conf)
             colors_bar.append(
                 "#34D399" if conf >= 100 else
                 "#60A5FA" if conf >= 66  else
-                "#FBBF24" if conf >= 33  else
-                "#F87171"
+                "#FBBF24" if conf >= 33  else "#F87171"
             )
-            hover_texts.append(f"{t}<br>Revisions: {revs}/{mastery_target}<br>Confidence: {conf:.0f}%")
+            hover_texts.append(f"{lbl}<br>Revisions: {revs}/{mastery_target}<br>Confidence: {conf:.0f}%")
 
         conf_fig.add_trace(go.Bar(
-            y=labels, x=values,
-            orientation="h",
+            y=labels, x=values, orientation="h",
             marker_color=colors_bar,
             text=[f"{v:.0f}%" for v in values],
-            textposition="inside",
-            insidetextanchor="start",
+            textposition="inside", insidetextanchor="start",
             hovertext=hover_texts,
             hovertemplate="%{hovertext}<extra></extra>"
         ))
         apply_theme(conf_fig,
-                    title=f"{subj} — Topic Confidence ({mastery_target} revisions = mastery)",
-                    height=max(200, min(len(labels) * 22 + 80, 550)))
+                    title=f"Topic Confidence ({mastery_target} revisions = mastery)",
+                    height=max(200, min(len(labels) * 20 + 80, 600)))
         conf_fig.update_layout(
-            margin=dict(t=50, b=40, l=200, r=20),
-            shapes=[dict(
-                type="line", x0=100, x1=100, y0=-0.5, y1=len(labels) - 0.5,
-                line=dict(color="#34D399", width=1.5, dash="dot")
-            )]
+            margin=dict(t=50, b=40, l=220, r=20),
+            shapes=[dict(type="line", x0=100, x1=100,
+                         y0=-0.5, y1=len(labels) - 0.5,
+                         line=dict(color="#34D399", width=1.5, dash="dot"))]
         )
         conf_fig.update_xaxes(range=[0, 105], title_text="Confidence %")
         conf_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
         st.plotly_chart(conf_fig, use_container_width=True)
     else:
-        st.info("No topics studied yet. Log sessions in the Study Log tab.")
+        st.info("No topics studied yet.")
 
     st.markdown("---")
 
     # ── Overall Confidence Score ──
     st.markdown('<div class="neon-header">🏆 Overall Confidence Score</div>', unsafe_allow_html=True)
 
-    total_topics     = len(topic_list)
-    read_topics      = len([t for t in topic_list if topic_sessions.get(t)])
-    total_rev_done   = sum(max(len(s) - 1, 0) for s in topic_sessions.values())
-    max_possible_rev = total_topics * mastery_target
+    all_topic_count  = sum(len(v) for v in TOPICS.values())
+    read_count       = len([k for k in topic_sessions_all if topic_sessions_all[k]])
+    total_rev_done   = sum(max(len(s) - 1, 0) for s in topic_sessions_all.values())
+    max_possible_rev = all_topic_count * mastery_target
+    pend_df          = compute_revision_pendencies(rev_df, log_df) if not rev_df.empty else pd.DataFrame()
+    overdue_count    = len(pend_df[pend_df["days_overdue"] > 0]) if not pend_df.empty else 0
 
-    # Compute pendencies
-    pend_df = compute_revision_pendencies(rev_df, log_df) if not rev_df.empty else pd.DataFrame()
-    overdue_count = len(pend_df[pend_df["days_overdue"] > 0]) if not pend_df.empty else 0
-
-    # Score components
-    # 1. Coverage: topics read / total
-    coverage_pct  = read_topics / total_topics * 100 if total_topics > 0 else 0
-    # 2. Revision depth: revisions done / max possible
-    depth_pct     = min(total_rev_done / max_possible_rev * 100, 100) if max_possible_rev > 0 else 0
-    # 3. Pendency penalty: each overdue topic reduces score
-    penalty       = min(overdue_count * 2, 30)   # max 30% penalty
-    # Weighted overall
-    overall       = max(0, round(coverage_pct * 0.35 + depth_pct * 0.50 - penalty * 0.15, 1))
+    coverage_pct = read_count / all_topic_count * 100 if all_topic_count > 0 else 0
+    depth_pct    = min(total_rev_done / max_possible_rev * 100, 100) if max_possible_rev > 0 else 0
+    penalty      = min(overdue_count * 2, 30)
+    overall      = max(0, round(coverage_pct * 0.35 + depth_pct * 0.50 - penalty * 0.15, 1))
 
     grade = (
-        ("🏆 MASTER",    "#34D399") if overall >= 85 else
-        ("🎯 STRONG",    "#60A5FA") if overall >= 65 else
-        ("📈 PROGRESSING","#FBBF24") if overall >= 40 else
+        ("🏆 MASTER",      "#34D399") if overall >= 85 else
+        ("🎯 STRONG",      "#60A5FA") if overall >= 65 else
+        ("📈 PROGRESSING", "#FBBF24") if overall >= 40 else
         ("🚀 JUST STARTED","#F87171")
     )
-
     oc1, oc2, oc3, oc4 = st.columns(4)
-    oc1.metric("📖 Topics Read",      f"{read_topics}/{total_topics}", f"{coverage_pct:.0f}% coverage")
-    oc2.metric("🔄 Total Revisions",  f"{total_rev_done}",            f"of {max_possible_rev} target")
-    oc3.metric("🔴 Overdue Topics",   f"{overdue_count}",             "need revision now")
-    oc4.metric("⭐ Overall Confidence",f"{overall}%",                 grade[0])
+    oc1.metric("📖 Topics Read",       f"{read_count}/{all_topic_count}", f"{coverage_pct:.0f}%")
+    oc2.metric("🔄 Total Revisions",   f"{total_rev_done}",              f"of {max_possible_rev} target")
+    oc3.metric("🔴 Overdue Topics",    f"{overdue_count}",               "need revision now")
+    oc4.metric("⭐ Overall Confidence", f"{overall}%",                   grade[0])
 
-    # Visual gauge
     bar_clr = grade[1]
     st.markdown(f"""
     <div style="background:rgba(6,14,38,0.80);border:2px solid {bar_clr}44;
@@ -2367,79 +2633,14 @@ def revision():
                         background:linear-gradient(90deg,{bar_clr}88,{bar_clr});
                         box-shadow:0 0 12px {bar_clr}88;transition:width 1s ease"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#4A6A90">
+        <div style="display:flex;justify-content:space-between;margin-top:10px;
+                    font-size:11px;color:#4A6A90">
             <span>Coverage {coverage_pct:.0f}% × 35%</span>
             <span>Depth {depth_pct:.0f}% × 50%</span>
             <span>Overdue penalty -{penalty:.0f}% × 15%</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # ── Pending Revisions List (bottom of tab) ──
-    st.markdown('<div class="neon-header">⏰ Pending Revisions — Action Required</div>',
-                unsafe_allow_html=True)
-
-    pend_subj = compute_revision_pendencies(rev_df, log_df) if not rev_df.empty else pd.DataFrame()
-    if not pend_subj.empty:
-        # Filter to current subject for this tab, show all overdue first
-        show_all = st.checkbox("Show all subjects", value=False, key="pend_all_subj")
-        if not show_all:
-            pend_subj = pend_subj[pend_subj["subject"] == subj]
-
-        overdue  = pend_subj[pend_subj["days_overdue"] > 0].head(20)
-        upcoming = pend_subj[pend_subj["days_overdue"] <= 0].head(10)
-
-        if not overdue.empty:
-            st.markdown("##### 🔴 Overdue")
-            for _, row in overdue.iterrows():
-                urgency_clr = "#F87171" if row["days_overdue"] > 7 else "#FBBF24"
-                st.markdown(f"""
-                <div style="background:rgba(248,113,113,0.08);border-left:3px solid {urgency_clr};
-                            border:2px solid {urgency_clr}33;border-radius:10px;
-                            padding:10px 14px;margin:5px 0;
-                            display:flex;justify-content:space-between;align-items:center">
-                    <div>
-                        <span style="font-family:'Orbitron',monospace;font-size:10px;
-                                     color:{COLORS.get(row['subject'],'#38BDF8')}">{row['subject']}</span>
-                        <span style="font-size:13px;color:#FFFFFF;margin-left:8px">{row['topic'][:50]}</span>
-                        <span style="font-size:10px;color:#4A6A90;margin-left:8px">{row['round_label']}</span>
-                    </div>
-                    <div style="text-align:right">
-                        <div style="font-family:'Orbitron',monospace;font-size:14px;
-                                    font-weight:700;color:{urgency_clr}">+{row['days_overdue']}d</div>
-                        <div style="font-size:9px;color:#4A6A90">was due {row['due_date']}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-        if not upcoming.empty:
-            st.markdown("##### 🟢 Upcoming (next 30 days)")
-            for _, row in upcoming.iterrows():
-                days_away = abs(row["days_overdue"])
-                if days_away > 30:
-                    continue
-                st.markdown(f"""
-                <div style="background:rgba(52,211,153,0.06);
-                            border:2px solid rgba(52,211,153,0.20);border-radius:10px;
-                            padding:10px 14px;margin:5px 0;
-                            display:flex;justify-content:space-between;align-items:center">
-                    <div>
-                        <span style="font-family:'Orbitron',monospace;font-size:10px;
-                                     color:{COLORS.get(row['subject'],'#38BDF8')}">{row['subject']}</span>
-                        <span style="font-size:13px;color:#FFFFFF;margin-left:8px">{row['topic'][:50]}</span>
-                        <span style="font-size:10px;color:#4A6A90;margin-left:8px">{row['round_label']}</span>
-                    </div>
-                    <div style="text-align:right">
-                        <div style="font-family:'Orbitron',monospace;font-size:14px;
-                                    font-weight:700;color:#34D399">in {days_away}d</div>
-                        <div style="font-size:9px;color:#4A6A90">due {row['due_date']}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.success("✅ No pending revisions! Keep studying to generate revision schedules.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
