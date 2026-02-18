@@ -993,54 +993,79 @@ def leaderboard():
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
 # ══════════════════════════════════════════════════════════════════════════════
-# MAIN
+# COMPLETE MAIN SECTION - PASTE THIS AT THE BOTTOM OF YOUR streamlit_app.py
+# Replace everything from "if not st.session_state.logged_in:" to the end
 # ══════════════════════════════════════════════════════════════════════════════
+
+# Check login status
 if not st.session_state.logged_in:
     auth_page()
-else:
-    profile = st.session_state.profile
-    name = profile.get("full_name", "Student")
+    st.stop()  # Stop execution here - don't run code below
 
-    # ── SIDEBAR ──
-    with st.sidebar:
-        st.markdown(f"### 👋 {name}")
-        st.caption(f"@{profile.get('username', '')}")
-        st.markdown("---")
-        
-        page = st.radio("Navigate", [
-            "📊 Dashboard",
-            "📝 Log Study",
-            "🏆 Add Score",
-            "🔄 Revision",
-            "📋 My Data",
-            "🥇 Leaderboard"
-        ], label_visibility="collapsed")
-        
-        st.markdown("---")
-        
-        exam = get_exam_date()
-        days_left = max((exam - date.today()).days, 0)
-        prof = st.session_state.profile
-        
-        st.metric("⏳ Days Left", days_left)
-        st.progress(max(0, min(1, 1 - days_left/365)))
-        st.caption(f"📅 {prof.get('exam_month', '')} {prof.get('exam_year', '')}")
-        
-        st.markdown("---")
-        
-        if st.button("🚪 Logout", use_container_width=True):
-            do_logout()
+# ──────────────────────────────────────────────────────────────────────────────
+# USER IS LOGGED IN - BUILD SIDEBAR AND MAIN CONTENT
+# ──────────────────────────────────────────────────────────────────────────────
 
-    # ── MAIN CONTENT ──
-    if page == "📊 Dashboard":
-        dashboard()
-    elif page == "📝 Log Study":
-        log_study()
-    elif page == "🏆 Add Score":
-        add_test_score()
-    elif page == "🔄 Revision":
-        revision()
-    elif page == "📋 My Data":
-        my_data()
-    elif page == "🥇 Leaderboard":
-        leaderboard()
+# Get user info
+profile = st.session_state.profile
+name = profile.get("full_name", "Student")
+username = profile.get("username", "user")
+
+# ── SIDEBAR SECTION ──
+st.sidebar.markdown(f"### 👋 {name}")
+st.sidebar.caption(f"@{username}")
+st.sidebar.markdown("---")
+
+# Navigation menu
+page = st.sidebar.radio(
+    "Navigation",
+    [
+        "📊 Dashboard",
+        "📝 Log Study",
+        "🏆 Add Score",
+        "🔄 Revision",
+        "📋 My Data",
+        "🥇 Leaderboard"
+    ],
+    label_visibility="collapsed"
+)
+
+st.sidebar.markdown("---")
+
+# Exam countdown card
+try:
+    exam = get_exam_date()
+    days_left = max((exam - date.today()).days, 0)
+    exam_month = profile.get('exam_month', 'January')
+    exam_year = profile.get('exam_year', 2027)
+    
+    st.sidebar.metric("⏳ Days Left", days_left)
+    
+    # Progress bar (2 years = 730 days max)
+    progress_val = max(0, min(1, 1 - days_left/730))
+    st.sidebar.progress(progress_val)
+    
+    st.sidebar.caption(f"📅 {exam_month} {exam_year}")
+except Exception as e:
+    st.sidebar.error(f"Error loading exam date: {e}")
+
+st.sidebar.markdown("---")
+
+# Logout button
+if st.sidebar.button("🚪 Logout", use_container_width=True):
+    do_logout()
+
+# ── MAIN CONTENT AREA ──
+# Route to different pages based on selection
+if page == "📊 Dashboard":
+    dashboard()
+elif page == "📝 Log Study":
+    log_study()
+elif page == "🏆 Add Score":
+    add_test_score()
+elif page == "🔄 Revision":
+    revision()
+elif page == "📋 My Data":
+    my_data()
+elif page == "🥇 Leaderboard":
+    leaderboard()
