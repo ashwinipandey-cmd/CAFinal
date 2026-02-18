@@ -1200,42 +1200,98 @@ def uid():
     return st.session_state.user_id
 
 
+# ── Cache invalidation helper ──────────────────────────────────────────────────
+def _cache_key():
+    """Returns per-user cache key so different users don't share cache."""
+    return st.session_state.get("user_id", "anon")
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _fetch_logs(user_id):
+    r  = sb.table("daily_log") \
+           .select("date,subject,topic,hours,pages_done,difficulty,notes") \
+           .eq("user_id", user_id) \
+           .order("date", desc=True) \
+           .execute()
+    df = pd.DataFrame(r.data)
+    if not df.empty:
+        df["date"]  = pd.to_datetime(df["date"])
+        df["hours"] = pd.to_numeric(df["hours"])
+    return df
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _fetch_scores(user_id):
+    r  = sb.table("test_scores") \
+           .select("date,subject,test_name,marks,max_marks,score_pct,weak_areas,strong_areas,action_plan") \
+           .eq("user_id", user_id) \
+           .order("date", desc=True) \
+           .execute()
+    df = pd.DataFrame(r.data)
+    if not df.empty:
+        df["date"]      = pd.to_datetime(df["date"])
+        df["score_pct"] = pd.to_numeric(df["score_pct"])
+    return df
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _fetch_revision(user_id):
+    r = sb.table("revision_tracker") \
+          .select("subject,topic,first_read,first_read_date,revision_count,last_revision_date") \
+          .eq("user_id", user_id) \
+          .execute()
+    return pd.DataFrame(r.data)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _fetch_leaderboard():
+    r = sb.table("leaderboard").select("*").execute()
+    return pd.DataFrame(r.data)
+
+
 def get_logs():
     try:
-        r  = sb.table("daily_log").select("*").eq("user_id", uid()).order("date", desc=True).execute()
-        df = pd.DataFrame(r.data)
-        if not df.empty:
-            df["date"]  = pd.to_datetime(df["date"])
-            df["hours"] = pd.to_numeric(df["hours"])
-        return df
+        return _fetch_logs(_cache_key())
     except:
         return pd.DataFrame()
 
 
 def get_scores():
     try:
-        r  = sb.table("test_scores").select("*").eq("user_id", uid()).order("date", desc=True).execute()
-        df = pd.DataFrame(r.data)
-        if not df.empty:
-            df["date"]      = pd.to_datetime(df["date"])
-            df["score_pct"] = pd.to_numeric(df["score_pct"])
-        return df
+        return _fetch_scores(_cache_key())
+    except:
+        return pd.DataFrame()
+
+
+def get_revision():
+    """Fetch revision tracker. Sync runs only when data changes, not on every load."""
+    try:
+        return _fetch_revision(_cache_key())
     except:
         return pd.DataFrame()
 
 
 def get_leaderboard():
     try:
-        r  = sb.table("leaderboard").select("*").execute()
-        return pd.DataFrame(r.data)
+        return _fetch_leaderboard()
     except:
         return pd.DataFrame()
+
+
+def invalidate_cache():
+    """Call this after any write operation to force fresh fetch on next load."""
+    _fetch_logs.clear()
+    _fetch_scores.clear()
+    _fetch_revision.clear()
 
 
 def add_log(data):
     try:
         data["user_id"] = uid()
         sb.table("daily_log").insert(data).execute()
+        invalidate_cache()
+        # Fire sync in background after insert (only topics that changed)
+        _async_sync_if_needed(data["subject"], data["topic"])
         return True, "Session saved!"
     except Exception as e:
         return False, f"Error: {e}"
@@ -1245,6 +1301,7 @@ def add_score(data):
     try:
         data["user_id"] = uid()
         sb.table("test_scores").insert(data).execute()
+        invalidate_cache()
         return True, "Score saved!"
     except Exception as e:
         return False, f"Error: {e}"
@@ -1257,150 +1314,99 @@ def update_rev(subject, topic, field, value):
           .eq("user_id", uid()) \
           .eq("subject", subject) \
           .eq("topic", topic).execute()
+        invalidate_cache()
         return True, "Updated!"
     except Exception as e:
         return False, f"Error: {e}"
 
 
-def sync_first_read_from_log():
+def _async_sync_if_needed(subject, topic):
     """
-    Derives ALL revision state from daily_log.
-    Logic:
-      - Sort all sessions for a subject+topic by date ascending
-      - Session 1 (earliest date) = First Read
-      - Session 2 (same topic, different day or later same day) = Revision 1
-      - Session 3 = Revision 2 ... unlimited revisions
-      - Updates revision_tracker rows accordingly (no manual input needed)
+    Lightweight targeted sync: only update the ONE topic that was just logged.
+    Far faster than syncing all topics on every page load.
     """
     try:
         log_r = sb.table("daily_log") \
-                  .select("subject,topic,date") \
+                  .select("date") \
                   .eq("user_id", uid()) \
+                  .eq("subject", subject) \
+                  .eq("topic", topic) \
+                  .order("date", desc=False) \
                   .execute()
         if not log_r.data:
             return
 
-        # Build per-topic chronological session list
-        from collections import defaultdict
-        topic_sessions = defaultdict(list)
-        for r in log_r.data:
-            key = (r["subject"], r["topic"])
-            topic_sessions[key].append(r["date"])
+        dates     = sorted(set(r["date"] for r in log_r.data))
+        n         = len(dates)
+        first_dt  = dates[0]
+        rev_count = max(n - 1, 0)
+        last_rev  = dates[-1] if rev_count > 0 else None
 
-        # Sort dates ascending for each topic
-        for key in topic_sessions:
-            topic_sessions[key] = sorted(set(topic_sessions[key]))
+        update_data = {
+            "first_read":        True,
+            "first_read_date":   first_dt,
+            "first_read_source": "log",
+            "revision_count":    rev_count,
+            "last_revision_date": last_rev,
+        }
+        for i, d in enumerate(dates[1:11], 1):
+            update_data[f"rev_{i}_date"] = d
 
-        # Get current revision tracker rows
-        rev_r = sb.table("revision_tracker") \
-                  .select("id,subject,topic,first_read,revision_count,last_revision_date,first_read_date") \
-                  .eq("user_id", uid()) \
-                  .execute()
-        if not rev_r.data:
-            return
-
-        for row in rev_r.data:
-            key      = (row["subject"], row["topic"])
-            sessions = topic_sessions.get(key, [])
-            n        = len(sessions)
-
-            if n == 0:
-                continue
-
-            first_date  = sessions[0]
-            rev_count   = max(n - 1, 0)   # sessions after first = revisions
-            last_rev_dt = sessions[-1] if rev_count > 0 else None
-
-            # Only update if something actually changed
-            new_data = {}
-            if not row.get("first_read"):
-                new_data["first_read"]        = True
-                new_data["first_read_date"]   = first_date
-                new_data["first_read_source"] = "log"
-
-            if row.get("revision_count", 0) != rev_count:
-                new_data["revision_count"]     = rev_count
-                new_data["last_revision_date"] = last_rev_dt
-                # Store individual revision dates (up to 10)
-                for i, d in enumerate(sessions[1:11], 1):
-                    new_data[f"rev_{i}_date"] = d
-
-            if new_data:
-                sb.table("revision_tracker") \
-                  .update(new_data) \
-                  .eq("user_id", uid()) \
-                  .eq("subject", row["subject"]) \
-                  .eq("topic",   row["topic"]).execute()
-
+        sb.table("revision_tracker") \
+          .update(update_data) \
+          .eq("user_id", uid()) \
+          .eq("subject", subject) \
+          .eq("topic", topic) \
+          .execute()
     except Exception:
         pass
 
-
-def get_revision():
-    """Fetch revision data, auto-syncing everything from study log first."""
-    try:
-        sync_first_read_from_log()
-        r = sb.table("revision_tracker").select("*") \
-              .eq("user_id", uid()).execute()
-        return pd.DataFrame(r.data)
-    except:
-        return pd.DataFrame()
 
 
 # ── REVISION PENDENCY ENGINE ──────────────────────────────────────────────────
 # Ideal revision schedule after first read:
 REVISION_SCHEDULE = [3, 7, 15, 30, 90]   # days after previous event
 
-def compute_revision_pendencies(rev_df, log_df):
+@st.cache_data(ttl=120, show_spinner=False)
+def compute_revision_pendencies(rev_df_hash, log_df_hash, log_json):
     """
-    Computes next pending revision for every topic studied in daily_log.
-    Logic:
-      - Works purely from log_df (no dependency on rev_df.first_read flag)
-      - Sessions sorted ascending by date
-      - Session 1 = First Read (index 0)
-      - Session 2 = Revision 1 completed (index 1), etc.
-      - Schedule gaps [3, 7, 15, 30, 90] days are between consecutive sessions
-      - Due date = last_session_date + schedule_gap[revisions_done]
-      - days_overdue = today - due_date  (positive = overdue, negative = upcoming)
+    Cached wrapper — call via get_pendencies(rev_df, log_df) below.
+    Uses JSON-serialised log data as cache key.
     """
+    import json
+    rows_data = json.loads(log_json)
     today = date.today()
     rows  = []
 
-    if log_df.empty:
-        return pd.DataFrame()
-
     from collections import defaultdict
     topic_sessions = defaultdict(list)
-    for _, r in log_df.iterrows():
+    for r in rows_data:
         key = (r["subject"], r["topic"])
-        d   = r["date"].date() if hasattr(r["date"], "date") else date.fromisoformat(str(r["date"])[:10])
+        d   = date.fromisoformat(str(r["date"])[:10])
         topic_sessions[key].append(d)
 
     for key, dates in topic_sessions.items():
-        sessions = sorted(set(dates))   # unique study dates, ascending
-        n        = len(sessions)        # total sessions done
-
+        sessions = sorted(set(dates))
+        n        = len(sessions)
         subj, topic = key
-        revs_done   = n - 1            # revisions completed (first session = read)
-        last_dt     = sessions[-1]     # date of most recent session
-
-        # Next schedule gap based on how many revisions done so far
+        revs_done   = n - 1
+        last_dt     = sessions[-1]
         sched_idx   = min(revs_done, len(REVISION_SCHEDULE) - 1)
         gap         = REVISION_SCHEDULE[sched_idx]
         due_date    = last_dt + timedelta(days=gap)
-        days_diff   = (today - due_date).days   # positive = overdue
+        days_diff   = (today - due_date).days
 
         rows.append({
-            "subject":      subj,
-            "topic":        topic,
+            "subject":        subj,
+            "topic":          topic,
             "revisions_done": revs_done,
             "sessions_done":  n,
-            "first_read_date": sessions[0],
-            "last_studied": last_dt,
-            "due_date":     due_date,
-            "days_overdue": days_diff,
-            "gap_days":     gap,
-            "round_label":  f"R{revs_done + 1}",  # next revision to do
+            "first_read_date": str(sessions[0]),
+            "last_studied":   last_dt,
+            "due_date":       due_date,
+            "days_overdue":   days_diff,
+            "gap_days":       gap,
+            "round_label":    f"R{revs_done + 1}",
             "status": (
                 "🔴 OVERDUE"    if days_diff > 0
                 else "🟡 DUE TODAY" if days_diff == 0
@@ -1410,11 +1416,26 @@ def compute_revision_pendencies(rev_df, log_df):
 
     if not rows:
         return pd.DataFrame()
-
     df = pd.DataFrame(rows)
     df = df.sort_values("days_overdue", ascending=False).reset_index(drop=True)
     return df
 
+
+def get_pendencies(rev_df, log_df):
+    """Public helper — passes hashable args to cached function."""
+    if log_df.empty:
+        return pd.DataFrame()
+    try:
+        import json
+        log_mini = log_df[["subject", "topic", "date"]].copy()
+        log_mini["date"] = log_mini["date"].dt.strftime("%Y-%m-%d")
+        log_json = log_mini.to_json(orient="records")
+        # Use len as a lightweight hash proxy (enough for TTL-based cache)
+        return compute_revision_pendencies(
+            len(rev_df), len(log_df), log_json
+        )
+    except:
+        return pd.DataFrame()
 
 
 def update_profile(data):
@@ -1930,7 +1951,7 @@ def dashboard():
 
     # ── Revision Pendency Dashboard ──
     # Gate on log, not rev — pendency is computed purely from study log
-    pend = compute_revision_pendencies(rev, log) if not log.empty else pd.DataFrame()
+    pend = get_pendencies(rev, log)
 
     if not log.empty:
         st.markdown("---")
@@ -2252,7 +2273,9 @@ def dashboard():
 def log_study():
     st.markdown("<h1>📝 Log Study Session</h1>", unsafe_allow_html=True)
 
-    # Use session state to track subject selection for live topic update
+    # Fetch once — used for validation preview AND recent sessions display
+    existing_log = get_logs()
+
     if "log_subj" not in st.session_state:
         st.session_state.log_subj = SUBJECTS[0]
 
@@ -2302,8 +2325,7 @@ def log_study():
         if pages == 0:
             errors.append("Pages / Questions must be greater than 0")
 
-        # Date chronology validation
-        existing_log = get_logs()
+        # Date chronology validation — use already-fetched log
         if not existing_log.empty and topic:
             topic_sessions = existing_log[
                 (existing_log["subject"] == subj) &
@@ -2340,8 +2362,8 @@ def log_study():
             else:
                 st.error(msg)
 
-    # Recent sessions
-    log = get_logs()
+    # Recent sessions — reuse the fetch from top of function
+    log = existing_log
     if not log.empty:
         st.markdown("---")
         st.markdown('<div class="neon-header">📋 Recent Sessions</div>', unsafe_allow_html=True)
@@ -2520,7 +2542,7 @@ def revision():
     # ── Pendency grouped by revision class ──
     st.markdown('<div class="neon-header">⏰ Pending Revisions by Class</div>', unsafe_allow_html=True)
 
-    pend_all = compute_revision_pendencies(rev_df, log_df) if not rev_df.empty else pd.DataFrame()
+    pend_all = get_pendencies(rev_df, log_df)
     if not pend_all.empty:
         pend_show = pend_all if subj == "ALL" else pend_all[pend_all["subject"] == subj]
 
@@ -2704,7 +2726,7 @@ def revision():
     read_count       = len([k for k in topic_sessions_all if topic_sessions_all[k]])
     total_rev_done   = sum(max(len(s) - 1, 0) for s in topic_sessions_all.values())
     max_possible_rev = all_topic_count * mastery_target
-    pend_df          = compute_revision_pendencies(rev_df, log_df) if not rev_df.empty else pd.DataFrame()
+    pend_df = get_pendencies(rev_df, log_df)
     overdue_count    = len(pend_df[pend_df["days_overdue"] > 0]) if not pend_df.empty else 0
 
     coverage_pct = read_count / all_topic_count * 100 if all_topic_count > 0 else 0
