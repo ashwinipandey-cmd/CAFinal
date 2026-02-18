@@ -1899,32 +1899,34 @@ def dashboard():
                         insidetextanchor="start",
                         hovertemplate="<b>%{y}</b><br>%{text}<extra></extra>"
                     ))
-                pend_lay = dict(
-                    paper_bgcolor=PLOTLY_LAYOUT["paper_bgcolor"],
-                    plot_bgcolor =PLOTLY_LAYOUT["plot_bgcolor"],
-                    font         =PLOTLY_LAYOUT["font"],
-                    title_font   =PLOTLY_LAYOUT["title_font"],
-                    margin       =dict(t=50, b=40, l=200, r=20),
-                    title        ="Revision Pendency Map",
-                    height       =max(250, min(len(pend) * 28 + 80, 600)),
+                fig_p.update_layout(
+                    paper_bgcolor="rgba(4,10,28,0.95)",
+                    plot_bgcolor ="rgba(4,10,28,0.95)",
                     barmode      ="stack",
+                    height       =max(250, min(len(pend) * 28 + 80, 600)),
+                    margin       =dict(t=50, b=40, l=200, r=20),
+                    title        =dict(text="Revision Pendency Map",
+                                       font=dict(family="Orbitron, monospace",
+                                                 size=14, color="#FFFFFF")),
                     legend       =dict(orientation="h", x=0, y=1.08,
-                                       font=dict(size=10), bgcolor="transparent"),
-                    xaxis        =dict(
-                        title="Days",
-                        gridcolor="rgba(56,189,248,0.07)",
-                        linecolor="rgba(56,189,248,0.2)",
-                        tickfont=dict(size=10),
-                        zerolinecolor="rgba(56,189,248,0.1)"
-                    ),
-                    yaxis        =dict(
-                        autorange="reversed",
-                        gridcolor="rgba(56,189,248,0.07)",
-                        linecolor="rgba(56,189,248,0.2)",
-                        tickfont=dict(size=9)
-                    )
+                                       font=dict(size=10, color="#B0D4F0"),
+                                       bgcolor="transparent"),
+                    font         =dict(family="Rajdhani, sans-serif",
+                                       color="#B0D4F0", size=12),
                 )
-                fig_p.update_layout(**pend_lay)
+                fig_p.update_xaxes(
+                    title_text="Days",
+                    gridcolor="rgba(56,189,248,0.07)",
+                    linecolor="rgba(56,189,248,0.2)",
+                    tickfont=dict(size=10),
+                    zerolinecolor="rgba(56,189,248,0.1)"
+                )
+                fig_p.update_yaxes(
+                    autorange="reversed",
+                    gridcolor="rgba(56,189,248,0.07)",
+                    linecolor="rgba(56,189,248,0.2)",
+                    tickfont=dict(size=9)
+                )
                 st.plotly_chart(fig_p, use_container_width=True)
 
             with c_stat:
@@ -2277,33 +2279,32 @@ def revision():
             hovertext=hover_texts,
             hovertemplate="%{hovertext}<extra></extra>"
         ))
-        conf_lay = dict(
-            paper_bgcolor=PLOTLY_LAYOUT["paper_bgcolor"],
-            plot_bgcolor =PLOTLY_LAYOUT["plot_bgcolor"],
-            font         =PLOTLY_LAYOUT["font"],
-            title_font   =PLOTLY_LAYOUT["title_font"],
-            margin       =dict(t=50, b=40, l=200, r=20),
-            title        =f"{subj} — Topic Confidence ({mastery_target} revisions = mastery)",
+        conf_fig.update_layout(
+            paper_bgcolor="rgba(4,10,28,0.95)",
+            plot_bgcolor ="rgba(4,10,28,0.95)",
             height       =max(200, min(len(labels) * 22 + 80, 550)),
-            xaxis        =dict(
-                range=[0, 105],
-                title="Confidence %",
-                gridcolor="rgba(56,189,248,0.07)",
-                linecolor="rgba(56,189,248,0.2)",
-                tickfont=dict(size=10),
-            ),
-            yaxis        =dict(
-                autorange="reversed",
-                gridcolor="rgba(56,189,248,0.07)",
-                linecolor="rgba(56,189,248,0.2)",
-                tickfont=dict(size=9)
-            ),
-            shapes=[dict(
+            margin       =dict(t=50, b=40, l=200, r=20),
+            title        =dict(text=f"{subj} — Topic Confidence ({mastery_target} revisions = mastery)",
+                               font=dict(family="Orbitron, monospace", size=14, color="#FFFFFF")),
+            font         =dict(family="Rajdhani, sans-serif", color="#B0D4F0", size=12),
+            shapes       =[dict(
                 type="line", x0=100, x1=100, y0=-0.5, y1=len(labels) - 0.5,
                 line=dict(color="#34D399", width=1.5, dash="dot")
             )]
         )
-        conf_fig.update_layout(**conf_lay)
+        conf_fig.update_xaxes(
+            range=[0, 105],
+            title_text="Confidence %",
+            gridcolor="rgba(56,189,248,0.07)",
+            linecolor="rgba(56,189,248,0.2)",
+            tickfont=dict(size=10)
+        )
+        conf_fig.update_yaxes(
+            autorange="reversed",
+            gridcolor="rgba(56,189,248,0.07)",
+            linecolor="rgba(56,189,248,0.2)",
+            tickfont=dict(size=9)
+        )
         st.plotly_chart(conf_fig, use_container_width=True)
     else:
         st.info("No topics studied yet. Log sessions in the Study Log tab.")
