@@ -1353,73 +1353,65 @@ REVISION_SCHEDULE = [3, 7, 15, 30, 90]   # days after previous event
 
 def compute_revision_pendencies(rev_df, log_df):
     """
-    For each topic that has been first-read, compute:
-      - next expected revision date based on schedule
-      - how many days overdue (positive = overdue, negative = upcoming)
-      - revision round number pending
-    Returns a DataFrame of pending/overdue revisions sorted by urgency.
+    Computes next pending revision for every topic studied in daily_log.
+    Logic:
+      - Works purely from log_df (no dependency on rev_df.first_read flag)
+      - Sessions sorted ascending by date
+      - Session 1 = First Read (index 0)
+      - Session 2 = Revision 1 completed (index 1), etc.
+      - Schedule gaps [3, 7, 15, 30, 90] days are between consecutive sessions
+      - Due date = last_session_date + schedule_gap[revisions_done]
+      - days_overdue = today - due_date  (positive = overdue, negative = upcoming)
     """
     today = date.today()
     rows  = []
 
-    if rev_df.empty or log_df.empty:
+    if log_df.empty:
         return pd.DataFrame()
 
-    # Build topic → sorted session dates from daily_log
     from collections import defaultdict
     topic_sessions = defaultdict(list)
     for _, r in log_df.iterrows():
         key = (r["subject"], r["topic"])
-        d   = r["date"].date() if hasattr(r["date"], "date") else date.fromisoformat(str(r["date"]))
+        d   = r["date"].date() if hasattr(r["date"], "date") else date.fromisoformat(str(r["date"])[:10])
         topic_sessions[key].append(d)
-    for k in topic_sessions:
-        topic_sessions[k] = sorted(set(topic_sessions[k]))
 
-    for _, row in rev_df.iterrows():
-        if not row.get("first_read"):
-            continue
+    for key, dates in topic_sessions.items():
+        sessions = sorted(set(dates))   # unique study dates, ascending
+        n        = len(sessions)        # total sessions done
 
-        subj  = row["subject"]
-        topic = row["topic"]
-        key   = (subj, topic)
-        sessions = topic_sessions.get(key, [])
+        subj, topic = key
+        revs_done   = n - 1            # revisions completed (first session = read)
+        last_dt     = sessions[-1]     # date of most recent session
 
-        if not sessions:
-            continue
+        # Next schedule gap based on how many revisions done so far
+        sched_idx   = min(revs_done, len(REVISION_SCHEDULE) - 1)
+        gap         = REVISION_SCHEDULE[sched_idx]
+        due_date    = last_dt + timedelta(days=gap)
+        days_diff   = (today - due_date).days   # positive = overdue
 
-        n_done = len(sessions)   # total sessions = first read + revisions done
-
-        # Compute the next expected revision
-        # Schedule: after session[i], next due in REVISION_SCHEDULE[i] days
-        # If more sessions done than schedule steps → use last schedule step cyclically
-        for round_idx in range(len(sessions), len(sessions) + 1):
-            # round_idx = 0-based revision round (0 = after first read)
-            schedule_idx = min(round_idx - 1, len(REVISION_SCHEDULE) - 1)
-            gap_days     = REVISION_SCHEDULE[schedule_idx]
-            last_event   = sessions[-1]
-            due_date     = last_event + timedelta(days=gap_days)
-            days_diff    = (today - due_date).days   # positive = overdue
-
-            rows.append({
-                "subject":     subj,
-                "topic":       topic,
-                "revisions_done": n_done - 1,
-                "last_studied":   last_event,
-                "due_date":       due_date,
-                "days_overdue":   days_diff,
-                "round_label":    f"R{n_done}",  # next revision round
-                "status": (
-                    "🔴 OVERDUE"   if days_diff > 0
-                    else "🟡 DUE TODAY" if days_diff == 0
-                    else "🟢 UPCOMING"
-                )
-            })
+        rows.append({
+            "subject":      subj,
+            "topic":        topic,
+            "revisions_done": revs_done,
+            "sessions_done":  n,
+            "first_read_date": sessions[0],
+            "last_studied": last_dt,
+            "due_date":     due_date,
+            "days_overdue": days_diff,
+            "gap_days":     gap,
+            "round_label":  f"R{revs_done + 1}",  # next revision to do
+            "status": (
+                "🔴 OVERDUE"    if days_diff > 0
+                else "🟡 DUE TODAY" if days_diff == 0
+                else "🟢 UPCOMING"
+            )
+        })
 
     if not rows:
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
-    # Sort: overdue first (most overdue at top), then upcoming
     df = df.sort_values("days_overdue", ascending=False).reset_index(drop=True)
     return df
 
@@ -1936,26 +1928,30 @@ def dashboard():
             fig4.update_yaxes(range=[0, 110])
             st.plotly_chart(fig4, use_container_width=True)
 
-    # Revision Pendency Dashboard
-    if not rev.empty:
+    # ── Revision Pendency Dashboard ──
+    # Gate on log, not rev — pendency is computed purely from study log
+    pend = compute_revision_pendencies(rev, log) if not log.empty else pd.DataFrame()
+
+    if not log.empty:
         st.markdown("---")
         st.markdown('<div class="neon-header">🔄 Revision Status & Pendencies</div>', unsafe_allow_html=True)
 
-        pend = compute_revision_pendencies(rev, log)
-
-        # ── Summary row: per-subject revision health ──
+        # ── Subject health summary cards ──
         s_cols = st.columns(5)
         for i, s in enumerate(SUBJECTS):
-            s_rev  = rev[rev["subject"] == s]
-            total  = len(s_rev)
-            read   = int(s_rev["first_read"].sum()) if "first_read" in s_rev else 0
-            done_rev = int(s_rev["revision_count"].sum()) if "revision_count" in s_rev else 0
-            clr    = COLORS[s]
+            # Count from pend (log-derived), not from rev DB columns
+            s_log    = log[log["subject"] == s]
+            # unique topics studied
+            topics_studied = s_log["topic"].nunique() if not s_log.empty else 0
+            total_revs     = 0
             if not pend.empty:
-                s_pend = pend[(pend["subject"] == s) & (pend["days_overdue"] > 0)]
-                overdue = len(s_pend)
+                s_pend      = pend[pend["subject"] == s]
+                total_revs  = int(s_pend["revisions_done"].sum()) if not s_pend.empty else 0
+                s_overdue   = s_pend[s_pend["days_overdue"] > 0]
+                overdue     = len(s_overdue)
             else:
                 overdue = 0
+            clr        = COLORS[s]
             health_clr = "#F87171" if overdue > 3 else ("#FBBF24" if overdue > 0 else "#34D399")
             with s_cols[i]:
                 st.markdown(f"""
@@ -1966,11 +1962,11 @@ def dashboard():
                     <div style="font-size:10px;color:#4A6A90;margin:4px 0 8px">{SUBJ_FULL[s]}</div>
                     <div style="display:flex;justify-content:space-around">
                         <div>
-                            <div style="font-size:16px;font-weight:700;color:#FFFFFF">{read}</div>
-                            <div style="font-size:9px;color:#4A6A90">Read</div>
+                            <div style="font-size:16px;font-weight:700;color:#FFFFFF">{topics_studied}</div>
+                            <div style="font-size:9px;color:#4A6A90">Topics</div>
                         </div>
                         <div>
-                            <div style="font-size:16px;font-weight:700;color:#38BDF8">{done_rev}</div>
+                            <div style="font-size:16px;font-weight:700;color:#38BDF8">{total_revs}</div>
                             <div style="font-size:9px;color:#4A6A90">Revisions</div>
                         </div>
                         <div>
@@ -1984,8 +1980,9 @@ def dashboard():
         st.markdown("<br>", unsafe_allow_html=True)
 
         if not pend.empty:
-            overdue_df   = pend[pend["days_overdue"] > 0]
-            upcoming_df  = pend[pend["days_overdue"] <= 0]
+            overdue_df  = pend[pend["days_overdue"] > 0]
+            due_today   = pend[pend["days_overdue"] == 0]
+            upcoming_df = pend[pend["days_overdue"] < 0]
 
             c_chart, c_stat = st.columns([3, 1])
             with c_chart:
@@ -1996,60 +1993,68 @@ def dashboard():
                     if sub.empty:
                         continue
                     fig_p.add_trace(go.Bar(
-                        y=[f"{r['subject']} · {r['topic'][:28]}" for _, r in sub.iterrows()],
-                        x=[abs(r["days_overdue"]) for _, r in sub.iterrows()],
+                        y=[f"{r['subject']} · {r['topic'][:30]}" for _, r in sub.iterrows()],
+                        x=[max(abs(r["days_overdue"]), 1) for _, r in sub.iterrows()],
                         orientation="h",
                         name=status_label,
                         marker_color=color,
                         text=[
-                            f"{r['round_label']} · {'⚠️ '+str(r['days_overdue'])+'d overdue' if r['days_overdue']>0 else 'Due: '+str(r['due_date'])}"
+                            f"{r['round_label']} · {'+'+str(r['days_overdue'])+'d OVERDUE' if r['days_overdue']>0 else ('TODAY' if r['days_overdue']==0 else 'in '+str(abs(r['days_overdue']))+'d')}"
                             for _, r in sub.iterrows()
                         ],
                         textposition="inside",
                         insidetextanchor="start",
-                        hovertemplate="<b>%{y}</b><br>%{text}<extra></extra>"
+                        hovertemplate="<b>%{y}</b><br>%{text}<br>Due: "+
+                                      "<extra></extra>"
                     ))
                 apply_theme(fig_p, title="Revision Pendency Map",
-                            height=max(250, min(len(pend) * 28 + 80, 600)),
+                            height=max(280, min(len(pend) * 26 + 80, 620)),
                             extra_layout=dict(barmode="stack"))
                 fig_p.update_layout(
                     legend=dict(orientation="h", x=0, y=1.08,
                                 font=dict(size=10, color="#B0D4F0"),
                                 bgcolor="rgba(0,0,0,0)"),
-                    margin=dict(t=50, b=40, l=200, r=20)
+                    margin=dict(t=55, b=40, l=210, r=20)
                 )
-                fig_p.update_xaxes(title_text="Days")
+                fig_p.update_xaxes(title_text="Days from Due Date")
                 fig_p.update_yaxes(autorange="reversed")
                 st.plotly_chart(fig_p, use_container_width=True)
 
             with c_stat:
-                total_read    = len(rev[rev["first_read"] == True]) if "first_read" in rev.columns else 0
+                total_topics_studied = pend["topic"].nunique()
                 total_overdue = len(overdue_df)
                 total_up      = len(upcoming_df)
+                today_count   = len(due_today)
                 st.markdown(f"""
-                <div style="display:flex;flex-direction:column;gap:10px;padding-top:30px">
+                <div style="display:flex;flex-direction:column;gap:8px;padding-top:20px">
                     <div style="background:rgba(248,113,113,0.12);border:2px solid rgba(248,113,113,0.3);
-                                border-radius:10px;padding:14px;text-align:center">
-                        <div style="font-size:28px;font-weight:800;color:#F87171;
+                                border-radius:10px;padding:12px;text-align:center">
+                        <div style="font-size:26px;font-weight:800;color:#F87171;
                                     font-family:'Orbitron',monospace">{total_overdue}</div>
                         <div style="font-size:10px;color:#F87171;letter-spacing:1px">OVERDUE</div>
                     </div>
                     <div style="background:rgba(251,191,36,0.10);border:2px solid rgba(251,191,36,0.3);
-                                border-radius:10px;padding:14px;text-align:center">
-                        <div style="font-size:28px;font-weight:800;color:#FBBF24;
-                                    font-family:'Orbitron',monospace">{total_up}</div>
-                        <div style="font-size:10px;color:#FBBF24;letter-spacing:1px">UPCOMING</div>
+                                border-radius:10px;padding:12px;text-align:center">
+                        <div style="font-size:26px;font-weight:800;color:#FBBF24;
+                                    font-family:'Orbitron',monospace">{today_count}</div>
+                        <div style="font-size:10px;color:#FBBF24;letter-spacing:1px">DUE TODAY</div>
                     </div>
                     <div style="background:rgba(52,211,153,0.10);border:2px solid rgba(52,211,153,0.3);
-                                border-radius:10px;padding:14px;text-align:center">
-                        <div style="font-size:28px;font-weight:800;color:#34D399;
-                                    font-family:'Orbitron',monospace">{total_read}</div>
-                        <div style="font-size:10px;color:#34D399;letter-spacing:1px">TOPICS READ</div>
+                                border-radius:10px;padding:12px;text-align:center">
+                        <div style="font-size:26px;font-weight:800;color:#34D399;
+                                    font-family:'Orbitron',monospace">{total_up}</div>
+                        <div style="font-size:10px;color:#34D399;letter-spacing:1px">UPCOMING</div>
+                    </div>
+                    <div style="background:rgba(56,189,248,0.08);border:2px solid rgba(56,189,248,0.2);
+                                border-radius:10px;padding:12px;text-align:center">
+                        <div style="font-size:26px;font-weight:800;color:#38BDF8;
+                                    font-family:'Orbitron',monospace">{total_topics_studied}</div>
+                        <div style="font-size:10px;color:#38BDF8;letter-spacing:1px">TOPICS IN LOG</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-        # ── Donut Charts: Coverage / Revision / Overdue ──
+        # ── Donut Charts ── (computed from pend, not rev DB columns)
         st.markdown("---")
         st.markdown('<div class="neon-header">🍩 Study Coverage Overview</div>', unsafe_allow_html=True)
 
@@ -2060,26 +2065,25 @@ def dashboard():
                                         key="dash_donut_filter",
                                         format_func=lambda x: x if x == "All" else f"{x} — {SUBJ_FULL[x]}")
 
-        if donut_filter == "All":
-            rev_f   = rev
-            pend_f  = pend if not pend.empty else pd.DataFrame()
-            all_topics_count = sum(len(v) for v in TOPICS.values())
-        else:
-            rev_f   = rev[rev["subject"] == donut_filter]
-            pend_f  = pend[pend["subject"] == donut_filter] if not pend.empty else pd.DataFrame()
-            all_topics_count = len(TOPICS.get(donut_filter, []))
+        all_topics_count = (sum(len(v) for v in TOPICS.values())
+                            if donut_filter == "All" else len(TOPICS.get(donut_filter, [])))
+        log_f  = log if donut_filter == "All" else log[log["subject"] == donut_filter]
+        pend_f = pend if (donut_filter == "All" or pend.empty) else pend[pend["subject"] == donut_filter]
 
-        # Counts
-        topics_read    = int(rev_f["first_read"].sum()) if "first_read" in rev_f.columns and not rev_f.empty else 0
+        # Count from log (source of truth)
+        topics_read     = log_f["topic"].nunique() if not log_f.empty else 0
         topics_not_read = max(all_topics_count - topics_read, 0)
-        topics_revised = int((rev_f["revision_count"] > 0).sum()) if "revision_count" in rev_f.columns and not rev_f.empty else 0
-        read_not_revised = max(topics_read - topics_revised, 0)
-        ov_count       = len(pend_f[pend_f["days_overdue"] > 0]) if not pend_f.empty else 0
-        not_overdue    = max(topics_read - ov_count, 0)
+        topics_revised  = int((pend_f["revisions_done"] > 0).sum()) if not pend_f.empty else 0
+        read_not_rev    = max(topics_read - topics_revised, 0)
+        ov_count        = len(pend_f[pend_f["days_overdue"] > 0]) if not pend_f.empty else 0
+        not_overdue     = max(topics_read - ov_count, 0)
 
         dc1, dc2, dc3 = st.columns(3)
 
         def make_donut(vals, labels, colors, title, center_text):
+            # Guard: ensure no zero-sum
+            if sum(vals) == 0:
+                vals, labels, colors = [1], ["No Data"], ["#2D3748"]
             fig_d = go.Figure(go.Pie(
                 values=vals, labels=labels,
                 marker_colors=colors,
@@ -2093,12 +2097,11 @@ def dashboard():
                 plot_bgcolor ="rgba(4,10,28,0.95)",
                 height=220,
                 margin=dict(t=40, b=10, l=10, r=10),
-                title=dict(text=title, font=dict(
-                    family="Orbitron, monospace", size=11, color="#FFFFFF"), x=0.5),
+                title=dict(text=title,
+                           font=dict(family="Orbitron, monospace", size=11, color="#FFFFFF"), x=0.5),
                 showlegend=True,
                 legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.15,
-                            font=dict(size=9, color="#B0D4F0"),
-                            bgcolor="rgba(0,0,0,0)"),
+                            font=dict(size=9, color="#B0D4F0"), bgcolor="rgba(0,0,0,0)"),
                 annotations=[dict(text=center_text, x=0.5, y=0.5,
                                   font=dict(size=14, color="#FFFFFF",
                                             family="Orbitron, monospace"),
@@ -2107,28 +2110,131 @@ def dashboard():
             return fig_d
 
         with dc1:
-            vals = [topics_read, topics_not_read] if (topics_read + topics_not_read) > 0 else [1]
-            lbls = ["Read", "Not Read"] if (topics_read + topics_not_read) > 0 else ["No Data"]
-            clrs = ["#38BDF8", "#1E3A5F"] if len(vals) == 2 else ["#2D3748"]
             pct_r = f"{int(topics_read/all_topics_count*100)}%" if all_topics_count > 0 else "0%"
-            st.plotly_chart(make_donut(vals, lbls, clrs,
-                "📖 Topics Read", pct_r), use_container_width=True)
+            st.plotly_chart(make_donut(
+                [topics_read, topics_not_read], ["Read", "Not Read"],
+                ["#38BDF8", "#1E3A5F"], "📖 Topics Read", pct_r
+            ), use_container_width=True)
 
         with dc2:
-            vals2 = [topics_revised, read_not_revised] if topics_read > 0 else [1]
-            lbls2 = ["Revised", "Read Only"] if topics_read > 0 else ["No Data"]
-            clrs2 = ["#34D399", "#0F3A2A"] if len(vals2) == 2 else ["#2D3748"]
             pct_rv = f"{int(topics_revised/topics_read*100)}%" if topics_read > 0 else "0%"
-            st.plotly_chart(make_donut(vals2, lbls2, clrs2,
-                "🔄 Revised", pct_rv), use_container_width=True)
+            st.plotly_chart(make_donut(
+                [topics_revised, read_not_rev], ["Revised", "Read Only"],
+                ["#34D399", "#0F3A2A"], "🔄 Revised", pct_rv
+            ), use_container_width=True)
 
         with dc3:
-            vals3 = [ov_count, max(not_overdue, 0)] if topics_read > 0 else [1]
-            lbls3 = ["Overdue", "On Track"] if topics_read > 0 else ["No Data"]
-            clrs3 = ["#F87171", "#1A3A1A"] if len(vals3) == 2 else ["#2D3748"]
             pct_ov = f"{int(ov_count/topics_read*100)}%" if topics_read > 0 else "0%"
-            st.plotly_chart(make_donut(vals3, lbls3, clrs3,
-                "⚠️ Overdue", pct_ov), use_container_width=True)
+            st.plotly_chart(make_donut(
+                [ov_count, not_overdue], ["Overdue", "On Track"],
+                ["#F87171", "#1A3A1A"], "⚠️ Overdue", pct_ov
+            ), use_container_width=True)
+
+        # ══════════════════════════════════════════════════════════
+        # TODAY'S REVISION AGENDA
+        # ══════════════════════════════════════════════════════════
+        st.markdown("---")
+        st.markdown('<div class="neon-header">📅 Today\'s Revision Agenda</div>', unsafe_allow_html=True)
+        today_str = date.today().strftime("%A, %d %B %Y")
+        st.markdown(f"<p style='font-size:12px;color:#4A6A90;margin-top:-8px'>📆 {today_str}</p>",
+                    unsafe_allow_html=True)
+
+        if not pend.empty:
+            # Topics due today or overdue — these MUST be done today
+            urgent = pend[pend["days_overdue"] >= 0].sort_values("days_overdue", ascending=False)
+            # Topics due within next 3 days — optional but recommended
+            soon   = pend[(pend["days_overdue"] < 0) & (pend["days_overdue"] >= -3)]
+
+            if urgent.empty and soon.empty:
+                st.success("✅ Nothing due today! Great job staying on track. Enjoy a light review day.")
+            else:
+                if not urgent.empty:
+                    st.markdown("""
+                    <div style="background:rgba(248,113,113,0.08);border:2px solid rgba(248,113,113,0.3);
+                                border-radius:14px;padding:14px 18px;margin-bottom:14px">
+                        <div style="font-family:'Orbitron',monospace;font-size:12px;
+                                    color:#F87171;letter-spacing:1px;margin-bottom:10px">
+                            🔴 MUST DO TODAY — Overdue & Due
+                        </div>
+                    """, unsafe_allow_html=True)
+                    for rank, (_, row) in enumerate(urgent.iterrows(), 1):
+                        badge_clr = "#F87171" if row["days_overdue"] > 0 else "#FBBF24"
+                        badge_txt = f"+{row['days_overdue']}d overdue" if row["days_overdue"] > 0 else "DUE TODAY"
+                        subj_clr  = COLORS.get(row["subject"], "#38BDF8")
+                        st.markdown(f"""
+                        <div style="display:flex;align-items:center;gap:12px;
+                                    padding:10px 14px;margin:5px 0;
+                                    background:rgba(248,113,113,0.06);
+                                    border-left:4px solid {badge_clr};
+                                    border-radius:8px">
+                            <div style="font-family:'Orbitron',monospace;font-size:13px;
+                                        font-weight:800;color:{badge_clr};min-width:24px">
+                                {rank}
+                            </div>
+                            <div style="flex:1">
+                                <span style="font-family:'Orbitron',monospace;font-size:10px;
+                                             color:{subj_clr};font-weight:700">{row['subject']}</span>
+                                <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
+                                             font-weight:600">{row['topic']}</span>
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-family:'Orbitron',monospace;font-size:11px;
+                                            color:{badge_clr};font-weight:700">{row['round_label']}</div>
+                                <div style="font-size:9px;color:#F87171">{badge_txt}</div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                if not soon.empty:
+                    st.markdown("""
+                    <div style="background:rgba(251,191,36,0.06);border:2px solid rgba(251,191,36,0.25);
+                                border-radius:14px;padding:14px 18px;margin-bottom:14px">
+                        <div style="font-family:'Orbitron',monospace;font-size:12px;
+                                    color:#FBBF24;letter-spacing:1px;margin-bottom:10px">
+                            🟡 RECOMMENDED — Due Within 3 Days
+                        </div>
+                    """, unsafe_allow_html=True)
+                    for _, row in soon.iterrows():
+                        days_away = abs(row["days_overdue"])
+                        subj_clr  = COLORS.get(row["subject"], "#38BDF8")
+                        st.markdown(f"""
+                        <div style="display:flex;align-items:center;gap:12px;
+                                    padding:10px 14px;margin:5px 0;
+                                    background:rgba(251,191,36,0.04);
+                                    border-left:4px solid #FBBF24;
+                                    border-radius:8px">
+                            <div style="flex:1">
+                                <span style="font-family:'Orbitron',monospace;font-size:10px;
+                                             color:{subj_clr};font-weight:700">{row['subject']}</span>
+                                <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
+                                             font-weight:600">{row['topic']}</span>
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-family:'Orbitron',monospace;font-size:11px;
+                                            color:#FBBF24;font-weight:700">{row['round_label']}</div>
+                                <div style="font-size:9px;color:#FBBF24">in {days_away}d · {row['due_date']}</div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                # Daily revision load estimate
+                total_agenda = len(urgent) + len(soon)
+                est_hrs = round(total_agenda * 0.75, 1)
+                st.markdown(f"""
+                <div style="background:rgba(56,189,248,0.06);border:2px solid rgba(56,189,248,0.20);
+                            border-radius:12px;padding:12px 18px;margin-top:6px;
+                            display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-size:12px;color:#B0D4F0">
+                        📋 <b>{total_agenda}</b> topic(s) on today's agenda
+                        &nbsp;·&nbsp; ⏱ Estimated <b>~{est_hrs}h</b> revision time
+                    </div>
+                    <div style="font-size:10px;color:#4A6A90">~45 min per topic</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.success("✅ Start logging study sessions to generate your daily revision agenda!")
 
     elif log.empty and tst.empty:
         st.markdown("""
