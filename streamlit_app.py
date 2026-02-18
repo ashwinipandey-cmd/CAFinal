@@ -1073,6 +1073,48 @@ PLOTLY_LAYOUT = dict(
     )
 )
 
+def apply_theme(fig, title="", height=None, extra_layout=None):
+    """
+    Safely apply the dark blue theme to any Plotly figure.
+    Uses update_layout with only scalar/safe values, then
+    update_xaxes/update_yaxes separately to avoid validator crashes.
+    """
+    fig.update_layout(
+        paper_bgcolor="rgba(4,10,28,0.95)",
+        plot_bgcolor ="rgba(4,10,28,0.95)",
+        margin       =dict(t=50, b=40, l=40, r=20),
+        font         =dict(family="Rajdhani, sans-serif", color="#B0D4F0", size=12),
+        legend       =dict(
+            bgcolor="rgba(6,14,38,0.8)",
+            bordercolor="rgba(56,189,248,0.2)",
+            borderwidth=1,
+            font=dict(size=11, color="#B0D4F0")
+        ),
+    )
+    if title:
+        fig.update_layout(
+            title=dict(text=title,
+                       font=dict(family="Orbitron, monospace", size=14, color="#FFFFFF"))
+        )
+    if height:
+        fig.update_layout(height=height)
+    if extra_layout:
+        fig.update_layout(**extra_layout)
+    fig.update_xaxes(
+        gridcolor="rgba(56,189,248,0.07)",
+        linecolor="rgba(56,189,248,0.2)",
+        tickfont=dict(size=10),
+        zerolinecolor="rgba(56,189,248,0.1)"
+    )
+    fig.update_yaxes(
+        gridcolor="rgba(56,189,248,0.07)",
+        linecolor="rgba(56,189,248,0.2)",
+        tickfont=dict(size=10),
+        zerolinecolor="rgba(56,189,248,0.1)"
+    )
+    return fig
+
+
 # ── AUTH FUNCTIONS ────────────────────────────────────────────────────────────
 def do_signup(email, password, username, full_name, exam_month, exam_year):
     try:
@@ -1757,12 +1799,9 @@ def dashboard():
                               annotation_text="6h daily target",
                               annotation_font_color="#FBBF24",
                               annotation_font_size=10)
-                lay = dict(**PLOTLY_LAYOUT)
-                lay["title"] = "Daily Hours — Last 30 Days"
-                lay["hovermode"] = "x unified"
-                lay["xaxis"] = {**PLOTLY_LAYOUT["xaxis"]}
-                lay["yaxis"] = {**PLOTLY_LAYOUT["yaxis"], "rangemode": "tozero"}
-                fig.update_layout(**lay)
+                apply_theme(fig, title="Daily Hours — Last 30 Days")
+                fig.update_layout(hovermode="x unified")
+                fig.update_yaxes(rangemode="tozero")
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("No sessions in the last 30 days")
@@ -1779,9 +1818,8 @@ def dashboard():
                     textposition="inside",
                     showlegend=False
                 ))
-            ly = dict(**PLOTLY_LAYOUT)
-            ly["xaxis"] = {**PLOTLY_LAYOUT["xaxis"], "range": [0, 220]}
-            fig2.update_layout(title="Hours vs Target", **ly)
+            apply_theme(fig2, title="Hours vs Target")
+            fig2.update_xaxes(range=[0, 220])
             st.plotly_chart(fig2, use_container_width=True)
 
     # Charts row 2
@@ -1803,9 +1841,8 @@ def dashboard():
                            annotation_text="Pass 50%", annotation_font_color="#F87171")
             fig3.add_hline(y=60, line_dash="dot", line_color="#34D399",
                            annotation_text="Target 60%", annotation_font_color="#34D399")
-            ly3 = dict(**PLOTLY_LAYOUT)
-            ly3["yaxis"] = {**PLOTLY_LAYOUT["yaxis"], "range": [0, 105]}
-            fig3.update_layout(title="Score Trends", **ly3)
+            apply_theme(fig3, title="Score Trends")
+            fig3.update_yaxes(range=[0, 105])
             st.plotly_chart(fig3, use_container_width=True)
 
         with c4:
@@ -1820,9 +1857,8 @@ def dashboard():
                 textfont=dict(size=11)
             ))
             fig4.add_hline(y=50, line_dash="dash", line_color="#F87171")
-            ly4 = dict(**PLOTLY_LAYOUT)
-            ly4["yaxis"] = {**PLOTLY_LAYOUT["yaxis"], "range": [0, 110]}
-            fig4.update_layout(title="Avg Score by Subject", **ly4)
+            apply_theme(fig4, title="Avg Score by Subject")
+            fig4.update_yaxes(range=[0, 110])
             st.plotly_chart(fig4, use_container_width=True)
 
     # Revision Pendency Dashboard
@@ -1899,34 +1935,17 @@ def dashboard():
                         insidetextanchor="start",
                         hovertemplate="<b>%{y}</b><br>%{text}<extra></extra>"
                     ))
+                apply_theme(fig_p, title="Revision Pendency Map",
+                            height=max(250, min(len(pend) * 28 + 80, 600)),
+                            extra_layout=dict(barmode="stack"))
                 fig_p.update_layout(
-                    paper_bgcolor="rgba(4,10,28,0.95)",
-                    plot_bgcolor ="rgba(4,10,28,0.95)",
-                    barmode      ="stack",
-                    height       =max(250, min(len(pend) * 28 + 80, 600)),
-                    margin       =dict(t=50, b=40, l=200, r=20),
-                    title        =dict(text="Revision Pendency Map",
-                                       font=dict(family="Orbitron, monospace",
-                                                 size=14, color="#FFFFFF")),
-                    legend       =dict(orientation="h", x=0, y=1.08,
-                                       font=dict(size=10, color="#B0D4F0"),
-                                       bgcolor="transparent"),
-                    font         =dict(family="Rajdhani, sans-serif",
-                                       color="#B0D4F0", size=12),
+                    legend=dict(orientation="h", x=0, y=1.08,
+                                font=dict(size=10, color="#B0D4F0"),
+                                bgcolor="rgba(0,0,0,0)"),
+                    margin=dict(t=50, b=40, l=200, r=20)
                 )
-                fig_p.update_xaxes(
-                    title_text="Days",
-                    gridcolor="rgba(56,189,248,0.07)",
-                    linecolor="rgba(56,189,248,0.2)",
-                    tickfont=dict(size=10),
-                    zerolinecolor="rgba(56,189,248,0.1)"
-                )
-                fig_p.update_yaxes(
-                    autorange="reversed",
-                    gridcolor="rgba(56,189,248,0.07)",
-                    linecolor="rgba(56,189,248,0.2)",
-                    tickfont=dict(size=9)
-                )
+                fig_p.update_xaxes(title_text="Days")
+                fig_p.update_yaxes(autorange="reversed")
                 st.plotly_chart(fig_p, use_container_width=True)
 
             with c_stat:
@@ -2279,32 +2298,18 @@ def revision():
             hovertext=hover_texts,
             hovertemplate="%{hovertext}<extra></extra>"
         ))
+        apply_theme(conf_fig,
+                    title=f"{subj} — Topic Confidence ({mastery_target} revisions = mastery)",
+                    height=max(200, min(len(labels) * 22 + 80, 550)))
         conf_fig.update_layout(
-            paper_bgcolor="rgba(4,10,28,0.95)",
-            plot_bgcolor ="rgba(4,10,28,0.95)",
-            height       =max(200, min(len(labels) * 22 + 80, 550)),
-            margin       =dict(t=50, b=40, l=200, r=20),
-            title        =dict(text=f"{subj} — Topic Confidence ({mastery_target} revisions = mastery)",
-                               font=dict(family="Orbitron, monospace", size=14, color="#FFFFFF")),
-            font         =dict(family="Rajdhani, sans-serif", color="#B0D4F0", size=12),
-            shapes       =[dict(
+            margin=dict(t=50, b=40, l=200, r=20),
+            shapes=[dict(
                 type="line", x0=100, x1=100, y0=-0.5, y1=len(labels) - 0.5,
                 line=dict(color="#34D399", width=1.5, dash="dot")
             )]
         )
-        conf_fig.update_xaxes(
-            range=[0, 105],
-            title_text="Confidence %",
-            gridcolor="rgba(56,189,248,0.07)",
-            linecolor="rgba(56,189,248,0.2)",
-            tickfont=dict(size=10)
-        )
-        conf_fig.update_yaxes(
-            autorange="reversed",
-            gridcolor="rgba(56,189,248,0.07)",
-            linecolor="rgba(56,189,248,0.2)",
-            tickfont=dict(size=9)
-        )
+        conf_fig.update_xaxes(range=[0, 105], title_text="Confidence %")
+        conf_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
         st.plotly_chart(conf_fig, use_container_width=True)
     else:
         st.info("No topics studied yet. Log sessions in the Study Log tab.")
@@ -2575,7 +2580,8 @@ def leaderboard():
         text="total_hours"
     )
     fig.update_traces(texttemplate="%{text:.0f}h", textposition="outside", marker_line_width=0)
-    fig.update_layout(showlegend=False, coloraxis_showscale=False, **PLOTLY_LAYOUT)
+    fig.update_layout(showlegend=False, coloraxis_showscale=False)
+    apply_theme(fig, title="Top 10 — Study Hours")
     st.plotly_chart(fig, use_container_width=True)
 
 
