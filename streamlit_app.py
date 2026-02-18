@@ -555,14 +555,15 @@ def auth_page():
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
         st.markdown("# 🎓")
-st.markdown("### CA Final Tracker")
-st.caption("Track your preparation. Ace the exam.")
-st.markdown("---")
+        st.markdown("### CA Final Tracker")
+        st.caption("Track your preparation. Ace the exam.")
+        st.markdown("---")
+        
         tab1, tab2 = st.tabs(["🔐  Login", "📝  Sign Up"])
-
+        
         with tab1:
-            email    = st.text_input("Email", key="li_email",
-                                     placeholder="your@email.com")
+            email = st.text_input("Email", key="li_email",
+                                  placeholder="your@email.com")
             password = st.text_input("Password", type="password",
                                      key="li_pass",
                                      placeholder="Enter password")
@@ -579,39 +580,39 @@ st.markdown("---")
                         st.error(msg)
 
         with tab2:
-            c1, c2    = st.columns(2)
+            c1, c2 = st.columns(2)
             full_name = c1.text_input("Full Name", key="su_name",
                                       placeholder="Ashwa Sharma")
-            username  = c2.text_input("Username",  key="su_user",
-                                      placeholder="ashwa123")
-            email2    = st.text_input("Email",     key="su_email",
-                                      placeholder="your@email.com")
-            pass2     = st.text_input("Password (min 6 chars)",
-                                      type="password", key="su_pass")
-
+            username = c2.text_input("Username", key="su_user",
+                                     placeholder="ashwa123")
+            email2 = st.text_input("Email", key="su_email",
+                                   placeholder="your@email.com")
+            pass2 = st.text_input("Password (min 6 chars)",
+                                  type="password", key="su_pass")
+            
             st.markdown("---")
             st.markdown("🎓 **When is your CA Final Exam?**")
-            ec1, ec2  = st.columns(2)
-
+            ec1, ec2 = st.columns(2)
+            
             exam_month = ec1.selectbox(
                 "Exam Month", 
                 ["January", "May", "September"],
                 key="su_month"
             )
-            exam_year  = ec2.selectbox(
+            exam_year = ec2.selectbox(
                 "Exam Year",
                 [2025, 2026, 2027, 2028],
-                index=2,   # default 2027
+                index=2,
                 key="su_year"
             )
-
+            
             # Show exam date preview
-            month_num = {"January":1,"May":5,"September":9}[exam_month]
-            preview   = date(exam_year, month_num, 1)
+            month_num = {"January":1, "May":5, "September":9}[exam_month]
+            preview = date(exam_year, month_num, 1)
             days_left = max((preview - date.today()).days, 0)
             st.info(f"📅 Your exam: **{exam_month} {exam_year}** "
                     f"— {days_left} days from today")
-
+            
             if st.button("Create Account →",
                          use_container_width=True, key="su_btn"):
                 if not all([full_name, username, email2, pass2]):
