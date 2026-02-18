@@ -979,7 +979,7 @@ def leaderboard():
         medal  = medals[i] if i < 3 else f"#{i+1}"
         border = "#7C3AED" if is_me else "#374151"
         you    = " ← You" if is_me else ""
-        st.markdown(f"""
+st.markdown(f"""
 <div style='background:#2D2D3F;border-radius:12px;
             padding:14px 20px;margin:6px 0;
             border-left:4px solid {border}'>
@@ -988,9 +988,9 @@ def leaderboard():
         {row['full_name']} (@{row['username']}){you}
     </strong>
     <span style='float:right;color:#94A3B8'>
-        &#128218; {row['total_hours']:.0f}h &nbsp;|&nbsp;
-        &#128197; {int(row['days_studied'])} days &nbsp;|&nbsp;
-        &#127919; {float(row['avg_score']):.1f}% avg
+        Hours: {row['total_hours']:.0f}h &nbsp;|&nbsp;
+        Days: {int(row['days_studied'])} &nbsp;|&nbsp;
+        Avg: {float(row['avg_score']):.1f}%
     </span>
 </div>
 """, unsafe_allow_html=True)
