@@ -1864,7 +1864,7 @@ def dashboard():
                 fig2.add_trace(go.Bar(
                     x=[tgt], y=[s],
                     orientation="h",
-                    marker=dict(color=f"{clr}22", line=dict(width=0)),
+                    marker=dict(color="rgba(56,189,248,0.08)", line=dict(width=0)),
                     showlegend=False,
                     hoverinfo="skip"
                 ))
