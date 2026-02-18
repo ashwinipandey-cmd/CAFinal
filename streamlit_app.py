@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -10,7 +9,7 @@ st.set_page_config(
     page_title="CA Final Tracker",
     page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ── SUPABASE ──────────────────────────────────────────────────────────────────
@@ -488,39 +487,133 @@ p, .stMarkdown p {
 }
 
 /* ════════════════════════════════════════
-   TABS
+   HIDE SIDEBAR TOGGLE (collapsed mode)
 ════════════════════════════════════════ */
+[data-testid="collapsedControl"] { display: none !important; }
+section[data-testid="stSidebar"] { display: none !important; }
+
+/* ════════════════════════════════════════
+   TOP NAVBAR — main navigation tabs
+════════════════════════════════════════ */
+
+/* Sticky top nav container */
+.stTabs {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+}
+
 .stTabs [data-baseweb="tab-list"] {
+    background: rgba(2, 5, 18, 0.92) !important;
+    border-radius: 0 !important;
+    padding: 0 24px !important;
+    gap: 0 !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(179,71,255,0.20) !important;
+    backdrop-filter: blur(30px) !important;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5), 0 1px 0 rgba(179,71,255,0.15) !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    position: relative !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+}
+
+/* Glowing top border on navbar */
+.stTabs [data-baseweb="tab-list"]::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-purple), var(--neon-cyan), var(--neon-purple), transparent);
+    animation: scanline 4s ease-in-out infinite;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 0 !important;
+    color: #5A6A8A !important;
+    font-family: var(--font-ui) !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 1.5px !important;
+    text-transform: uppercase !important;
+    padding: 16px 22px !important;
+    transition: all 0.25s !important;
+    border-bottom: 2px solid transparent !important;
+    white-space: nowrap !important;
+    background: transparent !important;
+    position: relative !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: #C4B5FD !important;
+    background: rgba(179,71,255,0.06) !important;
+    border-bottom-color: rgba(179,71,255,0.4) !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: transparent !important;
+    color: #FFFFFF !important;
+    border-bottom: 2px solid var(--neon-purple) !important;
+    box-shadow: none !important;
+    text-shadow: 0 0 20px rgba(179,71,255,0.6) !important;
+}
+
+/* Active tab neon underline glow */
+.stTabs [aria-selected="true"]::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 20%; right: 20%;
+    height: 2px;
+    background: var(--neon-purple);
+    box-shadow: 0 0 8px rgba(179,71,255,0.8), 0 0 16px rgba(179,71,255,0.4);
+    border-radius: 2px;
+}
+
+/* Tab panel content area */
+.stTabs [data-baseweb="tab-panel"] {
+    padding: 28px 0 0 !important;
+}
+
+/* ════════════════════════════════════════
+   INNER TABS (inside pages like My Data)
+════════════════════════════════════════ */
+/* Target only nested tabs — override top-nav styles */
+.stTabs .stTabs [data-baseweb="tab-list"] {
+    position: relative !important;
+    top: unset !important;
+    z-index: unset !important;
     background: rgba(6,10,30,0.70) !important;
     border-radius: 12px !important;
     padding: 4px !important;
     gap: 3px !important;
     border: 1px solid rgba(179,71,255,0.15) !important;
-    backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(179,71,255,0.15) !important;
+    box-shadow: none !important;
+    overflow-x: unset !important;
 }
 
-.stTabs [data-baseweb="tab"] {
+.stTabs .stTabs [data-baseweb="tab-list"]::before { display: none !important; }
+
+.stTabs .stTabs [data-baseweb="tab"] {
     border-radius: 9px !important;
-    color: var(--text-muted) !important;
-    font-family: var(--font-ui) !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    letter-spacing: 1px !important;
-    text-transform: uppercase !important;
     padding: 9px 18px !important;
-    transition: all 0.25s !important;
+    border-bottom: none !important;
+    letter-spacing: 1px !important;
 }
 
-.stTabs [data-baseweb="tab"]:hover {
-    color: #FFFFFF !important;
-    background: rgba(179,71,255,0.12) !important;
-}
-
-.stTabs [aria-selected="true"] {
+.stTabs .stTabs [aria-selected="true"] {
     background: linear-gradient(135deg, rgba(179,71,255,0.35), rgba(0,245,255,0.15)) !important;
-    color: #FFFFFF !important;
+    border-bottom: none !important;
     box-shadow: 0 0 15px rgba(179,71,255,0.2) !important;
     border: 1px solid rgba(179,71,255,0.30) !important;
+    text-shadow: none !important;
+}
+
+.stTabs .stTabs [aria-selected="true"]::after { display: none !important; }
+
+.stTabs .stTabs [data-baseweb="tab-panel"] {
+    padding: 16px 0 0 !important;
 }
 
 /* ════════════════════════════════════════
@@ -1648,65 +1741,98 @@ st.markdown(GLASSY_CSS, unsafe_allow_html=True)
 if not st.session_state.logged_in:
     auth_page()
 else:
-    profile = st.session_state.profile
-    name    = profile.get("full_name", "Student")
+    profile   = st.session_state.profile
+    name      = profile.get("full_name", "Student")
+    exam      = get_exam_date()
+    days_left = max((exam - date.today()).days, 0)
+    prof      = st.session_state.profile
 
-    with st.sidebar:
-        st.markdown(f"""
-        <div style="padding:16px 8px 12px">
-            <div style="font-family:'Orbitron',monospace;font-size:15px;font-weight:700;
-                        color:#FFFFFF;text-shadow:0 0 20px rgba(179,71,255,0.5)">
-                👋 {name.split()[0]}
-            </div>
-            <div style="font-size:11px;color:#5A6A8A;letter-spacing:1px;margin-top:3px">
-                @{profile.get('username', '')}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        page = st.radio("Navigation", [
-            "📊 Dashboard",
-            "📝 Log Study",
-            "🏆 Add Score",
-            "🔄 Revision",
-            "📋 My Data",
-            "🥇 Leaderboard"
-        ], label_visibility="collapsed")
-
-        st.markdown("---")
-
-        # Countdown box
-        exam      = get_exam_date()
-        days_left = max((exam - date.today()).days, 0)
-        prof      = st.session_state.profile
-
-        st.markdown(f"""
-        <div class="countdown-box">
-            <span class="countdown-number">{days_left}</span>
-            <span class="countdown-label">Days Until Exam</span>
-            <div style="margin-top:10px;font-size:10px;color:#5A6A8A;letter-spacing:1px">
-                {prof.get('exam_month', '')} {prof.get('exam_year', '')}
+    # ── TOP HEADER BAR (user info + countdown + logout) ──
+    st.markdown(f"""
+    <div style="
+        display:flex; align-items:center; justify-content:space-between;
+        padding:14px 8px 10px;
+        border-bottom:1px solid rgba(179,71,255,0.12);
+        margin-bottom:0;
+    ">
+        <div style="display:flex;align-items:center;gap:14px">
+            <div style="
+                width:38px;height:38px;border-radius:50%;
+                background:linear-gradient(135deg,#7B2FFF,#00F5FF);
+                display:flex;align-items:center;justify-content:center;
+                font-size:16px;font-weight:700;color:#FFF;
+                box-shadow:0 0 16px rgba(179,71,255,0.5);
+                font-family:'Orbitron',monospace;
+            ">{name[0].upper()}</div>
+            <div>
+                <div style="font-family:'Orbitron',monospace;font-size:13px;
+                            font-weight:700;color:#FFF;
+                            text-shadow:0 0 15px rgba(179,71,255,0.5)">
+                    {name}
+                </div>
+                <div style="font-size:10px;color:#5A6A8A;letter-spacing:1px">
+                    @{profile.get('username','')}
+                </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        <div style="display:flex;align-items:center;gap:20px">
+            <div style="text-align:center">
+                <div style="font-family:'Orbitron',monospace;font-size:22px;
+                            font-weight:800;color:#FFF;
+                            text-shadow:0 0 20px rgba(179,71,255,0.7);line-height:1">
+                    {days_left}
+                </div>
+                <div style="font-size:9px;color:#5A6A8A;letter-spacing:2px;
+                            text-transform:uppercase">
+                    Days Left · {prof.get('exam_month','')} {prof.get('exam_year','')}
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        # Progress bar for time elapsed
+    # ── TOP NAV TABS ──
+    tab_dashboard, tab_log, tab_score, tab_revision, tab_data, tab_lb, tab_logout = st.tabs([
+        "📊  Dashboard",
+        "📝  Log Study",
+        "🏆  Add Score",
+        "🔄  Revision",
+        "📋  My Data",
+        "🥇  Leaderboard",
+        "🚪  Logout",
+    ])
+
+    with tab_dashboard:
+        dashboard()
+
+    with tab_log:
+        log_study()
+
+    with tab_score:
+        add_test_score()
+
+    with tab_revision:
+        revision()
+
+    with tab_data:
+        my_data()
+
+    with tab_lb:
+        leaderboard()
+
+    with tab_logout:
         st.markdown("<br>", unsafe_allow_html=True)
-        progress_pct = max(0.0, min(1.0, 1.0 - days_left / 365.0))
-        st.progress(progress_pct)
-        st.caption(f"⏱ {int(progress_pct*100)}% of prep year elapsed")
-
-        st.markdown("---")
-
-        if st.button("🚪 Logout", use_container_width=True):
-            do_logout()
-
-    # Route to pages
-    if   page == "📊 Dashboard":  dashboard()
-    elif page == "📝 Log Study":   log_study()
-    elif page == "🏆 Add Score":   add_test_score()
-    elif page == "🔄 Revision":    revision()
-    elif page == "📋 My Data":     my_data()
-    elif page == "🥇 Leaderboard": leaderboard()
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            st.markdown("""
+            <div class="glass-card" style="text-align:center;padding:40px 30px">
+                <div style="font-size:48px;margin-bottom:16px">🚪</div>
+                <h2 style="color:#FFFFFF;margin-bottom:8px">Sign Out</h2>
+                <p style="color:#5A6A8A;margin-bottom:24px">
+                    You'll need to log in again to access your tracker.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🚪 Confirm Logout", use_container_width=True):
+                do_logout()
