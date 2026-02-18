@@ -1534,6 +1534,13 @@ def dashboard():
                 grp = d30.groupby([d30["date"].dt.date, "subject"])["hours"].sum().reset_index()
                 grp.columns = ["Date", "Subject", "Hours"]
                 # Smooth animated area chart
+                fill_map = {
+                    "FR":  "rgba(125,211,252,0.10)",
+                    "AFM": "rgba(52,211,153,0.10)",
+                    "AA":  "rgba(251,191,36,0.10)",
+                    "DT":  "rgba(248,113,113,0.10)",
+                    "IDT": "rgba(96,165,250,0.10)"
+                }
                 fig = go.Figure()
                 for s in SUBJECTS:
                     sub = grp[grp["Subject"] == s].sort_values("Date")
@@ -1544,22 +1551,12 @@ def dashboard():
                         name=SUBJ_FULL[s],
                         mode="lines+markers",
                         fill="tozeroy",
+                        fillcolor=fill_map[s],
                         line=dict(color=COLORS[s], width=2.5, shape="spline", smoothing=1.3),
                         marker=dict(size=6, color=COLORS[s],
                                     line=dict(width=2, color=COLORS[s])),
-                        fillcolor=COLORS[s].replace("#", "rgba(") + ",0.08)" if "#" in COLORS[s] else COLORS[s],
                         hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>%{{x}}<br>%{{y:.1f}}h<extra></extra>"
                     ))
-                # Add fill colors properly
-                fill_map = {
-                    "FR": "rgba(125,211,252,0.08)", "AFM": "rgba(52,211,153,0.08)",
-                    "AA": "rgba(251,191,36,0.08)",  "DT":  "rgba(248,113,113,0.08)",
-                    "IDT":"rgba(96,165,250,0.08)"
-                }
-                for trace in fig.data:
-                    sname = [k for k,v in SUBJ_FULL.items() if v == trace.name]
-                    if sname:
-                        trace.fillcolor = fill_map.get(sname[0], "rgba(56,189,248,0.08)")
                 fig.add_hline(y=6, line_dash="dash", line_color="#FBBF24",
                               line_width=1.5,
                               annotation_text="6h daily target",
