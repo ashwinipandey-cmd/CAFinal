@@ -554,14 +554,10 @@ def update_rev(subject, topic, field, value):
 def auth_page():
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        st.markdown("""
-        <div style='text-align:center;padding:30px 0'>
-            <div style='font-size:60px'>🎓</div>
-            <h1 style='color:#7C3AED;margin:10px 0'>CA Final Tracker</h1>
-            <p style='color:#94A3B8'>Track your preparation. Ace the exam.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
+        st.markdown("# 🎓")
+st.markdown("### CA Final Tracker")
+st.caption("Track your preparation. Ace the exam.")
+st.markdown("---")
         tab1, tab2 = st.tabs(["🔐  Login", "📝  Sign Up"])
 
         with tab1:
@@ -984,21 +980,20 @@ def leaderboard():
         border = "#7C3AED" if is_me else "#374151"
         you    = " ← You" if is_me else ""
         st.markdown(f"""
-        <div style='background:#2D2D3F;border-radius:12px;
-                    padding:14px 20px;margin:6px 0;
-                    border-left:4px solid {border}'>
-            <span style='font-size:20px'>{medal}</span>
-            <strong style='color:#E2E8F0;margin-left:10px'>
-                {row['full_name']} (@{row['username']}){you}
-            </strong>
-            <span style='float:right;color:#94A3B8'>
-                📚 {row['total_hours']:.0f}h &nbsp;|&nbsp;
-                📅 {int(row['days_studied'])} days &nbsp;|&nbsp;
-                🎯 {float(row['avg_score']):.1f}% avg
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
+<div style='background:#2D2D3F;border-radius:12px;
+            padding:14px 20px;margin:6px 0;
+            border-left:4px solid {border}'>
+    <span style='font-size:20px'>{medal}</span>
+    <strong style='color:#E2E8F0;margin-left:10px'>
+        {row['full_name']} (@{row['username']}){you}
+    </strong>
+    <span style='float:right;color:#94A3B8'>
+        &#128218; {row['total_hours']:.0f}h &nbsp;|&nbsp;
+        &#128197; {int(row['days_studied'])} days &nbsp;|&nbsp;
+        &#127919; {float(row['avg_score']):.1f}% avg
+    </span>
+</div>
+""", unsafe_allow_html=True)
     fig = px.bar(lb.head(10), x="username", y="total_hours",
                  color="total_hours",
                  color_continuous_scale="Purples",
