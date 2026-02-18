@@ -101,7 +101,7 @@ TOPICS = {
 }
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
-GLASSY_CSS = """
+st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -341,12 +341,6 @@ hr {
     margin: 20px 0 !important;
 }
 
-/* ── PLOTLY CHARTS ── */
-.js-plotly-plot .plotly .modebar {
-    background: rgba(255,255,255,0.05) !important;
-    border-radius: 8px !important;
-}
-
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -375,7 +369,7 @@ hr {
 footer    { visibility: hidden; }
 header    { visibility: hidden; }
 </style>
-"""
+""", unsafe_allow_html=True)"""
 
 
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
