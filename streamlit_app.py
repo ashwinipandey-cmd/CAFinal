@@ -38,7 +38,7 @@ SUBJ_FULL  = {
 }
 TARGET_HRS = {"FR":200,"AFM":160,"AA":150,"DT":200,"IDT":180}
 COLORS     = {
-    "FR":"#A78BFA","AFM":"#34D399",
+    "FR":"#7DD3FC","AFM":"#34D399",
     "AA":"#FBBF24","DT":"#F87171","IDT":"#60A5FA"
 }
 TOPICS = {
@@ -108,18 +108,18 @@ GLASSY_CSS = """
    ROOT VARIABLES
 ════════════════════════════════════════ */
 :root {
-    --neon-purple:  #B347FF;
-    --neon-cyan:    #00F5FF;
-    --neon-green:   #39FF14;
-    --neon-pink:    #FF2D78;
-    --neon-blue:    #4D9FFF;
-    --neon-gold:    #FFD700;
-    --dark-bg:      #020510;
-    --dark-card:    rgba(6, 12, 35, 0.85);
-    --dark-glass:   rgba(255,255,255,0.04);
-    --border-glow:  rgba(179, 71, 255, 0.25);
-    --text-primary: #E8EEFF;
-    --text-muted:   #5A6A8A;
+    --neon-purple:  #38BDF8;
+    --neon-cyan:    #7DD3FC;
+    --neon-green:   #34D399;
+    --neon-pink:    #818CF8;
+    --neon-blue:    #60A5FA;
+    --neon-gold:    #FCD34D;
+    --dark-bg:      #060D1F;
+    --dark-card:    rgba(8, 18, 50, 0.88);
+    --dark-glass:   rgba(56, 189, 248, 0.04);
+    --border-glow:  rgba(56, 189, 248, 0.28);
+    --text-primary: #E0F0FF;
+    --text-muted:   #4A6A90;
     --font-display: 'Orbitron', monospace;
     --font-ui:      'Rajdhani', sans-serif;
     --font-body:    'Space Grotesk', sans-serif;
@@ -135,14 +135,15 @@ GLASSY_CSS = """
     font-family: var(--font-body) !important;
 }
 
-/* ── ANIMATED DEEP-SPACE BACKGROUND ── */
+/* ── ANIMATED DEEP-OCEAN BLUE BACKGROUND ── */
 [data-testid="stAppViewContainer"] {
     background:
-        radial-gradient(ellipse 120% 80% at -10% -10%, rgba(179,71,255,0.12) 0%, transparent 55%),
-        radial-gradient(ellipse 80% 60% at 110% 110%, rgba(0,245,255,0.08) 0%, transparent 55%),
-        radial-gradient(ellipse 60% 50% at 50% 30%,  rgba(77,159,255,0.05) 0%, transparent 55%),
-        radial-gradient(ellipse 40% 40% at 80% 10%,  rgba(255,45,120,0.06) 0%, transparent 50%),
-        var(--dark-bg) !important;
+        radial-gradient(ellipse 110% 70% at -5% -5%,  rgba(14, 60, 150, 0.55) 0%, transparent 55%),
+        radial-gradient(ellipse 90%  60% at 105% 100%, rgba(30, 100, 200, 0.35) 0%, transparent 55%),
+        radial-gradient(ellipse 70%  50% at 50%  40%,  rgba(56, 189, 248, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50%  45% at 85%  5%,   rgba(99, 102, 241, 0.18) 0%, transparent 50%),
+        radial-gradient(ellipse 40%  40% at 15%  80%,  rgba(14, 165, 233, 0.14) 0%, transparent 50%),
+        linear-gradient(160deg, #060D1F 0%, #081428 40%, #060F22 100%) !important;
     min-height: 100vh;
 }
 
@@ -165,10 +166,10 @@ GLASSY_CSS = """
    SIDEBAR
 ════════════════════════════════════════ */
 [data-testid="stSidebar"] {
-    background: rgba(2, 5, 20, 0.92) !important;
-    border-right: 1px solid rgba(179,71,255,0.2) !important;
+    background: rgba(3, 8, 25, 0.95) !important;
+    border-right: 1px solid rgba(56,189,248,0.2) !important;
     backdrop-filter: blur(30px) !important;
-    box-shadow: 4px 0 30px rgba(179,71,255,0.08) !important;
+    box-shadow: 4px 0 30px rgba(56,189,248,0.08) !important;
 }
 
 [data-testid="stSidebar"]::before {
@@ -210,17 +211,17 @@ GLASSY_CSS = """
 }
 
 [data-testid="stSidebar"] .stRadio label:hover {
-    background: rgba(179,71,255,0.10) !important;
-    border-color: rgba(179,71,255,0.30) !important;
-    box-shadow: 0 0 15px rgba(179,71,255,0.15), inset 0 0 15px rgba(179,71,255,0.05) !important;
+    background: rgba(56,189,248,0.10) !important;
+    border-color: rgba(56,189,248,0.30) !important;
+    box-shadow: 0 0 15px rgba(56,189,248,0.15), inset 0 0 15px rgba(56,189,248,0.05) !important;
     transform: translateX(4px) !important;
 }
 
 [data-testid="stSidebar"] .stRadio [aria-checked="true"] + label,
 [data-testid="stSidebar"] .stRadio label:has(input:checked) {
-    background: linear-gradient(135deg, rgba(179,71,255,0.20), rgba(0,245,255,0.10)) !important;
-    border-color: rgba(179,71,255,0.50) !important;
-    box-shadow: 0 0 20px rgba(179,71,255,0.20), inset 0 0 20px rgba(179,71,255,0.08) !important;
+    background: linear-gradient(135deg, rgba(56,189,248,0.20), rgba(0,245,255,0.10)) !important;
+    border-color: rgba(56,189,248,0.50) !important;
+    box-shadow: 0 0 20px rgba(56,189,248,0.20), inset 0 0 20px rgba(56,189,248,0.08) !important;
     color: #FFFFFF !important;
 }
 
@@ -264,10 +265,10 @@ div[data-testid="stMetric"]::after {
 
 div[data-testid="stMetric"]:hover {
     transform: translateY(-4px) !important;
-    border-color: rgba(179,71,255,0.5) !important;
+    border-color: rgba(56,189,248,0.5) !important;
     box-shadow:
-        0 0 25px rgba(179,71,255,0.15),
-        0 0 50px rgba(179,71,255,0.05),
+        0 0 25px rgba(56,189,248,0.15),
+        0 0 50px rgba(56,189,248,0.05),
         0 20px 40px rgba(0,0,0,0.5) !important;
 }
 
@@ -276,7 +277,7 @@ div[data-testid="stMetricValue"] {
     font-size: 24px !important;
     font-weight: 700 !important;
     color: #FFFFFF !important;
-    text-shadow: 0 0 20px rgba(179,71,255,0.5), 0 0 40px rgba(179,71,255,0.2) !important;
+    text-shadow: 0 0 20px rgba(56,189,248,0.6), 0 0 40px rgba(56,189,248,0.25) !important;
     letter-spacing: -0.5px !important;
 }
 
@@ -303,7 +304,7 @@ h1 {
     font-weight: 700 !important;
     color: #FFFFFF !important;
     letter-spacing: -0.5px !important;
-    text-shadow: 0 0 30px rgba(179,71,255,0.4), 0 0 60px rgba(179,71,255,0.15) !important;
+    text-shadow: 0 0 30px rgba(56,189,248,0.4), 0 0 60px rgba(56,189,248,0.15) !important;
 }
 
 h2 {
@@ -337,7 +338,7 @@ p, .stMarkdown p {
 .stTextArea textarea,
 .stDateInput input {
     background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(179,71,255,0.20) !important;
+    border: 1px solid rgba(56,189,248,0.20) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
@@ -351,8 +352,8 @@ p, .stMarkdown p {
 .stTextArea textarea:focus,
 .stNumberInput input:focus {
     border-color: var(--neon-purple) !important;
-    background: rgba(179,71,255,0.07) !important;
-    box-shadow: 0 0 0 3px rgba(179,71,255,0.15), 0 0 20px rgba(179,71,255,0.10) !important;
+    background: rgba(56,189,248,0.07) !important;
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.15), 0 0 20px rgba(56,189,248,0.10) !important;
     outline: none !important;
 }
 
@@ -374,7 +375,7 @@ p, .stMarkdown p {
 /* Selectbox */
 .stSelectbox > div > div {
     background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(179,71,255,0.20) !important;
+    border: 1px solid rgba(56,189,248,0.20) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
@@ -383,29 +384,29 @@ p, .stMarkdown p {
 }
 
 .stSelectbox > div > div:hover {
-    border-color: rgba(179,71,255,0.45) !important;
-    box-shadow: 0 0 15px rgba(179,71,255,0.12) !important;
+    border-color: rgba(56,189,248,0.45) !important;
+    box-shadow: 0 0 15px rgba(56,189,248,0.12) !important;
 }
 
 /* Select dropdown options */
 [data-baseweb="select"] [role="listbox"] {
-    background: rgba(6,10,30,0.98) !important;
-    border: 1px solid rgba(179,71,255,0.3) !important;
+    background: rgba(6,14,38,0.98) !important;
+    border: 1px solid rgba(56,189,248,0.3) !important;
     border-radius: 10px !important;
     backdrop-filter: blur(30px) !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(179,71,255,0.1) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(56,189,248,0.1) !important;
 }
 
 [data-baseweb="select"] [role="option"]:hover {
-    background: rgba(179,71,255,0.15) !important;
+    background: rgba(56,189,248,0.15) !important;
 }
 
 /* ════════════════════════════════════════
    BUTTONS
 ════════════════════════════════════════ */
 .stButton button {
-    background: linear-gradient(135deg, rgba(179,71,255,0.8) 0%, rgba(120,40,200,0.9) 50%, rgba(77,100,255,0.8) 100%) !important;
-    border: 1px solid rgba(179,71,255,0.5) !important;
+    background: linear-gradient(135deg, rgba(14,100,220,0.85) 0%, rgba(10,60,180,0.95) 50%, rgba(56,189,248,0.75) 100%) !important;
+    border: 1px solid rgba(56,189,248,0.5) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-ui) !important;
@@ -416,8 +417,8 @@ p, .stMarkdown p {
     padding: 11px 22px !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow:
-        0 4px 20px rgba(179,71,255,0.30),
-        0 0 0 0 rgba(179,71,255,0) !important;
+        0 4px 20px rgba(56,189,248,0.30),
+        0 0 0 0 rgba(56,189,248,0) !important;
     position: relative !important;
     overflow: hidden !important;
 }
@@ -434,25 +435,25 @@ p, .stMarkdown p {
 .stButton button:hover {
     transform: translateY(-2px) !important;
     box-shadow:
-        0 8px 30px rgba(179,71,255,0.45),
-        0 0 40px rgba(179,71,255,0.20),
-        0 0 0 1px rgba(179,71,255,0.4) !important;
-    border-color: rgba(179,71,255,0.8) !important;
+        0 8px 30px rgba(56,189,248,0.45),
+        0 0 40px rgba(56,189,248,0.20),
+        0 0 0 1px rgba(56,189,248,0.4) !important;
+    border-color: rgba(14,100,220,0.85) !important;
 }
 
 .stButton button:hover::before { opacity: 1 !important; }
 
 .stButton button:active {
     transform: translateY(0px) !important;
-    box-shadow: 0 0 15px rgba(179,71,255,0.30) !important;
+    box-shadow: 0 0 15px rgba(56,189,248,0.30) !important;
 }
 
 /* ════════════════════════════════════════
    FORMS (containers)
 ════════════════════════════════════════ */
 .stForm {
-    background: rgba(6,10,30,0.60) !important;
-    border: 1px solid rgba(179,71,255,0.18) !important;
+    background: rgba(6,14,38,0.60) !important;
+    border: 1px solid rgba(56,189,248,0.18) !important;
     border-radius: 20px !important;
     backdrop-filter: blur(30px) !important;
     padding: 28px !important;
@@ -466,7 +467,7 @@ p, .stMarkdown p {
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(179,71,255,0.6), rgba(0,245,255,0.4), transparent);
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.6), rgba(0,245,255,0.4), transparent);
 }
 
 /* ════════════════════════════════════════
@@ -482,7 +483,7 @@ p, .stMarkdown p {
 .stProgress > div > div > div {
     background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)) !important;
     border-radius: 6px !important;
-    box-shadow: 0 0 10px rgba(179,71,255,0.6), 0 0 20px rgba(0,245,255,0.3) !important;
+    box-shadow: 0 0 10px rgba(56,189,248,0.6), 0 0 20px rgba(0,245,255,0.3) !important;
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
@@ -504,14 +505,14 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 .stTabs [data-baseweb="tab-list"] {
-    background: rgba(2, 5, 18, 0.92) !important;
+    background: rgba(3, 8, 25, 0.95) !important;
     border-radius: 0 !important;
     padding: 0 24px !important;
     gap: 0 !important;
     border: none !important;
-    border-bottom: 1px solid rgba(179,71,255,0.20) !important;
+    border-bottom: 1px solid rgba(56,189,248,0.20) !important;
     backdrop-filter: blur(30px) !important;
-    box-shadow: 0 4px 30px rgba(0,0,0,0.5), 0 1px 0 rgba(179,71,255,0.15) !important;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5), 0 1px 0 rgba(56,189,248,0.15) !important;
     width: 100% !important;
     justify-content: flex-start !important;
     position: relative !important;
@@ -531,7 +532,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 
 .stTabs [data-baseweb="tab"] {
     border-radius: 0 !important;
-    color: #5A6A8A !important;
+    color: #4A6A90 !important;
     font-family: var(--font-ui) !important;
     font-size: 12px !important;
     font-weight: 600 !important;
@@ -546,9 +547,9 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 .stTabs [data-baseweb="tab"]:hover {
-    color: #C4B5FD !important;
-    background: rgba(179,71,255,0.06) !important;
-    border-bottom-color: rgba(179,71,255,0.4) !important;
+    color: #BAE6FD !important;
+    background: rgba(56,189,248,0.06) !important;
+    border-bottom-color: rgba(56,189,248,0.4) !important;
 }
 
 .stTabs [aria-selected="true"] {
@@ -556,7 +557,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     color: #FFFFFF !important;
     border-bottom: 2px solid var(--neon-purple) !important;
     box-shadow: none !important;
-    text-shadow: 0 0 20px rgba(179,71,255,0.6) !important;
+    text-shadow: 0 0 20px rgba(56,189,248,0.6) !important;
 }
 
 /* Active tab neon underline glow */
@@ -566,7 +567,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     bottom: -1px; left: 20%; right: 20%;
     height: 2px;
     background: var(--neon-purple);
-    box-shadow: 0 0 8px rgba(179,71,255,0.8), 0 0 16px rgba(179,71,255,0.4);
+    box-shadow: 0 0 8px rgba(14,100,220,0.85), 0 0 16px rgba(56,189,248,0.4);
     border-radius: 2px;
 }
 
@@ -583,12 +584,12 @@ section[data-testid="stSidebar"] { display: none !important; }
     position: relative !important;
     top: unset !important;
     z-index: unset !important;
-    background: rgba(6,10,30,0.70) !important;
+    background: rgba(6,14,38,0.70) !important;
     border-radius: 12px !important;
     padding: 4px !important;
     gap: 3px !important;
-    border: 1px solid rgba(179,71,255,0.15) !important;
-    border-bottom: 1px solid rgba(179,71,255,0.15) !important;
+    border: 1px solid rgba(56,189,248,0.15) !important;
+    border-bottom: 1px solid rgba(56,189,248,0.15) !important;
     box-shadow: none !important;
     overflow-x: unset !important;
 }
@@ -603,10 +604,10 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 .stTabs .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, rgba(179,71,255,0.35), rgba(0,245,255,0.15)) !important;
+    background: linear-gradient(135deg, rgba(56,189,248,0.35), rgba(0,245,255,0.15)) !important;
     border-bottom: none !important;
-    box-shadow: 0 0 15px rgba(179,71,255,0.2) !important;
-    border: 1px solid rgba(179,71,255,0.30) !important;
+    box-shadow: 0 0 15px rgba(56,189,248,0.2) !important;
+    border: 1px solid rgba(56,189,248,0.30) !important;
     text-shadow: none !important;
 }
 
@@ -622,23 +623,23 @@ section[data-testid="stSidebar"] { display: none !important; }
 .stDataFrame {
     border-radius: 14px !important;
     overflow: hidden !important;
-    border: 1px solid rgba(179,71,255,0.15) !important;
+    border: 1px solid rgba(56,189,248,0.15) !important;
     box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
 }
 
 [data-testid="stDataFrameResizable"] {
-    background: rgba(4,8,25,0.90) !important;
+    background: rgba(4,10,30,0.90) !important;
 }
 
 /* Table header */
 [data-testid="stDataFrameResizable"] th {
-    background: rgba(179,71,255,0.12) !important;
+    background: rgba(56,189,248,0.12) !important;
     color: var(--text-primary) !important;
     font-family: var(--font-ui) !important;
     font-size: 10px !important;
     text-transform: uppercase !important;
     letter-spacing: 1.5px !important;
-    border-bottom: 1px solid rgba(179,71,255,0.2) !important;
+    border-bottom: 1px solid rgba(56,189,248,0.2) !important;
 }
 
 [data-testid="stDataFrameResizable"] td {
@@ -649,7 +650,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 [data-testid="stDataFrameResizable"] tr:hover td {
-    background: rgba(179,71,255,0.07) !important;
+    background: rgba(56,189,248,0.07) !important;
 }
 
 /* ════════════════════════════════════════
@@ -688,10 +689,10 @@ section[data-testid="stSidebar"] { display: none !important; }
    MULTISELECT TAGS
 ════════════════════════════════════════ */
 .stMultiSelect [data-baseweb="tag"] {
-    background: rgba(179,71,255,0.20) !important;
+    background: rgba(56,189,248,0.20) !important;
     border-radius: 6px !important;
-    border: 1px solid rgba(179,71,255,0.40) !important;
-    color: #D8B4FE !important;
+    border: 1px solid rgba(56,189,248,0.40) !important;
+    color: #BAE6FD !important;
     font-family: var(--font-body) !important;
     font-size: 12px !important;
 }
@@ -701,7 +702,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 ════════════════════════════════════════ */
 .stSlider [data-baseweb="slider"] [role="slider"] {
     background: var(--neon-purple) !important;
-    box-shadow: 0 0 10px rgba(179,71,255,0.6) !important;
+    box-shadow: 0 0 10px rgba(56,189,248,0.6) !important;
 }
 
 .stSlider [data-baseweb="slider"] [data-testid="stSliderTrack"] {
@@ -714,7 +715,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 hr {
     border: none !important;
     height: 1px !important;
-    background: linear-gradient(90deg, transparent, rgba(179,71,255,0.3), rgba(0,245,255,0.2), transparent) !important;
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.3), rgba(0,245,255,0.2), transparent) !important;
     margin: 24px 0 !important;
 }
 
@@ -722,9 +723,9 @@ hr {
    PLOTLY MODEBAR
 ════════════════════════════════════════ */
 .js-plotly-plot .plotly .modebar {
-    background: rgba(6,10,30,0.80) !important;
+    background: rgba(6,14,38,0.80) !important;
     border-radius: 8px !important;
-    border: 1px solid rgba(179,71,255,0.15) !important;
+    border: 1px solid rgba(56,189,248,0.15) !important;
 }
 
 /* ════════════════════════════════════════
@@ -735,7 +736,7 @@ hr {
 ::-webkit-scrollbar-thumb {
     background: linear-gradient(var(--neon-purple), var(--neon-cyan));
     border-radius: 3px;
-    box-shadow: 0 0 6px rgba(179,71,255,0.4);
+    box-shadow: 0 0 6px rgba(56,189,248,0.4);
 }
 
 /* ════════════════════════════════════════
@@ -743,7 +744,7 @@ hr {
 ════════════════════════════════════════ */
 .stSpinner > div {
     border-top-color: var(--neon-purple) !important;
-    border-right-color: rgba(179,71,255,0.3) !important;
+    border-right-color: rgba(56,189,248,0.3) !important;
     border-bottom-color: rgba(0,245,255,0.3) !important;
     border-left-color: transparent !important;
 }
@@ -783,9 +784,9 @@ hr {
     text-transform: uppercase;
     letter-spacing: 3px;
     color: var(--neon-purple);
-    text-shadow: 0 0 20px rgba(179,71,255,0.6);
+    text-shadow: 0 0 20px rgba(56,189,248,0.6);
     padding: 6px 0;
-    border-bottom: 1px solid rgba(179,71,255,0.2);
+    border-bottom: 1px solid rgba(56,189,248,0.2);
     margin-bottom: 16px;
     display: flex;
     align-items: center;
@@ -794,8 +795,8 @@ hr {
 
 /* Glassy Cards */
 .glass-card {
-    background: rgba(6,10,30,0.70);
-    border: 1px solid rgba(179,71,255,0.18);
+    background: rgba(6,14,38,0.70);
+    border: 1px solid rgba(56,189,248,0.18);
     border-radius: 16px;
     padding: 20px;
     backdrop-filter: blur(20px);
@@ -811,23 +812,23 @@ hr {
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(179,71,255,0.5), transparent);
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent);
 }
 
 .glass-card:hover {
-    border-color: rgba(179,71,255,0.35);
-    box-shadow: 0 12px 48px rgba(0,0,0,0.4), 0 0 30px rgba(179,71,255,0.08), inset 0 1px 0 rgba(255,255,255,0.08);
+    border-color: rgba(56,189,248,0.35);
+    box-shadow: 0 12px 48px rgba(0,0,0,0.4), 0 0 30px rgba(56,189,248,0.08), inset 0 1px 0 rgba(255,255,255,0.08);
     transform: translateY(-2px);
 }
 
 /* Leaderboard Cards */
 .lb-card {
-    background: rgba(6,10,30,0.70);
+    background: rgba(6,14,38,0.70);
     border-radius: 14px;
     padding: 16px 20px;
     margin: 8px 0;
-    border-left: 3px solid rgba(179,71,255,0.4);
-    border: 1px solid rgba(179,71,255,0.15);
+    border-left: 3px solid rgba(56,189,248,0.4);
+    border: 1px solid rgba(56,189,248,0.15);
     backdrop-filter: blur(20px);
     display: flex;
     align-items: center;
@@ -842,15 +843,15 @@ hr {
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(179,71,255,0.4), transparent);
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent);
     opacity: 0;
     transition: opacity 0.25s;
 }
 
 .lb-card:hover {
-    border-color: rgba(179,71,255,0.35);
+    border-color: rgba(56,189,248,0.35);
     transform: translateX(4px);
-    box-shadow: 0 0 25px rgba(179,71,255,0.10);
+    box-shadow: 0 0 25px rgba(56,189,248,0.10);
 }
 
 .lb-card:hover::before { opacity: 1; }
@@ -860,13 +861,13 @@ hr {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    background: rgba(179,71,255,0.12);
-    border: 1px solid rgba(179,71,255,0.20);
+    background: rgba(56,189,248,0.12);
+    border: 1px solid rgba(56,189,248,0.20);
     border-radius: 20px;
     padding: 4px 12px;
     font-family: var(--font-body);
     font-size: 12px;
-    color: #C4B5FD;
+    color: #BAE6FD;
 }
 
 /* Auth page branding */
@@ -877,7 +878,7 @@ hr {
 
 .brand-logo .icon {
     font-size: 64px;
-    filter: drop-shadow(0 0 20px rgba(179,71,255,0.6));
+    filter: drop-shadow(0 0 20px rgba(56,189,248,0.6));
     animation: float 4s ease-in-out infinite;
 }
 
@@ -943,7 +944,7 @@ hr {
 }
 
 /* Subject color accent lines */
-.subject-bar-fr  { border-left: 3px solid #A78BFA; }
+.subject-bar-fr  { border-left: 3px solid #7DD3FC; }
 .subject-bar-afm { border-left: 3px solid #34D399; }
 .subject-bar-aa  { border-left: 3px solid #FBBF24; }
 .subject-bar-dt  { border-left: 3px solid #F87171; }
@@ -951,8 +952,8 @@ hr {
 
 /* Countdown block in sidebar */
 .countdown-box {
-    background: rgba(179,71,255,0.08);
-    border: 1px solid rgba(179,71,255,0.20);
+    background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.20);
     border-radius: 12px;
     padding: 14px 16px;
     text-align: center;
@@ -974,7 +975,7 @@ hr {
     font-size: 30px;
     font-weight: 800;
     color: #FFFFFF;
-    text-shadow: 0 0 20px rgba(179,71,255,0.7);
+    text-shadow: 0 0 20px rgba(56,189,248,0.7);
     display: block;
     line-height: 1;
 }
@@ -991,8 +992,8 @@ hr {
 
 /* Number input spin buttons styling */
 .stNumberInput button {
-    background: rgba(179,71,255,0.12) !important;
-    border: 1px solid rgba(179,71,255,0.25) !important;
+    background: rgba(56,189,248,0.12) !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
     color: var(--text-primary) !important;
     border-radius: 6px !important;
     padding: 4px 8px !important;
@@ -1010,7 +1011,7 @@ hr {
 
 /* Plotly chart container glow on hover */
 [data-testid="stPlotlyChart"]:hover {
-    filter: drop-shadow(0 0 20px rgba(179,71,255,0.08));
+    filter: drop-shadow(0 0 20px rgba(56,189,248,0.08));
 }
 
 /* Markdown text color fix */
@@ -1034,28 +1035,28 @@ def get_exam_date():
 
 # ── PLOTLY DARK THEME ─────────────────────────────────────────────────────────
 PLOTLY_LAYOUT = dict(
-    paper_bgcolor="rgba(4,8,22,0.95)",
-    plot_bgcolor ="rgba(4,8,22,0.95)",
-    font=dict(family="Rajdhani, sans-serif", color="#B0BDD8", size=12),
+    paper_bgcolor="rgba(4,10,28,0.95)",
+    plot_bgcolor ="rgba(4,10,28,0.95)",
+    font=dict(family="Rajdhani, sans-serif", color="#B0D4F0", size=12),
     title_font=dict(family="Orbitron, monospace", size=14, color="#FFFFFF"),
     legend=dict(
-        bgcolor="rgba(6,10,30,0.7)",
-        bordercolor="rgba(179,71,255,0.2)",
+        bgcolor="rgba(6,14,38,0.7)",
+        bordercolor="rgba(56,189,248,0.2)",
         borderwidth=1,
         font=dict(size=11)
     ),
     margin=dict(t=50, b=40, l=40, r=20),
     xaxis=dict(
         gridcolor="rgba(255,255,255,0.05)",
-        linecolor="rgba(179,71,255,0.2)",
+        linecolor="rgba(56,189,248,0.2)",
         tickfont=dict(size=10),
-        zerolinecolor="rgba(179,71,255,0.1)"
+        zerolinecolor="rgba(56,189,248,0.1)"
     ),
     yaxis=dict(
         gridcolor="rgba(255,255,255,0.05)",
-        linecolor="rgba(179,71,255,0.2)",
+        linecolor="rgba(56,189,248,0.2)",
         tickfont=dict(size=10),
-        zerolinecolor="rgba(179,71,255,0.1)"
+        zerolinecolor="rgba(56,189,248,0.1)"
     )
 )
 
@@ -1431,7 +1432,7 @@ def dashboard():
             fig5.add_trace(go.Pie(
                 values=[r3, r2, r1, rd, ns],
                 labels=["R3", "R2", "R1", "1st Read", "Not Started"],
-                marker_colors=["#34D399", "#60A5FA", "#FBBF24", "#A78BFA", "#374151"],
+                marker_colors=["#34D399", "#60A5FA", "#FBBF24", "#7DD3FC", "#374151"],
                 hole=0.55,
                 showlegend=(i == 1),
                 textinfo="percent",
@@ -1448,7 +1449,7 @@ def dashboard():
         <div class="glass-card" style="text-align:center; padding:50px">
             <div style="font-size:48px; margin-bottom:16px">🚀</div>
             <h2 style="color:#FFFFFF">Welcome! Start Your Journey</h2>
-            <p style="color:#5A6A8A">Log your first study session to see your dashboard come alive.</p>
+            <p style="color:#4A6A90">Log your first study session to see your dashboard come alive.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1677,7 +1678,7 @@ def leaderboard():
         <div class="glass-card" style="text-align:center;padding:40px">
             <div style="font-size:40px;margin-bottom:12px">🏆</div>
             <h2>No Rankings Yet</h2>
-            <p style="color:#5A6A8A">Be the first to climb the leaderboard!</p>
+            <p style="color:#4A6A90">Be the first to climb the leaderboard!</p>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -1691,10 +1692,10 @@ def leaderboard():
     for i, row in lb.iterrows():
         is_me  = row["username"] == my_user
         medal  = medals[i] if i < 3 else f"#{i + 1}"
-        border = "#B347FF" if is_me else (medal_colors.get(i, "rgba(179,71,255,0.15)"))
-        glow   = "rgba(179,71,255,0.2)" if is_me else neon_glow.get(i, "transparent")
-        you    = " · <span style='color:#B347FF;font-size:11px;letter-spacing:1px'>YOU</span>" if is_me else ""
-        rank_style = f"color:{medal_colors.get(i, '#B0BDD8')};font-size:22px" if i < 3 else "color:#5A6A8A;font-size:14px;font-family:'Orbitron',monospace"
+        border = "#38BDF8" if is_me else (medal_colors.get(i, "rgba(56,189,248,0.15)"))
+        glow   = "rgba(56,189,248,0.2)" if is_me else neon_glow.get(i, "transparent")
+        you    = " · <span style='color:#38BDF8;font-size:11px;letter-spacing:1px'>YOU</span>" if is_me else ""
+        rank_style = f"color:{medal_colors.get(i, '#B0BDD8')};font-size:22px" if i < 3 else "color:#4A6A90;font-size:14px;font-family:'Orbitron',monospace"
 
         st.markdown(f"""
         <div class="lb-card" style="border-left:3px solid {border};box-shadow:0 0 20px {glow}">
@@ -1704,7 +1705,7 @@ def leaderboard():
                     <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;color:#FFFFFF">
                         {row['full_name']} {you}
                     </div>
-                    <div style="font-size:11px;color:#5A6A8A;letter-spacing:0.5px">@{row['username']}</div>
+                    <div style="font-size:11px;color:#4A6A90;letter-spacing:0.5px">@{row['username']}</div>
                 </div>
             </div>
             <div style="display:flex;gap:12px;align-items:center">
@@ -1720,7 +1721,7 @@ def leaderboard():
     fig = px.bar(
         lb.head(10), x="username", y="total_hours",
         color="total_hours",
-        color_continuous_scale=["#4D0099", "#B347FF", "#00F5FF"],
+        color_continuous_scale=["#0C2060", "#1D6FD8", "#38BDF8"],
         title="Top 10 — Study Hours",
         text="total_hours"
     )
@@ -1752,25 +1753,25 @@ else:
     <div style="
         display:flex; align-items:center; justify-content:space-between;
         padding:14px 8px 10px;
-        border-bottom:1px solid rgba(179,71,255,0.12);
+        border-bottom:1px solid rgba(56,189,248,0.12);
         margin-bottom:0;
     ">
         <div style="display:flex;align-items:center;gap:14px">
             <div style="
                 width:38px;height:38px;border-radius:50%;
-                background:linear-gradient(135deg,#7B2FFF,#00F5FF);
+                background:linear-gradient(135deg,#0E5AC8,#38BDF8);
                 display:flex;align-items:center;justify-content:center;
                 font-size:16px;font-weight:700;color:#FFF;
-                box-shadow:0 0 16px rgba(179,71,255,0.5);
+                box-shadow:0 0 16px rgba(56,189,248,0.5);
                 font-family:'Orbitron',monospace;
             ">{name[0].upper()}</div>
             <div>
                 <div style="font-family:'Orbitron',monospace;font-size:13px;
                             font-weight:700;color:#FFF;
-                            text-shadow:0 0 15px rgba(179,71,255,0.5)">
+                            text-shadow:0 0 15px rgba(56,189,248,0.5)">
                     {name}
                 </div>
-                <div style="font-size:10px;color:#5A6A8A;letter-spacing:1px">
+                <div style="font-size:10px;color:#4A6A90;letter-spacing:1px">
                     @{profile.get('username','')}
                 </div>
             </div>
@@ -1779,10 +1780,10 @@ else:
             <div style="text-align:center">
                 <div style="font-family:'Orbitron',monospace;font-size:22px;
                             font-weight:800;color:#FFF;
-                            text-shadow:0 0 20px rgba(179,71,255,0.7);line-height:1">
+                            text-shadow:0 0 20px rgba(56,189,248,0.7);line-height:1">
                     {days_left}
                 </div>
-                <div style="font-size:9px;color:#5A6A8A;letter-spacing:2px;
+                <div style="font-size:9px;color:#4A6A90;letter-spacing:2px;
                             text-transform:uppercase">
                     Days Left · {prof.get('exam_month','')} {prof.get('exam_year','')}
                 </div>
@@ -1828,7 +1829,7 @@ else:
             <div class="glass-card" style="text-align:center;padding:40px 30px">
                 <div style="font-size:48px;margin-bottom:16px">🚪</div>
                 <h2 style="color:#FFFFFF;margin-bottom:8px">Sign Out</h2>
-                <p style="color:#5A6A8A;margin-bottom:24px">
+                <p style="color:#4A6A90;margin-bottom:24px">
                     You'll need to log in again to access your tracker.
                 </p>
             </div>
