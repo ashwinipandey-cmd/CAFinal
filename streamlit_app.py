@@ -1401,10 +1401,27 @@ def update_profile(data):
 
 def set_leaderboard_opt_in(enabled: bool):
     try:
-        sb.table("profiles").update({"leaderboard_opt_in": enabled}).eq("id", uid()).execute()
+        # Use upsert-safe update — only touch the one column to avoid trigger issues
+        sb.table("profiles") \
+          .update({"leaderboard_opt_in": enabled}) \
+          .eq("id", uid()) \
+          .execute()
         st.session_state.profile["leaderboard_opt_in"] = enabled
         return True, "Preference saved!"
     except Exception as e:
+        err = str(e)
+        # If trigger fires for updated_at column not existing, retry without it
+        if "updated_at" in err:
+            try:
+                # Direct RPC fallback
+                sb.rpc("set_leaderboard_opt_in", {
+                    "p_user_id": uid(),
+                    "p_value":   enabled
+                }).execute()
+                st.session_state.profile["leaderboard_opt_in"] = enabled
+                return True, "Preference saved!"
+            except Exception as e2:
+                return False, f"Error: {e2}"
         return False, f"Error: {e}"
 
 
@@ -1882,15 +1899,31 @@ def dashboard():
                         insidetextanchor="start",
                         hovertemplate="<b>%{y}</b><br>%{text}<extra></extra>"
                     ))
-                pend_lay = dict(**PLOTLY_LAYOUT)
-                pend_lay["title"]  = "Revision Pendency Map"
-                pend_lay["height"] = max(250, min(len(pend) * 28 + 80, 600))
-                pend_lay["barmode"] = "stack"
-                pend_lay["xaxis"]  = {**PLOTLY_LAYOUT["xaxis"], "title": "Days"}
-                pend_lay["yaxis"]  = {**PLOTLY_LAYOUT["yaxis"],
-                                      "tickfont": dict(size=9), "autorange": "reversed"}
-                pend_lay["legend"] = dict(orientation="h", x=0, y=1.08,
-                                          font=dict(size=10), bgcolor="transparent")
+                pend_lay = dict(
+                    paper_bgcolor=PLOTLY_LAYOUT["paper_bgcolor"],
+                    plot_bgcolor =PLOTLY_LAYOUT["plot_bgcolor"],
+                    font         =PLOTLY_LAYOUT["font"],
+                    title_font   =PLOTLY_LAYOUT["title_font"],
+                    margin       =dict(t=50, b=40, l=200, r=20),
+                    title        ="Revision Pendency Map",
+                    height       =max(250, min(len(pend) * 28 + 80, 600)),
+                    barmode      ="stack",
+                    legend       =dict(orientation="h", x=0, y=1.08,
+                                       font=dict(size=10), bgcolor="transparent"),
+                    xaxis        =dict(
+                        title="Days",
+                        gridcolor="rgba(56,189,248,0.07)",
+                        linecolor="rgba(56,189,248,0.2)",
+                        tickfont=dict(size=10),
+                        zerolinecolor="rgba(56,189,248,0.1)"
+                    ),
+                    yaxis        =dict(
+                        autorange="reversed",
+                        gridcolor="rgba(56,189,248,0.07)",
+                        linecolor="rgba(56,189,248,0.2)",
+                        tickfont=dict(size=9)
+                    )
+                )
                 fig_p.update_layout(**pend_lay)
                 st.plotly_chart(fig_p, use_container_width=True)
 
@@ -1943,7 +1976,11 @@ def log_study():
 
     c1, c2 = st.columns(2)
     with c1:
-        s_date = st.date_input("📅 Date *", value=date.today(), key="log_date")
+        s_date = st.date_input("📅 Date *",
+                               value=date.today(),
+                               min_value=date.today() - timedelta(days=3),
+                               max_value=date.today(),
+                               key="log_date")
         subj   = st.selectbox("📚 Subject *", SUBJECTS,
                               index=SUBJECTS.index(st.session_state.log_subj),
                               format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
@@ -2240,15 +2277,32 @@ def revision():
             hovertext=hover_texts,
             hovertemplate="%{hovertext}<extra></extra>"
         ))
-        conf_lay = dict(**PLOTLY_LAYOUT)
-        conf_lay["title"]  = f"{subj} — Topic Confidence ({mastery_target} revisions = mastery)"
-        conf_lay["height"] = max(200, min(len(labels) * 22 + 80, 550))
-        conf_lay["xaxis"]  = {**PLOTLY_LAYOUT["xaxis"], "range": [0, 105], "title": "Confidence %"}
-        conf_lay["yaxis"]  = {**PLOTLY_LAYOUT["yaxis"], "tickfont": dict(size=9), "autorange": "reversed"}
-        conf_lay["shapes"] = [dict(
-            type="line", x0=100, x1=100, y0=-0.5, y1=len(labels) - 0.5,
-            line=dict(color="#34D399", width=1.5, dash="dot")
-        )]
+        conf_lay = dict(
+            paper_bgcolor=PLOTLY_LAYOUT["paper_bgcolor"],
+            plot_bgcolor =PLOTLY_LAYOUT["plot_bgcolor"],
+            font         =PLOTLY_LAYOUT["font"],
+            title_font   =PLOTLY_LAYOUT["title_font"],
+            margin       =dict(t=50, b=40, l=200, r=20),
+            title        =f"{subj} — Topic Confidence ({mastery_target} revisions = mastery)",
+            height       =max(200, min(len(labels) * 22 + 80, 550)),
+            xaxis        =dict(
+                range=[0, 105],
+                title="Confidence %",
+                gridcolor="rgba(56,189,248,0.07)",
+                linecolor="rgba(56,189,248,0.2)",
+                tickfont=dict(size=10),
+            ),
+            yaxis        =dict(
+                autorange="reversed",
+                gridcolor="rgba(56,189,248,0.07)",
+                linecolor="rgba(56,189,248,0.2)",
+                tickfont=dict(size=9)
+            ),
+            shapes=[dict(
+                type="line", x0=100, x1=100, y0=-0.5, y1=len(labels) - 0.5,
+                line=dict(color="#34D399", width=1.5, dash="dot")
+            )]
+        )
         conf_fig.update_layout(**conf_lay)
         st.plotly_chart(conf_fig, use_container_width=True)
     else:
