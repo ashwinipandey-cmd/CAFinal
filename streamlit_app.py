@@ -992,39 +992,55 @@ def leaderboard():
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN
+# ══════════════════════════════════════════════════════════════════════════════
 if not st.session_state.logged_in:
     auth_page()
 else:
     profile = st.session_state.profile
-    name    = profile.get("full_name","Student")
+    name = profile.get("full_name", "Student")
 
+    # ── SIDEBAR ──
     with st.sidebar:
         st.markdown(f"### 👋 {name}")
-        st.caption(f"@{profile.get('username','')}")
+        st.caption(f"@{profile.get('username', '')}")
         st.markdown("---")
-        page = st.radio("", [
+        
+        page = st.radio("Navigate", [
             "📊 Dashboard",
             "📝 Log Study",
             "🏆 Add Score",
             "🔄 Revision",
             "📋 My Data",
             "🥇 Leaderboard"
-        ])
+        ], label_visibility="collapsed")
+        
         st.markdown("---")
-        exam      = get_exam_date()
+        
+        exam = get_exam_date()
         days_left = max((exam - date.today()).days, 0)
-        prof      = st.session_state.profile
+        prof = st.session_state.profile
+        
         st.metric("⏳ Days Left", days_left)
         st.progress(max(0, min(1, 1 - days_left/365)))
-        st.caption(f"📅 {prof.get('exam_month','')} "
-                   f"{prof.get('exam_year','')}")
+        st.caption(f"📅 {prof.get('exam_month', '')} {prof.get('exam_year', '')}")
+        
         st.markdown("---")
+        
         if st.button("🚪 Logout", use_container_width=True):
             do_logout()
 
-    if   page == "📊 Dashboard": dashboard()
-    elif page == "📝 Log Study":  log_study()
-    elif page == "🏆 Add Score":  add_test_score()
-    elif page == "🔄 Revision":   revision()
-    elif page == "📋 My Data":    my_data()
-    elif page == "🥇 Leaderboard":leaderboard()
+    # ── MAIN CONTENT ──
+    if page == "📊 Dashboard":
+        dashboard()
+    elif page == "📝 Log Study":
+        log_study()
+    elif page == "🏆 Add Score":
+        add_test_score()
+    elif page == "🔄 Revision":
+        revision()
+    elif page == "📋 My Data":
+        my_data()
+    elif page == "🥇 Leaderboard":
+        leaderboard()
