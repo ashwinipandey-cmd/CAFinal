@@ -1182,14 +1182,6 @@ def get_scores():
         return pd.DataFrame()
 
 
-def get_revision():
-    try:
-        r  = sb.table("revision_tracker").select("*").eq("user_id", uid()).execute()
-        return pd.DataFrame(r.data)
-    except:
-        return pd.DataFrame()
-
-
 def get_leaderboard():
     try:
         r  = sb.table("leaderboard").select("*").execute()
@@ -1226,6 +1218,63 @@ def update_rev(subject, topic, field, value):
         return True, "Updated!"
     except Exception as e:
         return False, f"Error: {e}"
+
+
+def sync_first_read_from_log():
+    """
+    Auto-marks first_read=True in revision_tracker for any topic
+    that already exists in daily_log. Runs silently.
+    Returns set of (subject, topic) pairs that were auto-synced.
+    """
+    try:
+        # Get all topics already studied from daily_log
+        log_r = sb.table("daily_log") \
+                  .select("subject,topic") \
+                  .eq("user_id", uid()) \
+                  .execute()
+        if not log_r.data:
+            return set()
+
+        studied = {(r["subject"], r["topic"]) for r in log_r.data}
+
+        # Get current revision_tracker state
+        rev_r = sb.table("revision_tracker") \
+                  .select("subject,topic,first_read") \
+                  .eq("user_id", uid()) \
+                  .execute()
+        if not rev_r.data:
+            return set()
+
+        # Find topics that are studied but NOT yet marked first_read
+        needs_update = {
+            (r["subject"], r["topic"])
+            for r in rev_r.data
+            if (r["subject"], r["topic"]) in studied
+            and not r.get("first_read", False)
+        }
+
+        # Batch update them
+        for subj, topic in needs_update:
+            sb.table("revision_tracker") \
+              .update({"first_read": True}) \
+              .eq("user_id", uid()) \
+              .eq("subject", subj) \
+              .eq("topic", topic).execute()
+
+        return needs_update
+    except Exception:
+        return set()
+
+
+def get_revision():
+    """Fetch revision data, auto-syncing first_read from study log first."""
+    try:
+        sync_first_read_from_log()          # ← auto-sync happens here silently
+        r  = sb.table("revision_tracker").select("*") \
+               .eq("user_id", uid()).execute()
+        return pd.DataFrame(r.data)
+    except:
+        return pd.DataFrame()
 
 
 def update_profile(data):
@@ -1875,15 +1924,138 @@ def revision():
 
     with col1:
         st.markdown('<div class="neon-header">📖 First Read</div>', unsafe_allow_html=True)
-        st.markdown("""<p style='color:#7AB4D0;font-size:13px'>
-            Mark when you complete the first reading of this topic.</p>""",
-            unsafe_allow_html=True)
-        if st.button("✅ Mark First Read Complete", use_container_width=True, key="rev_first"):
-            if not topic:
-                st.warning("⚠️ Please select a topic first")
+
+        # Fetch current state for this specific topic
+        rev_now = get_revision()
+        topic_row = pd.DataFrame()
+        if not rev_now.empty and topic:
+            topic_row = rev_now[
+                (rev_now["subject"] == subj) &
+                (rev_now["topic"]   == topic)
+            ]
+
+        already_read   = False
+        first_read_src = None   # "log" | "manual" | None
+        first_read_dt  = None
+
+        if not topic_row.empty:
+            already_read  = bool(topic_row.iloc[0].get("first_read", False))
+            first_read_src = topic_row.iloc[0].get("first_read_source", None)
+            first_read_dt  = topic_row.iloc[0].get("first_read_date", None)
+
+        # Check if this topic exists in daily_log (auto-sync source)
+        log_df = get_logs()
+        studied_in_log = False
+        log_dates = []
+        if not log_df.empty and topic:
+            matching = log_df[
+                (log_df["subject"] == subj) &
+                (log_df["topic"]   == topic)
+            ]
+            studied_in_log = not matching.empty
+            if studied_in_log:
+                log_dates = sorted(matching["date"].dt.strftime("%d %b %Y").tolist())
+
+        # ── STATUS BADGE ──
+        if already_read:
+            if studied_in_log:
+                badge_bg  = "rgba(52,211,153,0.12)"
+                badge_bdr = "rgba(52,211,153,0.40)"
+                badge_clr = "#34D399"
+                badge_ico = "✅"
+                badge_txt = "First Read Complete"
+                badge_sub = f"Auto-synced from Study Log"
+                badge_det = f"First studied: {log_dates[0]}" if log_dates else ""
             else:
-                ok, msg = update_rev(subj, topic, "first_read", True)
-                st.success(f"✅ {msg}") if ok else st.error(msg)
+                badge_bg  = "rgba(56,189,248,0.12)"
+                badge_bdr = "rgba(56,189,248,0.40)"
+                badge_clr = "#38BDF8"
+                badge_ico = "✅"
+                badge_txt = "First Read Complete"
+                badge_sub = "Marked manually"
+                badge_det = f"On: {first_read_dt}" if first_read_dt else ""
+        else:
+            badge_bg  = "rgba(74,106,144,0.15)"
+            badge_bdr = "rgba(74,106,144,0.30)"
+            badge_clr = "#4A6A90"
+            badge_ico = "⬜"
+            badge_txt = "Not Read Yet"
+            badge_sub = "Mark when you finish first reading"
+            badge_det = ""
+
+        st.markdown(f"""
+        <div style="background:{badge_bg};border:2px solid {badge_bdr};
+                    border-radius:12px;padding:14px 16px;margin-bottom:14px;
+                    position:relative;overflow:hidden">
+            <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                        background:linear-gradient(90deg,transparent,{badge_clr},transparent);
+                        opacity:0.6"></div>
+            <div style="font-size:22px;margin-bottom:6px">{badge_ico}</div>
+            <div style="font-family:'Orbitron',monospace;font-size:12px;
+                        font-weight:700;color:{badge_clr};letter-spacing:0.5px">{badge_txt}</div>
+            <div style="font-size:11px;color:#7AB4D0;margin-top:4px">{badge_sub}</div>
+            {f'<div style="font-size:10px;color:#4A6A90;margin-top:3px">{badge_det}</div>' if badge_det else ''}
+        </div>
+        """, unsafe_allow_html=True)
+
+        # If studied in log, show all study dates as info
+        if studied_in_log:
+            st.markdown(f"""
+            <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);
+                        border-radius:8px;padding:10px 12px;margin-bottom:10px">
+                <div style="font-size:10px;color:#38BDF8;letter-spacing:1px;
+                             text-transform:uppercase;margin-bottom:6px">
+                    📚 Found in Study Log ({len(log_dates)} session{'s' if len(log_dates)>1 else ''})
+                </div>
+                <div style="font-size:11px;color:#7AB4D0;line-height:1.8">
+                    {' · '.join(log_dates[:5])}{'...' if len(log_dates)>5 else ''}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Action buttons
+        if not already_read:
+            if st.button("✅ Mark First Read Complete", use_container_width=True, key="rev_first_mark"):
+                if not topic:
+                    st.warning("⚠️ Please select a topic first")
+                else:
+                    today_str = str(date.today())
+                    # Try to save with date + source; fallback to just first_read
+                    try:
+                        sb.table("revision_tracker") \
+                          .update({
+                              "first_read":        True,
+                              "first_read_source": "manual",
+                              "first_read_date":   today_str
+                          }) \
+                          .eq("user_id", uid()) \
+                          .eq("subject", subj) \
+                          .eq("topic",   topic).execute()
+                        st.success("✅ First read marked!")
+                    except:
+                        # Fallback if extra columns don't exist yet
+                        ok, msg = update_rev(subj, topic, "first_read", True)
+                        st.success(f"✅ {msg}") if ok else st.error(msg)
+                    st.rerun()
+        else:
+            if not studied_in_log:
+                # Only allow unmark if it was manually set (not auto from log)
+                if st.button("↩️ Unmark First Read", use_container_width=True,
+                             key="rev_first_unmark",
+                             help="Only available for manually marked topics"):
+                    ok, msg = update_rev(subj, topic, "first_read", False)
+                    if ok:
+                        st.success("↩️ Unmarked.")
+                        st.rerun()
+                    else:
+                        st.error(msg)
+            else:
+                st.markdown("""
+                <div style="font-size:10px;color:#4A6A90;text-align:center;
+                             padding:6px;font-style:italic">
+                    Auto-synced from Study Log — cannot unmark
+                </div>
+                """, unsafe_allow_html=True)
 
     with col2:
         st.markdown('<div class="neon-header">🔄 Revision Rounds</div>', unsafe_allow_html=True)
