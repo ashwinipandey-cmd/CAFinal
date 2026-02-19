@@ -283,10 +283,10 @@ GLASSY_CSS = """
     --neon-pink:    #818CF8;
     --neon-blue:    #60A5FA;
     --neon-gold:    #FCD34D;
-    --dark-bg:      #060D1F;
-    --dark-card:    rgba(8, 18, 50, 0.88);
-    --dark-glass:   rgba(56, 189, 248, 0.04);
-    --border-glow:  rgba(56, 189, 248, 0.28);
+    --dark-bg:      #000000;
+    --dark-card:    rgba(255,255,255,0.04);
+    --dark-glass:   rgba(255,255,255,0.06);
+    --border-glow:  rgba(56, 189, 248, 0.35);
     --text-primary: #E0F0FF;
     --text-muted:   #4A6A90;
     --font-display: 'DM Mono', monospace;
@@ -304,15 +304,9 @@ GLASSY_CSS = """
     font-family: var(--font-body) !important;
 }
 
-/* ── ANIMATED DEEP-OCEAN BLUE BACKGROUND ── */
+/* ── PURE BLACK BACKGROUND ── */
 [data-testid="stAppViewContainer"] {
-    background:
-        radial-gradient(ellipse 110% 70% at -5% -5%,  rgba(14, 60, 150, 0.55) 0%, transparent 55%),
-        radial-gradient(ellipse 90%  60% at 105% 100%, rgba(30, 100, 200, 0.35) 0%, transparent 55%),
-        radial-gradient(ellipse 70%  50% at 50%  40%,  rgba(56, 189, 248, 0.10) 0%, transparent 55%),
-        radial-gradient(ellipse 50%  45% at 85%  5%,   rgba(99, 102, 241, 0.18) 0%, transparent 50%),
-        radial-gradient(ellipse 40%  40% at 15%  80%,  rgba(14, 165, 233, 0.14) 0%, transparent 50%),
-        linear-gradient(160deg, #060D1F 0%, #081428 40%, #060F22 100%) !important;
+    background: #000000 !important;
     min-height: 100vh;
 }
 
@@ -335,7 +329,7 @@ GLASSY_CSS = """
    SIDEBAR
 ════════════════════════════════════════ */
 [data-testid="stSidebar"] {
-    background: rgba(3, 8, 25, 0.95) !important;
+    background: rgba(5, 5, 5, 0.97) !important;
     border-right: 1px solid rgba(56,189,248,0.2) !important;
     backdrop-filter: blur(30px) !important;
     box-shadow: 4px 0 30px rgba(56,189,248,0.08) !important;
@@ -403,11 +397,17 @@ GLASSY_CSS = """
    NEON METRIC CARDS
 ════════════════════════════════════════ */
 div[data-testid="stMetric"] {
-    background: var(--dark-card) !important;
-    border: 2px solid var(--border-glow) !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
     border-radius: 16px !important;
     padding: 20px 18px !important;
-    backdrop-filter: blur(30px) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+    box-shadow:
+        0 8px 32px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.10),
+        inset 0 -1px 0 rgba(0,0,0,0.3),
+        0 0 0 0.5px rgba(255,255,255,0.05) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     position: relative !important;
     overflow: hidden !important;
@@ -434,11 +434,13 @@ div[data-testid="stMetric"]::after {
 
 div[data-testid="stMetric"]:hover {
     transform: translateY(-4px) !important;
-    border-color: rgba(56,189,248,0.5) !important;
+    border-color: rgba(56,189,248,0.55) !important;
+    background: rgba(255,255,255,0.07) !important;
     box-shadow:
-        0 0 25px rgba(56,189,248,0.15),
-        0 0 50px rgba(56,189,248,0.05),
-        0 20px 40px rgba(0,0,0,0.5) !important;
+        0 0 30px rgba(56,189,248,0.18),
+        0 0 60px rgba(56,189,248,0.07),
+        0 20px 40px rgba(0,0,0,0.7),
+        inset 0 1px 0 rgba(255,255,255,0.15) !important;
 }
 
 div[data-testid="stMetricValue"] {
@@ -506,15 +508,16 @@ p, .stMarkdown p {
 .stNumberInput input,
 .stTextArea textarea,
 .stDateInput input {
-    background: rgba(15, 35, 80, 0.85) !important;
-    border: 2px solid rgba(56,189,248,0.30) !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
     font-size: 14px !important;
     padding: 11px 14px !important;
     transition: all 0.25s !important;
-    backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(20px) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3) !important;
 }
 
 .stTextInput input::placeholder,
@@ -526,9 +529,12 @@ p, .stMarkdown p {
 .stTextInput input:focus,
 .stTextArea textarea:focus,
 .stNumberInput input:focus {
-    border-color: #38BDF8 !important;
-    background: rgba(20, 50, 110, 0.90) !important;
-    box-shadow: 0 0 0 3px rgba(56,189,248,0.20), 0 0 20px rgba(56,189,248,0.12) !important;
+    border-color: rgba(56,189,248,0.70) !important;
+    background: rgba(255,255,255,0.09) !important;
+    box-shadow:
+        0 0 0 3px rgba(56,189,248,0.18),
+        0 0 25px rgba(56,189,248,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.12) !important;
     outline: none !important;
 }
 
@@ -551,12 +557,14 @@ p, .stMarkdown p {
 
 /* Selectbox */
 .stSelectbox > div > div {
-    background: rgba(15, 35, 80, 0.85) !important;
-    border: 2px solid rgba(56,189,248,0.30) !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
-    backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.4) !important;
     transition: all 0.25s !important;
 }
 
@@ -572,11 +580,11 @@ p, .stMarkdown p {
 
 /* Select dropdown options */
 [data-baseweb="select"] [role="listbox"] {
-    background: rgba(6,14,38,0.98) !important;
-    border: 1px solid rgba(56,189,248,0.3) !important;
+    background: rgba(8,8,8,0.97) !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
     border-radius: 10px !important;
-    backdrop-filter: blur(30px) !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(56,189,248,0.1) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.08), inset 0 1px 0 rgba(255,255,255,0.06) !important;
 }
 
 [data-baseweb="select"] [role="option"]:hover {
@@ -638,12 +646,16 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
    FORMS (containers)
 ════════════════════════════════════════ */
 .stForm {
-    background: rgba(6,14,38,0.60) !important;
-    border: 2px solid rgba(56,189,248,0.18) !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(56,189,248,0.22) !important;
     border-radius: 20px !important;
-    backdrop-filter: blur(30px) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
     padding: 28px !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+    box-shadow:
+        0 20px 60px rgba(0,0,0,0.70),
+        inset 0 1px 0 rgba(255,255,255,0.10),
+        inset 0 -1px 0 rgba(0,0,0,0.4) !important;
     position: relative !important;
     overflow: hidden !important;
 }
@@ -691,7 +703,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 .stTabs [data-baseweb="tab-list"] {
-    background: rgba(3, 8, 25, 0.95) !important;
+    background: rgba(0,0,0,0.92) !important;
     border-radius: 0 !important;
     padding: 0 24px !important;
     gap: 0 !important;
@@ -770,13 +782,14 @@ section[data-testid="stSidebar"] { display: none !important; }
     position: relative !important;
     top: unset !important;
     z-index: unset !important;
-    background: rgba(6,14,38,0.70) !important;
+    background: rgba(255,255,255,0.04) !important;
     border-radius: 12px !important;
     padding: 4px !important;
     gap: 3px !important;
-    border: 1px solid rgba(56,189,248,0.15) !important;
-    border-bottom: 1px solid rgba(56,189,248,0.15) !important;
-    box-shadow: none !important;
+    border: 1px solid rgba(56,189,248,0.18) !important;
+    border-bottom: 1px solid rgba(56,189,248,0.18) !important;
+    backdrop-filter: blur(20px) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06) !important;
     overflow-x: unset !important;
 }
 
@@ -814,7 +827,8 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 [data-testid="stDataFrameResizable"] {
-    background: rgba(4,10,30,0.90) !important;
+    background: rgba(255,255,255,0.03) !important;
+    backdrop-filter: blur(20px) !important;
 }
 
 /* Table header */
@@ -909,7 +923,8 @@ hr {
    PLOTLY MODEBAR
 ════════════════════════════════════════ */
 .js-plotly-plot .plotly .modebar {
-    background: rgba(6,14,38,0.80) !important;
+    background: rgba(255,255,255,0.05) !important;
+    backdrop-filter: blur(20px) !important;
     border-radius: 8px !important;
     border: 1px solid rgba(56,189,248,0.15) !important;
 }
@@ -981,12 +996,17 @@ hr {
 
 /* Glassy Cards */
 .glass-card {
-    background: rgba(6,14,38,0.70);
-    border: 2px solid rgba(56,189,248,0.18);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(56,189,248,0.22);
     border-radius: 16px;
     padding: 20px;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    box-shadow:
+        0 8px 32px rgba(0,0,0,0.7),
+        inset 0 1px 0 rgba(255,255,255,0.10),
+        inset 0 -1px 0 rgba(0,0,0,0.4),
+        0 0 0 0.5px rgba(255,255,255,0.04);
     margin-bottom: 16px;
     position: relative;
     overflow: hidden;
@@ -1002,20 +1022,26 @@ hr {
 }
 
 .glass-card:hover {
-    border-color: rgba(56,189,248,0.35);
-    box-shadow: 0 12px 48px rgba(0,0,0,0.4), 0 0 30px rgba(56,189,248,0.08), inset 0 1px 0 rgba(255,255,255,0.08);
+    border-color: rgba(56,189,248,0.45);
+    background: rgba(255,255,255,0.07);
+    box-shadow:
+        0 16px 60px rgba(0,0,0,0.8),
+        0 0 40px rgba(56,189,248,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.15);
     transform: translateY(-2px);
 }
 
 /* Leaderboard Cards */
 .lb-card {
-    background: rgba(6,14,38,0.70);
+    background: rgba(255,255,255,0.04);
     border-radius: 14px;
     padding: 16px 20px;
     margin: 8px 0;
     border-left: 3px solid rgba(56,189,248,0.4);
-    border: 2px solid rgba(56,189,248,0.15);
-    backdrop-filter: blur(20px);
+    border: 1px solid rgba(56,189,248,0.20);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1221,8 +1247,8 @@ def get_exam_date():
 
 # ── PLOTLY DARK THEME ─────────────────────────────────────────────────────────
 PLOTLY_LAYOUT = dict(
-    paper_bgcolor="rgba(4,10,28,0.95)",
-    plot_bgcolor ="rgba(4,10,28,0.95)",
+    paper_bgcolor="rgba(8,8,8,0.95)",
+    plot_bgcolor ="rgba(8,8,8,0.95)",
     font=dict(family="DM Sans, sans-serif", color="#B0D4F0", size=12),
     title_font=dict(family="DM Mono, monospace", size=14, color="#FFFFFF"),
     legend=dict(
@@ -1253,8 +1279,8 @@ def apply_theme(fig, title="", height=None, extra_layout=None):
     update_xaxes/update_yaxes separately to avoid validator crashes.
     """
     fig.update_layout(
-        paper_bgcolor="rgba(4,10,28,0.95)",
-        plot_bgcolor ="rgba(4,10,28,0.95)",
+        paper_bgcolor="rgba(8,8,8,0.95)",
+        plot_bgcolor ="rgba(8,8,8,0.95)",
         margin       =dict(t=50, b=40, l=40, r=20),
         font         =dict(family="DM Sans, sans-serif", color="#B0D4F0", size=12),
         legend       =dict(
@@ -2817,8 +2843,8 @@ def dashboard():
                 hovertemplate="%{label}: %{value}<extra></extra>"
             ))
             fig_d.update_layout(
-                paper_bgcolor="rgba(4,10,28,0.95)",
-                plot_bgcolor ="rgba(4,10,28,0.95)",
+                paper_bgcolor="rgba(8,8,8,0.95)",
+                plot_bgcolor ="rgba(8,8,8,0.95)",
                 height=220,
                 margin=dict(t=40, b=10, l=10, r=10),
                 title=dict(text=title,
