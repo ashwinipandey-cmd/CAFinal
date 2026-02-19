@@ -1913,6 +1913,18 @@ def profile_page():
     lvl_clr_44 = lvl_clr + "44"
     lvl_clr_CC = lvl_clr + "CC"
 
+    # Pre-build badges HTML to avoid broken nested f-string expressions
+    if showcase_badges:
+        showcase_badges_html = "".join([
+            f'<div style="text-align:center;min-width:60px">'
+            f'<div style="font-size:28px">{b["icon"]}</div>'
+            f'<div style="font-size:9px;color:#7AB4D0;margin-top:2px">{b["name"]}</div>'
+            f'</div>'
+            for b in showcase_badges
+        ])
+    else:
+        showcase_badges_html = '<div style="font-size:10px;color:#4A6A90;align-self:center">No badges yet — keep studying!</div>'
+
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,rgba(8,18,50,0.95),rgba(14,40,100,0.90));
                 border:2px solid rgba(56,189,248,0.30);border-radius:24px;
@@ -1967,7 +1979,7 @@ def profile_page():
             </div>
 
             <!-- Showcase badges -->
-            {"".join([f'<div style="text-align:center;min-width:60px"><div style="font-size:28px">{b["icon"]}</div><div style="font-size:9px;color:#7AB4D0;margin-top:2px">{b["name"]}</div></div>' for b in showcase_badges]) if showcase_badges else "<div style=\'font-size:10px;color:#4A6A90;align-self:center\'>No badges yet — keep studying!</div>"}
+            {showcase_badges_html}
         </div>
     </div>
     <style>
