@@ -99,6 +99,171 @@ TOPICS = {
        "Customs – Refund Drawback & Special Provisions","FTP – Overview"]
 }
 
+# ══════════════════════════════════════════════════════════════════════════════
+# AVATAR CHARACTERS  (CA-themed illustrated SVG faces)
+# Each avatar: id, label, category, svg_body (contents inside a 64×64 viewBox)
+# ══════════════════════════════════════════════════════════════════════════════
+AVATARS = [
+    # ── Male students ─────────────────────────────────────────────────────────
+    {
+        "id": "boy_student",
+        "label": "Student Boy",
+        "category": "Students",
+        "bg": "#1E40AF",
+        "svg": """
+          <circle cx="32" cy="22" r="12" fill="#FBBF24"/>
+          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#1E40AF"/>
+          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
+          <ellipse cx="27" cy="20" rx="2" ry="2.5" fill="#1a1a1a"/>
+          <ellipse cx="37" cy="20" rx="2" ry="2.5" fill="#1a1a1a"/>
+          <path d="M28 27 Q32 31 36 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <rect x="18" y="10" width="28" height="8" rx="4" fill="#1E40AF"/>
+          <rect x="18" y="10" width="28" height="4" rx="2" fill="#3B82F6"/>
+          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#1E40AF"/>
+          <rect x="26" y="34" width="12" height="14" rx="2" fill="#BFDBFE"/>
+        """
+    },
+    {
+        "id": "boy_serious",
+        "label": "Focused Boy",
+        "category": "Students",
+        "bg": "#064E3B",
+        "svg": """
+          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
+          <ellipse cx="27" cy="20" rx="2" ry="2" fill="#1a1a1a"/>
+          <ellipse cx="37" cy="20" rx="2" ry="2" fill="#1a1a1a"/>
+          <line x1="25" y1="17" x2="29" y2="18" stroke="#1a1a1a" stroke-width="1.5"/>
+          <line x1="35" y1="17" x2="39" y2="18" stroke="#1a1a1a" stroke-width="1.5"/>
+          <path d="M28 27 Q32 29 36 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <rect x="20" y="9" width="24" height="10" rx="5" fill="#111827"/>
+          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#064E3B"/>
+          <rect x="26" y="34" width="12" height="14" rx="2" fill="#6EE7B7"/>
+          <circle cx="40" cy="38" r="5" fill="#FBBF24"/>
+          <text x="40" y="41" text-anchor="middle" font-size="6" fill="#111">₹</text>
+        """
+    },
+    # ── Female students ───────────────────────────────────────────────────────
+    {
+        "id": "girl_student",
+        "label": "Student Girl",
+        "category": "Students",
+        "bg": "#7C3AED",
+        "svg": """
+          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
+          <ellipse cx="27" cy="21" rx="1.8" ry="2.2" fill="#1a1a1a"/>
+          <ellipse cx="37" cy="21" rx="1.8" ry="2.2" fill="#1a1a1a"/>
+          <path d="M29 27 Q32 31 35 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M20 16 Q22 8 32 10 Q42 8 44 16 Q40 12 32 13 Q24 12 20 16Z" fill="#7C3AED"/>
+          <path d="M20 16 Q18 22 22 22" fill="#7C3AED"/>
+          <path d="M44 16 Q46 22 42 22" fill="#7C3AED"/>
+          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#7C3AED"/>
+          <rect x="26" y="34" width="12" height="14" rx="2" fill="#DDD6FE"/>
+          <circle cx="27" cy="21" r="0.8" fill="#FF6B9D"/>
+          <circle cx="37" cy="21" r="0.8" fill="#FF6B9D"/>
+        """
+    },
+    {
+        "id": "girl_glasses",
+        "label": "Studious Girl",
+        "category": "Students",
+        "bg": "#BE185D",
+        "svg": """
+          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
+          <ellipse cx="27" cy="20" rx="2" ry="2" fill="#1a1a1a"/>
+          <ellipse cx="37" cy="20" rx="2" ry="2" fill="#1a1a1a"/>
+          <rect x="23" y="17" width="8" height="6" rx="3" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>
+          <rect x="33" y="17" width="8" height="6" rx="3" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>
+          <line x1="31" y1="20" x2="33" y2="20" stroke="#1a1a1a" stroke-width="1"/>
+          <path d="M29 27 Q32 31 35 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M21 14 Q26 8 38 10 Q44 12 43 16 Q38 10 32 12 Q25 11 21 14Z" fill="#BE185D"/>
+          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#BE185D"/>
+          <rect x="26" y="34" width="12" height="14" rx="2" fill="#FBCFE8"/>
+        """
+    },
+    # ── Professionals ─────────────────────────────────────────────────────────
+    {
+        "id": "ca_professional",
+        "label": "CA Professional",
+        "category": "Professionals",
+        "bg": "#1E293B",
+        "svg": """
+          <circle cx="32" cy="20" r="11" fill="#F5CBA7"/>
+          <ellipse cx="27" cy="19" rx="1.8" ry="2" fill="#1a1a1a"/>
+          <ellipse cx="37" cy="19" rx="1.8" ry="2" fill="#1a1a1a"/>
+          <path d="M28 26 Q32 29 36 26" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <rect x="22" y="8" width="20" height="8" rx="2" fill="#1E293B"/>
+          <rect x="19" y="30" width="26" height="18" rx="3" fill="#1E293B"/>
+          <rect x="27" y="30" width="10" height="18" rx="1" fill="#FFFFFF"/>
+          <rect x="29" y="28" width="6" height="4" rx="1" fill="#94A3B8"/>
+          <text x="32" y="42" text-anchor="middle" font-size="5.5" fill="#38BDF8" font-weight="bold">CA</text>
+        """
+    },
+    {
+        "id": "professional_woman",
+        "label": "CA Woman",
+        "category": "Professionals",
+        "bg": "#4C1D95",
+        "svg": """
+          <circle cx="32" cy="20" r="11" fill="#F5CBA7"/>
+          <ellipse cx="27" cy="19" rx="1.8" ry="2" fill="#1a1a1a"/>
+          <ellipse cx="37" cy="19" rx="1.8" ry="2" fill="#1a1a1a"/>
+          <path d="M29 26 Q32 29 35 26" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M21 14 Q26 6 38 9 Q44 11 43 14 Q38 9 32 10 Q25 9 21 14Z" fill="#4C1D95"/>
+          <rect x="19" y="30" width="26" height="18" rx="3" fill="#4C1D95"/>
+          <rect x="27" y="30" width="10" height="18" rx="1" fill="#EDE9FE"/>
+          <rect x="29" y="28" width="6" height="4" rx="1" fill="#A78BFA"/>
+          <text x="32" y="42" text-anchor="middle" font-size="5.5" fill="#7C3AED" font-weight="bold">CA</text>
+        """
+    },
+    # ── Articulars ────────────────────────────────────────────────────────────
+    {
+        "id": "night_owl",
+        "label": "Night Owl",
+        "category": "Others",
+        "bg": "#0F172A",
+        "svg": """
+          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
+          <ellipse cx="27" cy="21" rx="1.8" ry="2" fill="#1a1a1a"/>
+          <ellipse cx="37" cy="21" rx="1.8" ry="2" fill="#1a1a1a"/>
+          <path d="M29 27 Q32 30 35 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <rect x="24" y="18" width="16" height="3" rx="1.5" fill="#94A3B8" opacity="0.5"/>
+          <path d="M22 9 Q32 5 42 9 Q38 11 32 11 Q26 11 22 9Z" fill="#0F172A"/>
+          <text x="20" y="16" font-size="7">🌙</text>
+          <text x="38" y="14" font-size="6">⭐</text>
+          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#0F172A"/>
+          <text x="32" y="51" text-anchor="middle" font-size="8">☕</text>
+        """
+    },
+    {
+        "id": "topper",
+        "label": "Topper",
+        "category": "Others",
+        "bg": "#78350F",
+        "svg": """
+          <circle cx="32" cy="23" r="12" fill="#F5CBA7"/>
+          <ellipse cx="27" cy="22" rx="1.8" ry="2" fill="#1a1a1a"/>
+          <ellipse cx="37" cy="22" rx="1.8" ry="2" fill="#1a1a1a"/>
+          <path d="M28 28 Q32 33 36 28" stroke="#c0756a" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M22 13 L32 5 L42 13 L39 13 L32 8 L25 13Z" fill="#FBBF24"/>
+          <path d="M25 13 L27 8 L32 11 L37 8 L39 13Z" fill="#F59E0B"/>
+          <circle cx="32" cy="6" r="2.5" fill="#FBBF24"/>
+          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#78350F"/>
+          <circle cx="32" cy="42" r="6" fill="#FBBF24" opacity="0.3"/>
+          <text x="32" y="44" text-anchor="middle" font-size="7">🥇</text>
+        """
+    },
+]
+
+def get_avatar_svg(avatar_id: str, size: int = 64) -> str:
+    """Return the full SVG string for a given avatar_id at given pixel size."""
+    av = next((a for a in AVATARS if a["id"] == avatar_id), AVATARS[0])
+    return f"""<svg viewBox="0 0 64 64" width="{size}" height="{size}"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style="border-radius:50%;background:{av['bg']}">
+                {av['svg']}
+               </svg>"""
+
+
 # ── WORLD CLASS GLASSY NEON CSS ───────────────────────────────────────────────
 GLASSY_CSS = """
 <style>
@@ -1940,6 +2105,45 @@ def profile_page():
     # TAB 1 — General Settings
     # ════════════════════════════════
     with ptab1:
+        # ── Avatar Picker ────────────────────────────────────────────────────
+        st.markdown('<div class="neon-header">🎭 Choose Your Avatar</div>', unsafe_allow_html=True)
+        cur_avatar = prof.get("avatar_id", "boy_student")
+
+        # Group by category
+        from itertools import groupby
+        categories = {}
+        for av in AVATARS:
+            categories.setdefault(av["category"], []).append(av)
+
+        selected_avatar = cur_avatar
+        for cat_name, cat_avatars in categories.items():
+            st.caption(f"**{cat_name}**")
+            cols = st.columns(len(cat_avatars))
+            for i, av in enumerate(cat_avatars):
+                with cols[i]:
+                    is_sel = (av["id"] == cur_avatar)
+                    border = "3px solid #38BDF8" if is_sel else "2px solid rgba(56,189,248,0.2)"
+                    bg     = "rgba(56,189,248,0.15)" if is_sel else "rgba(255,255,255,0.03)"
+                    st.markdown(
+                        f'<div style="border:{border};border-radius:14px;padding:8px 4px;'
+                        f'background:{bg};text-align:center;cursor:pointer;'
+                        f'transition:all 0.2s">'
+                        f'{get_avatar_svg(av["id"], 52)}'
+                        f'<div style="font-size:10px;color:#B0D4F0;margin-top:4px;font-weight:500">'
+                        f'{av["label"]}</div></div>',
+                        unsafe_allow_html=True
+                    )
+                    if st.button("Select" if not is_sel else "✓ Active",
+                                 key=f"av_{av['id']}",
+                                 use_container_width=True):
+                        ok, msg = update_profile({"avatar_id": av["id"]})
+                        if ok:
+                            st.cache_data.clear()
+                            st.rerun()
+                        else:
+                            st.error(msg)
+
+        st.markdown("---")
         st.markdown('<div class="neon-header">✏️ Personal Details</div>', unsafe_allow_html=True)
         p1, p2 = st.columns(2)
         new_full = p1.text_input("Full Name", value=prof.get("full_name",""), key="prof_full")
@@ -2250,9 +2454,6 @@ def dashboard():
     h1, h2 = st.columns([5, 1])
     with h1:
         st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
-        _uname = prof.get("full_name", "")
-        if _uname:
-            st.markdown(f'<div class="brand-title" style="font-size:22px;margin:0 0 4px 2px;letter-spacing:-0.3px">{_uname}</div>', unsafe_allow_html=True)
     with h2:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🔄", use_container_width=True, key="dash_refresh", help="Refresh dashboard"):
@@ -3847,6 +4048,17 @@ else:
         from {{ stroke-dasharray: 0 {_circ:.2f}; }}
         to   {{ stroke-dasharray: {_filled:.2f} {_circ:.2f}; }}
     }}
+    @keyframes ring-shimmer {{
+        0%   {{ stroke: #0EA5E9; filter: drop-shadow(0 0 6px rgba(56,189,248,0.9)); }}
+        25%  {{ stroke: #38BDF8; filter: drop-shadow(0 0 14px rgba(56,189,248,1.0)); }}
+        50%  {{ stroke: #FFFFFF; filter: drop-shadow(0 0 20px rgba(255,255,255,0.9)) drop-shadow(0 0 40px rgba(56,189,248,0.8)); }}
+        75%  {{ stroke: #38BDF8; filter: drop-shadow(0 0 14px rgba(56,189,248,1.0)); }}
+        100% {{ stroke: #0EA5E9; filter: drop-shadow(0 0 6px rgba(56,189,248,0.9)); }}
+    }}
+    @keyframes name-gradient {{
+        0%,100% {{ background-position: 0% center; }}
+        50%      {{ background-position: 100% center; }}
+    }}
     @keyframes pulse-count {{
         0%,100% {{ text-shadow:0 0 20px rgba(56,189,248,0.8),0 0 40px rgba(56,189,248,0.4); }}
         50%      {{ text-shadow:0 0 30px rgba(56,189,248,1.0),0 0 60px rgba(56,189,248,0.6); }}
@@ -3857,43 +4069,58 @@ else:
     # ── Header layout ──────────────────────────────────────────────────────────
     h_av, h_info, h_days = st.columns([1, 5, 1])
 
-    # Left: Avatar circle (SVG) + invisible button overlay
+    # Left: Avatar circle (SVG)
     with h_av:
         st.markdown(f"""
         <div style="position:relative;width:76px;height:76px;margin-bottom:0">
-            <svg width="76" height="76" style="position:absolute;top:0;left:0;
-                                               transform:rotate(-90deg)">
+            <svg width="76" height="76" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">
+                <defs>
+                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%"   stop-color="#0EA5E9"/>
+                        <stop offset="35%"  stop-color="#38BDF8"/>
+                        <stop offset="50%"  stop-color="#FFFFFF"/>
+                        <stop offset="65%"  stop-color="#38BDF8"/>
+                        <stop offset="100%" stop-color="#7DD3FC"/>
+                        <animateTransform attributeName="gradientTransform" type="translate"
+                            values="1 0;-1 0;1 0" dur="2.2s" repeatCount="indefinite"/>
+                    </linearGradient>
+                </defs>
                 <circle cx="38" cy="38" r="35" fill="none"
                         stroke="rgba(56,189,248,0.12)" stroke-width="5"/>
                 <circle cx="38" cy="38" r="35" fill="none"
-                        stroke="{_lvl_clr}" stroke-width="5"
+                        stroke="url(#ringGrad)" stroke-width="5"
                         stroke-linecap="round"
-                        stroke-dasharray="0 {_circ:.2f}"
-                        style="animation:ring-fill 1.5s cubic-bezier(0.4,0,0.2,1) forwards;
-                               filter:drop-shadow(0 0 8px rgba({_glow_rgb},1.0))"/>
+                        stroke-dasharray="{_filled:.2f} {_circ:.2f}"
+                        style="filter:drop-shadow(0 0 8px rgba(56,189,248,0.9)) drop-shadow(0 0 18px rgba(56,189,248,0.6))">
+                    <animate attributeName="stroke-dasharray"
+                        from="0 {_circ:.2f}"
+                        to="{_filled:.2f} {_circ:.2f}"
+                        dur="1.2s" fill="freeze"
+                        calcMode="spline" keySplines="0.4 0 0.2 1"/>
+                </circle>
             </svg>
             <div style="position:absolute;top:6px;left:6px;
-                        width:64px;height:64px;border-radius:50%;
-                        background:linear-gradient(135deg,#0B4FB3,#38BDF8);
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:24px;font-weight:900;color:#FFF;
-                        font-family:'DM Mono',monospace;
-                        box-shadow:0 0 18px rgba({_glow_rgb},0.40)">
-                {name[0].upper()}
+                        width:64px;height:64px;border-radius:50%;overflow:hidden;
+                        box-shadow:0 0 18px rgba(56,189,248,0.5)">
+                {get_avatar_svg(profile.get("avatar_id","boy_student"), 64)}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # Middle: Name + large animated XP bar
+    # Middle: Name (brand-title style) + animated XP bar
     with h_info:
         hrs_to_next = max(_lvl_info["next_threshold"] - _total_xp, 0)
         st.markdown(f"""
         <div style="padding:4px 0 0 4px">
             <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1px">
-                <div style="font-family:'DM Mono',monospace;font-size:15px;
-                            font-weight:800;color:#FFF;
-                            text-shadow:0 0 15px rgba(56,189,248,0.5)">{name}</div>
-                <div style="font-size:10px;color:#4A6A90">@{profile.get("username","")}</div>
+                <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
+                            background:linear-gradient(135deg,#7B61FF,#38BDF8,#7B61FF);
+                            background-size:200% auto;
+                            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                            background-clip:text;
+                            animation:gradient-shift 4s ease infinite;
+                            letter-spacing:-0.5px;line-height:1.1">{name}</div>
+                <div style="font-size:10px;color:#4A6A90;align-self:center">@{profile.get("username","")}</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
                 <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:900;
