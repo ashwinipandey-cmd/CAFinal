@@ -481,6 +481,33 @@ p, .stMarkdown p {
     background: linear-gradient(90deg, var(--cyan), rgba(56,189,248,0.3), transparent);
 }
 
+/* Enhanced glowing version for dashboard section headers */
+.neon-header-glow {
+    font-size: 11px;
+    color: #FFFFFF !important;
+    text-shadow:
+        0 0 10px rgba(56,189,248,1.0),
+        0 0 20px rgba(56,189,248,0.9),
+        0 0 40px rgba(56,189,248,0.7),
+        0 0 80px rgba(56,189,248,0.4) !important;
+    animation: neon-header-pulse 2.5s ease-in-out infinite;
+}
+@keyframes neon-header-pulse {
+    0%,100% {
+        text-shadow:
+            0 0 10px rgba(56,189,248,1.0),
+            0 0 20px rgba(56,189,248,0.8),
+            0 0 40px rgba(56,189,248,0.5);
+    }
+    50% {
+        text-shadow:
+            0 0 14px rgba(56,189,248,1.0),
+            0 0 28px rgba(125,211,252,1.0),
+            0 0 56px rgba(56,189,248,0.8),
+            0 0 100px rgba(56,189,248,0.5);
+    }
+}
+
 /* ═══════════════════════════════════════════════════════════
    CARD SYSTEM — The core UI unit
    .panel = grouped container (replaces scattered sections)
@@ -646,19 +673,43 @@ div[data-testid="stMetricDelta"] {
 }
 .stTabs [aria-selected="true"] {
     color: #FFFFFF !important;
-    background: transparent !important;
+    background: rgba(56,189,248,0.07) !important;
     border-bottom: 2px solid var(--cyan) !important;
-    text-shadow: 0 0 16px rgba(56,189,248,0.7) !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    outline: none !important;
+    text-shadow:
+        0 0 12px rgba(56,189,248,1.0),
+        0 0 24px rgba(56,189,248,0.8),
+        0 0 48px rgba(56,189,248,0.5) !important;
     box-shadow: none !important;
+}
+/* Suppress Streamlit's own focus/active outline that causes red underline */
+.stTabs [data-baseweb="tab"]:focus,
+.stTabs [data-baseweb="tab"]:focus-visible,
+.stTabs [data-baseweb="tab"]:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
 }
 .stTabs [aria-selected="true"]::after {
     content: '';
     position: absolute;
-    bottom: -1px; left: 15%; right: 15%;
-    height: 2px;
-    background: var(--cyan);
-    box-shadow: 0 0 10px rgba(56,189,248,0.9), 0 0 20px rgba(56,189,248,0.5);
+    bottom: -1px; left: 10%; right: 10%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--cyan-bright), #FFFFFF, var(--cyan-bright), transparent);
+    box-shadow:
+        0 0 8px rgba(56,189,248,1.0),
+        0 0 16px rgba(56,189,248,0.9),
+        0 0 32px rgba(56,189,248,0.7),
+        0 0 64px rgba(56,189,248,0.4);
     border-radius: 2px;
+    animation: tab-pulse 2s ease-in-out infinite;
+}
+@keyframes tab-pulse {
+    0%,100% { opacity: 0.85; box-shadow: 0 0 8px rgba(56,189,248,1.0), 0 0 20px rgba(56,189,248,0.7); }
+    50%      { opacity: 1.0;  box-shadow: 0 0 12px rgba(56,189,248,1.0), 0 0 32px rgba(56,189,248,0.9), 0 0 64px rgba(56,189,248,0.5); }
 }
 .stTabs [data-baseweb="tab-panel"] {
     padding: 24px 0 0 !important;
@@ -2539,8 +2590,7 @@ def dashboard():
     with h1:
         st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
     with h2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🔄", use_container_width=True, key="dash_refresh", help="Refresh dashboard"):
+        if st.button("🔄", key="dash_refresh", help="Refresh dashboard"):
             st.cache_data.clear()
             st.rerun()
 
@@ -2555,7 +2605,7 @@ def dashboard():
     st.markdown("---")
 
     # ── First Reading Progress ───────────────────────────────────────────────────
-    st.markdown('<div class="neon-header">📖 First Reading Progress</div>', unsafe_allow_html=True)
+    st.markdown('<div class="neon-header neon-header-glow">📖 First Reading Progress</div>', unsafe_allow_html=True)
     cols = st.columns(5)
     subj_bg = {
         "FR":  ("rgba(125,211,252,0.12)", "#7DD3FC", "rgba(125,211,252,0.5)"),
@@ -2610,7 +2660,7 @@ def dashboard():
 
     # ── Revision Progress (separate row) ──────────────────────────────────────
     if not rev_sess.empty or (not rev.empty and "topic_status" in rev.columns):
-        st.markdown('<div class="neon-header">🔄 Revision Progress</div>', unsafe_allow_html=True)
+        st.markdown('<div class="neon-header neon-header-glow">🔄 Revision Progress</div>', unsafe_allow_html=True)
         rev_cols = st.columns(5)
         num_rev_prof = int(prof.get("num_revisions", 6))
         for i, s in enumerate(SUBJECTS):
@@ -2677,54 +2727,13 @@ def dashboard():
         else:
             st.info("No sessions in the last 30 days")
 
-    # Charts row 2
-    if not tst.empty:
-        c3, c4 = st.columns([2, 1])
-        with c3:
-            fig3 = go.Figure()
-            for s in SUBJECTS:
-                df = tst[tst["subject"] == s].sort_values("date")
-                if df.empty:
-                    continue
-                fig3.add_trace(go.Scatter(
-                    x=df["date"], y=df["score_pct"],
-                    name=SUBJ_FULL[s], mode="lines+markers",
-                    line=dict(color=COLORS[s], width=2),
-                    marker=dict(size=7, line=dict(width=2, color=COLORS[s])),
-                ))
-            fig3.add_hline(y=50, line_dash="dash", line_color="#F87171",
-                           annotation_text="Pass 50%", annotation_font_color="#F87171")
-            fig3.add_hline(y=60, line_dash="dot", line_color="#34D399",
-                           annotation_text="Target 60%", annotation_font_color="#34D399")
-            apply_theme(fig3, title="Score Trends")
-            fig3.update_layout(transition=dict(duration=700, easing="cubic-in-out"))
-            fig3.update_yaxes(range=[0, 105])
-            st.plotly_chart(fig3, use_container_width=True)
-
-        with c4:
-            by_s  = tst.groupby("subject")["score_pct"].mean().reindex(SUBJECTS).fillna(0)
-            clrs  = ["#F87171" if v < 50 else ("#FBBF24" if v < 60 else "#34D399")
-                     for v in by_s.values]
-            fig4  = go.Figure(go.Bar(
-                x=by_s.index, y=by_s.values,
-                marker=dict(color=clrs, line=dict(width=0)),
-                text=[f"{v:.1f}%" for v in by_s.values],
-                textposition="outside",
-                textfont=dict(size=11)
-            ))
-            fig4.add_hline(y=50, line_dash="dash", line_color="#F87171")
-            apply_theme(fig4, title="Avg Score by Subject")
-            fig4.update_layout(transition=dict(duration=700, easing="cubic-in-out"))
-            fig4.update_yaxes(range=[0, 110])
-            st.plotly_chart(fig4, use_container_width=True)
-
     # ── Revision Pendency Dashboard ──
     # Gate on log, not rev — pendency is computed purely from study log
     pend = get_pendencies(rev, log)
 
     if not log.empty:
         st.markdown("---")
-        st.markdown('<div class="neon-header">🔄 Revision Status & Pendencies</div>', unsafe_allow_html=True)
+        st.markdown('<div class="neon-header neon-header-glow">🔄 Revision Status & Pendencies</div>', unsafe_allow_html=True)
 
         # ── Subject health summary cards ──
         s_cols = st.columns(5)
@@ -2774,79 +2783,21 @@ def dashboard():
             due_today   = pend[pend["days_overdue"] == 0]
             upcoming_df = pend[pend["days_overdue"] < 0]
 
-            c_chart, c_stat = st.columns([3, 1])
-            with c_chart:
-                fig_p = go.Figure()
-                color_map = {"🔴 OVERDUE": "#F87171", "🟡 DUE TODAY": "#FBBF24", "🟢 UPCOMING": "#34D399"}
-                for status_label, color in color_map.items():
-                    sub = pend[pend["status"] == status_label]
-                    if sub.empty:
-                        continue
-                    fig_p.add_trace(go.Bar(
-                        y=[f"{r['subject']} · {r['topic'][:30]}" for _, r in sub.iterrows()],
-                        x=[max(abs(r["days_overdue"]), 1) for _, r in sub.iterrows()],
-                        orientation="h",
-                        name=status_label,
-                        marker_color=color,
-                        text=[
-                            f"{r['round_label']} · {'+'+str(r['days_overdue'])+'d OVERDUE' if r['days_overdue']>0 else ('TODAY' if r['days_overdue']==0 else 'in '+str(abs(r['days_overdue']))+'d')}"
-                            for _, r in sub.iterrows()
-                        ],
-                        textposition="inside",
-                        insidetextanchor="start",
-                        hovertemplate="<b>%{y}</b><br>%{text}<br>Due: "+
-                                      "<extra></extra>"
-                    ))
-                apply_theme(fig_p, title="Revision Pendency Map",
-                            height=max(280, min(len(pend) * 26 + 80, 620)),
-                            extra_layout=dict(barmode="stack"))
-                fig_p.update_layout(
-                    legend=dict(orientation="h", x=0, y=1.08,
-                                font=dict(size=10, color="#C8E5F8"),
-                                bgcolor="rgba(0,0,0,0)"),
-                    margin=dict(t=55, b=40, l=210, r=20)
-                )
-                fig_p.update_xaxes(title_text="Days from Due Date")
-                fig_p.update_yaxes(autorange="reversed")
-                st.plotly_chart(fig_p, use_container_width=True)
-
-            with c_stat:
+            c_stat_only = st.container()
+            with c_stat_only:
                 total_topics_studied = pend["topic"].nunique()
                 total_overdue = len(overdue_df)
                 total_up      = len(upcoming_df)
                 today_count   = len(due_today)
-                st.markdown(f"""
-                <div style="display:flex;flex-direction:column;gap:8px;padding-top:20px">
-                    <div style="background:rgba(248,113,113,0.12);border:2px solid rgba(248,113,113,0.3);
-                                border-radius:10px;padding:12px;text-align:center">
-                        <div style="font-size:26px;font-weight:800;color:#F87171;
-                                    font-family:'DM Mono',monospace">{total_overdue}</div>
-                        <div style="font-size:10px;color:#F87171;letter-spacing:1px">OVERDUE</div>
-                    </div>
-                    <div style="background:rgba(251,191,36,0.10);border:2px solid rgba(251,191,36,0.3);
-                                border-radius:10px;padding:12px;text-align:center">
-                        <div style="font-size:26px;font-weight:800;color:#FBBF24;
-                                    font-family:'DM Mono',monospace">{today_count}</div>
-                        <div style="font-size:10px;color:#FBBF24;letter-spacing:1px">DUE TODAY</div>
-                    </div>
-                    <div style="background:rgba(52,211,153,0.10);border:2px solid rgba(52,211,153,0.3);
-                                border-radius:10px;padding:12px;text-align:center">
-                        <div style="font-size:26px;font-weight:800;color:#34D399;
-                                    font-family:'DM Mono',monospace">{total_up}</div>
-                        <div style="font-size:10px;color:#34D399;letter-spacing:1px">UPCOMING</div>
-                    </div>
-                    <div style="background:rgba(56,189,248,0.08);border:2px solid rgba(56,189,248,0.2);
-                                border-radius:10px;padding:12px;text-align:center">
-                        <div style="font-size:26px;font-weight:800;color:#38BDF8;
-                                    font-family:'DM Mono',monospace">{total_topics_studied}</div>
-                        <div style="font-size:10px;color:#38BDF8;letter-spacing:1px">TOPICS IN LOG</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                sc1, sc2, sc3, sc4 = st.columns(4)
+                sc1.metric("🔴 Overdue",       f"{total_overdue}", "need revision now")
+                sc2.metric("🟡 Due Today",      f"{today_count}",  "do today")
+                sc3.metric("🟢 Upcoming",       f"{total_up}",     "scheduled")
+                sc4.metric("📋 Topics in Log",  f"{total_topics_studied}", "tracked")
 
         # ── Donut Charts ── (computed from pend, not rev DB columns)
         st.markdown("---")
-        st.markdown('<div class="neon-header">🍩 Study Coverage Overview</div>', unsafe_allow_html=True)
+        st.markdown('<div class="neon-header neon-header-glow">🍩 Study Coverage Overview</div>', unsafe_allow_html=True)
 
         donut_filter_opts = ["All"] + SUBJECTS
         d_col_f, _ = st.columns([1, 3])
@@ -2942,7 +2893,7 @@ def dashboard():
         # TODAY'S REVISION AGENDA
         # ══════════════════════════════════════════════════════════
         st.markdown("---")
-        st.markdown('<div class="neon-header">📅 Today\'s Revision Agenda</div>', unsafe_allow_html=True)
+        st.markdown('<div class="neon-header neon-header-glow">📅 Today\'s Revision Agenda</div>', unsafe_allow_html=True)
         today_str = date.today().strftime("%A, %d %B %Y")
         st.markdown(f"<p style='font-size:12px;color:#7BA7CC;margin-top:-8px'>📆 {today_str}</p>",
                     unsafe_allow_html=True)
@@ -3049,7 +3000,7 @@ def dashboard():
     log_for_score = get_logs()
     if not rev_for_score.empty or not log_for_score.empty:
         st.markdown("---")
-        st.markdown('<div class="neon-header">⭐ Study Confidence Score</div>', unsafe_allow_html=True)
+        st.markdown('<div class="neon-header neon-header-glow">⭐ Study Confidence Score</div>', unsafe_allow_html=True)
 
         from collections import defaultdict as _dd
         _prof         = st.session_state.profile
@@ -3143,7 +3094,7 @@ def dashboard():
                 _ms_clrs.append(_clr_ms)
 
         if _ms_labels:
-            st.markdown('<div class="neon-header" style="margin-top:18px">🧠 Memory Strength by Topic</div>', unsafe_allow_html=True)
+            st.markdown('<div class="neon-header neon-header-glow" style="margin-top:18px">🧠 Memory Strength by Topic</div>', unsafe_allow_html=True)
             _ms_fig = go.Figure(go.Bar(
                 y=_ms_labels, x=_ms_vals, orientation="h",
                 marker_color=_ms_clrs,
@@ -3515,6 +3466,49 @@ def add_test_score():
             r[["date", "subject", "test_name", "marks", "max_marks", "score_pct"]],
             use_container_width=True
         )
+
+        # ── Score Trend & Avg Score by Subject charts ──
+        st.markdown("---")
+        c3, c4 = st.columns([2, 1])
+        with c3:
+            st.markdown('<div class="neon-header">📈 Score Trend</div>', unsafe_allow_html=True)
+            fig3 = go.Figure()
+            for s in SUBJECTS:
+                df_s = tst[tst["subject"] == s].sort_values("date")
+                if df_s.empty:
+                    continue
+                fig3.add_trace(go.Scatter(
+                    x=df_s["date"], y=df_s["score_pct"],
+                    name=SUBJ_FULL[s], mode="lines+markers",
+                    line=dict(color=COLORS[s], width=2),
+                    marker=dict(size=7, line=dict(width=2, color=COLORS[s])),
+                ))
+            fig3.add_hline(y=50, line_dash="dash", line_color="#F87171",
+                           annotation_text="Pass 50%", annotation_font_color="#F87171")
+            fig3.add_hline(y=60, line_dash="dot", line_color="#34D399",
+                           annotation_text="Target 60%", annotation_font_color="#34D399")
+            apply_theme(fig3, title="Score Trends")
+            fig3.update_layout(transition=dict(duration=700, easing="cubic-in-out"))
+            fig3.update_yaxes(range=[0, 105])
+            st.plotly_chart(fig3, use_container_width=True)
+
+        with c4:
+            st.markdown('<div class="neon-header">📊 Avg Score by Subject</div>', unsafe_allow_html=True)
+            by_s  = tst.groupby("subject")["score_pct"].mean().reindex(SUBJECTS).fillna(0)
+            clrs  = ["#F87171" if v < 50 else ("#FBBF24" if v < 60 else "#34D399")
+                     for v in by_s.values]
+            fig4  = go.Figure(go.Bar(
+                x=by_s.index, y=by_s.values,
+                marker=dict(color=clrs, line=dict(width=0)),
+                text=[f"{v:.1f}%" for v in by_s.values],
+                textposition="outside",
+                textfont=dict(size=11)
+            ))
+            fig4.add_hline(y=50, line_dash="dash", line_color="#F87171")
+            apply_theme(fig4, title="Avg Score by Subject")
+            fig4.update_layout(transition=dict(duration=700, easing="cubic-in-out"))
+            fig4.update_yaxes(range=[0, 110])
+            st.plotly_chart(fig4, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
