@@ -1909,143 +1909,70 @@ def profile_page():
 
     days_left = max((get_exam_date() - date.today()).days, 0)
 
-# ---- Build badges HTML safely ----
-if showcase_badges:
-    badges_html = "".join(
-        [
-            f"""
-            <div style="text-align:center;min-width:60px">
-                <div style="font-size:28px">{b['icon']}</div>
-                <div style="font-size:9px;color:#7AB4D0;margin-top:2px">
-                    {b['name']}
-                </div>
-            </div>
-            """
-            for b in showcase_badges
-        ]
-    )
-else:
-    badges_html = """
-        <div style="font-size:10px;color:#4A6A90;align-self:center">
-            No badges yet — keep studying!
-        </div>
-    """
-
-# ---- Main Card ----
-st.markdown(f"""
-    <style>
-    @keyframes xp-pulse {{
-        0%,100% {{ box-shadow: 0 0 12px {lvl_clr}88; }}
-        50%     {{ box-shadow: 0 0 22px {lvl_clr}CC, 0 0 40px {lvl_clr}44; }}
-    }}
-
-    @keyframes scanline {{
-        0%   {{ opacity: 0; transform: translateX(-100%); }}
-        50%  {{ opacity: 1; transform: translateX(0%); }}
-        100% {{ opacity: 0; transform: translateX(100%); }}
-    }}
-    </style>
-
+    st.markdown(f"""
     <div style="background:linear-gradient(135deg,rgba(8,18,50,0.95),rgba(14,40,100,0.90));
-                border:2px solid rgba(56,189,248,0.30);
-                border-radius:24px;
-                padding:28px 32px;
-                margin-bottom:20px;
-                position:relative;
-                overflow:hidden">
-
+                border:2px solid rgba(56,189,248,0.30);border-radius:24px;
+                padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden">
         <!-- Animated top line -->
         <div style="position:absolute;top:0;left:0;right:0;height:2px;
                     background:linear-gradient(90deg,transparent,{lvl_clr},{lvl_clr}88,transparent);
-                    animation:scanline 2.5s ease-in-out infinite">
-        </div>
+                    animation:scanline 2.5s ease-in-out infinite"></div>
 
         <div style="display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap">
-
             <!-- Avatar -->
             <div style="text-align:center;min-width:110px">
                 <div style="width:90px;height:90px;border-radius:50%;
                             background:linear-gradient(135deg,#0E5AC8,#38BDF8);
                             display:flex;align-items:center;justify-content:center;
-                            margin:0 auto 10px;
-                            font-size:36px;font-weight:800;color:#FFF;
+                            margin:0 auto 10px;font-size:36px;font-weight:800;color:#FFF;
                             font-family:'Orbitron',monospace;
-                            box-shadow:0 0 0 3px {lvl_clr}66, 0 0 30px {lvl_clr}44">
-                    {init}
-                </div>
-
+                            box-shadow:0 0 0 3px {lvl_clr}66, 0 0 30px {lvl_clr}44">{init}</div>
                 <div style="font-family:'Orbitron',monospace;font-size:10px;
                             color:{lvl_clr};font-weight:700;letter-spacing:1px">
-                    LVL {lvl}
-                </div>
-
-                <div style="font-size:10px;color:#7AB4D0;margin-top:2px">
-                    {lvl_name}
-                </div>
+                    LVL {lvl}</div>
+                <div style="font-size:10px;color:#7AB4D0;margin-top:2px">{lvl_name}</div>
             </div>
 
-            <!-- Name + XP -->
+            <!-- Name + XP bar -->
             <div style="flex:1;min-width:200px">
-
-                <div style="font-family:'Orbitron',monospace;
-                            font-size:20px;font-weight:800;color:#FFF;
-                            margin-bottom:2px">
-                    {name}
-                </div>
-
+                <div style="font-family:'Orbitron',monospace;font-size:20px;
+                            font-weight:800;color:#FFF;margin-bottom:2px">{name}</div>
                 <div style="font-size:12px;color:#4A6A90;margin-bottom:16px">
-                    @{uname} &nbsp;·&nbsp;
-                    {prof.get('exam_month','')} {prof.get('exam_year','')}
+                    @{uname} &nbsp;·&nbsp; {prof.get('exam_month','')} {prof.get('exam_year','')}
                     &nbsp;·&nbsp; {days_left}d left
                 </div>
 
-                <!-- XP Header -->
-                <div style="margin-bottom:6px;
-                            display:flex;
-                            justify-content:space-between;
-                            align-items:center">
-
-                    <span style="font-size:11px;color:#7AB4D0;
-                                font-family:'Orbitron',monospace">
-                        XP PROGRESS
-                    </span>
-
-                    <span style="font-size:11px;color:{lvl_clr};
-                                font-weight:700">
-                        {total_xp_hrs:.0f}h / {nxt_thr}h
-                    </span>
-                </div>
-
                 <!-- XP Bar -->
-                <div style="background:rgba(255,255,255,0.07);
-                            border-radius:8px;
-                            height:12px;
-                            overflow:hidden;
-                            position:relative">
-
-                    <div style="width:{lvl_pct:.1f}%;
-                                height:100%;
-                                border-radius:8px;
+                <div style="margin-bottom:6px;display:flex;justify-content:space-between;
+                            align-items:center">
+                    <span style="font-size:11px;color:#7AB4D0;font-family:'Orbitron',monospace">
+                        XP PROGRESS</span>
+                    <span style="font-size:11px;color:{lvl_clr};font-weight:700">
+                        {total_xp_hrs:.0f}h / {nxt_thr}h</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.07);border-radius:8px;
+                            height:12px;overflow:hidden;position:relative">
+                    <div style="width:{lvl_pct:.1f}%;height:100%;border-radius:8px;
                                 background:linear-gradient(90deg,{lvl_clr}88,{lvl_clr});
                                 box-shadow:0 0 12px {lvl_clr}88;
                                 transition:width 1.2s cubic-bezier(0.4,0,0.2,1);
-                                animation:xp-pulse 2s ease-in-out infinite">
-                    </div>
+                                animation:xp-pulse 2s ease-in-out infinite"></div>
                 </div>
-
                 <div style="font-size:10px;color:#4A6A90;margin-top:5px">
-                    {hrs_to_next:.0f}h to Level {min(lvl+1,25)}
-                </div>
+                    {hrs_to_next:.0f}h to Level {min(lvl+1,25)}</div>
             </div>
 
-            <!-- Badges -->
-            {badges_html}
-
+            <!-- Showcase badges -->
+            {"".join([f'<div style="text-align:center;min-width:60px"><div style="font-size:28px">{b["icon"]}</div><div style="font-size:9px;color:#7AB4D0;margin-top:2px">{b["name"]}</div></div>' for b in showcase_badges]) if showcase_badges else "<div style=\'font-size:10px;color:#4A6A90;align-self:center\'>No badges yet — keep studying!</div>"}
         </div>
     </div>
-    """,
-    unsafe_allow_html=True )
-
+    <style>
+    @keyframes xp-pulse {{
+        0%,100% {{ box-shadow: 0 0 12px {lvl_clr}88; }}
+        50%       {{ box-shadow: 0 0 22px {lvl_clr}CC, 0 0 40px {lvl_clr}44; }}
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
     # ── Profile tabs ────────────────────────────────────────────────────────
     ptab1, ptab2, ptab3, ptab4 = st.tabs([
@@ -4046,8 +3973,8 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("""<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>",
+                unsafe_allow_html=True)
 
     # ── Profile panel slides in when avatar circle is clicked ──────────────────
     if st.session_state.show_profile:
