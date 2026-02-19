@@ -1512,7 +1512,7 @@ def _cache_key():
     return st.session_state.get("user_id", "anon")
 
 
-@st.cache_data(ttl=120, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def _fetch_logs(user_id):
     # Try with new columns first; fall back to base columns if migration not yet run
     try:
@@ -1536,7 +1536,7 @@ def _fetch_logs(user_id):
     return df
 
 
-@st.cache_data(ttl=120, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def _fetch_scores(user_id):
     r  = sb.table("test_scores") \
            .select("date,subject,test_name,marks,max_marks,score_pct,weak_areas,strong_areas,action_plan") \
@@ -1570,7 +1570,7 @@ def _fetch_revision(user_id):
     return df
 
 
-@st.cache_data(ttl=120, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def _fetch_rev_sessions(user_id):
     """Fetch revision_sessions table — each logged revision round."""
     try:
@@ -1968,7 +1968,7 @@ def memory_strength(revisions_done: int, last_revision_date, num_rev: int) -> tu
         return (strength, "🔴 Weak",      "#F87171")
 
 
-@st.cache_data(ttl=120, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def compute_revision_pendencies(rev_df_hash, log_df_hash, log_json):
     """
     Cached wrapper — call via get_pendencies(rev_df, log_df) below.
@@ -2221,12 +2221,8 @@ def compute_achievements(log_df, rev_df, rev_sess_df, test_df):
 # ══════════════════════════════════════════════════════════════════════════════
 # PROFILE PAGE (full rewrite with tabs)
 # ══════════════════════════════════════════════════════════════════════════════
-def profile_page():
+def profile_page(log_df, rev_df, rev_sess, test_df):
     prof       = st.session_state.profile
-    log_df     = get_logs()
-    rev_df     = get_revision()
-    rev_sess   = get_rev_sessions()
-    test_df    = get_scores()
 
     # Total XP = reading hours + revision hours
     read_hrs = float(log_df["hours"].sum()) if not log_df.empty else 0.0
@@ -2627,10 +2623,7 @@ def auth_page():
 # ══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
-def dashboard():
-    log  = get_logs()
-    tst  = get_scores()
-    rev  = get_revision()
+def dashboard(log, tst, rev, rev_sess, pend):
     prof = st.session_state.profile
     days_left = max((get_exam_date() - date.today()).days, 0)
 
@@ -2651,8 +2644,7 @@ def dashboard():
     dpd         = round(need / days_left, 1) if days_left > 0 else 0
     days_studied = log["date"].dt.date.nunique() if not log.empty else 0
 
-    # Revision stats from revision_sessions table
-    rev_sess = get_rev_sessions()
+    # Revision stats (pre-fetched, no extra DB call)
     total_rev_hrs = float(rev_sess["hours"].sum()) if not rev_sess.empty and "hours" in rev_sess.columns else 0.0
     rev_sh    = rev_sess.groupby("subject")["hours"].sum() if not rev_sess.empty and "subject" in rev_sess.columns else pd.Series(dtype=float)
 
@@ -2874,8 +2866,6 @@ def dashboard():
 
     # ── Revision Pendency Dashboard ──
     # Gate on log, not rev — pendency is computed purely from study log
-    pend = get_pendencies(rev, log)
-
     if not log.empty:
         st.markdown("---")
         st.markdown('<div class="neon-header neon-header-glow">🔄 Revision Status & Pendencies</div>', unsafe_allow_html=True)
@@ -3064,8 +3054,8 @@ def dashboard():
         # ── Donut charts continue above; agenda moved to Revision tab ──
 
     # ── Score Dashboard (moved from Revision tab) ─────────────────────────────
-    rev_for_score = get_revision()
-    log_for_score = get_logs()
+    rev_for_score = rev
+    log_for_score = log
     if not rev_for_score.empty or not log_for_score.empty:
         st.markdown("---")
         st.markdown('<div class="neon-header neon-header-glow">⭐ Study Confidence Score</div>', unsafe_allow_html=True)
@@ -3073,7 +3063,7 @@ def dashboard():
         from collections import defaultdict as _dd
         _prof         = st.session_state.profile
         _num_rev      = int(_prof.get("num_revisions", 6))
-        _rev_sess_sc  = get_rev_sessions()
+        _rev_sess_sc  = rev_sess
 
         _completion_info: dict = {}
         if not rev_for_score.empty:
@@ -3101,7 +3091,7 @@ def dashboard():
         _reading_count   = sum(1 for i in _completion_info.values() if i["status"]=="reading")
         _total_rev_done  = sum(len(set(v)) for v in _rev_dates_map.values())
         _max_revs        = _completed_count * _num_rev
-        _pend_sc         = get_pendencies(rev_for_score, log_for_score)
+        _pend_sc         = pend
         _overdue_count   = len(_pend_sc[_pend_sc["days_overdue"]>0]) if not _pend_sc.empty else 0
 
         _coverage_pct = _completed_count / _all_topic_count * 100 if _all_topic_count > 0 else 0
@@ -3179,11 +3169,9 @@ def dashboard():
 # ══════════════════════════════════════════════════════════════════════════════
 # LOG STUDY
 # ══════════════════════════════════════════════════════════════════════════════
-def log_study():
+def log_study(existing_log, rev_df, rev_sess):
     st.markdown("<h1>📝 Log Study Session</h1>", unsafe_allow_html=True)
 
-    existing_log = get_logs()
-    rev_df       = get_revision()
     prof         = st.session_state.profile
     r1_ratio     = float(prof.get("r1_ratio",    0.25))
     r2_ratio     = float(prof.get("r2_ratio",    0.25))
@@ -3252,7 +3240,7 @@ def log_study():
     # BRANCH: Topic COMPLETED → show revision save UI
     # ════════════════════════════════════════════════════════════════════════
     if t_status == "completed":
-        rev_sessions = get_rev_sessions()
+        rev_sessions = rev_sess
         comp_revs = 0
         if not rev_sessions.empty and "subject" in rev_sessions.columns:
             done = rev_sessions[
@@ -3447,7 +3435,7 @@ def log_study():
 # ══════════════════════════════════════════════════════════════════════════════
 # ADD SCORE
 # ══════════════════════════════════════════════════════════════════════════════
-def add_test_score():
+def add_test_score(tst):
     st.markdown("<h1>🏆 Add Test Score</h1>", unsafe_allow_html=True)
 
     if "score_subj" not in st.session_state:
@@ -3513,7 +3501,6 @@ def add_test_score():
             else:
                 st.error(msg)
 
-    tst = get_scores()
     if not tst.empty:
         st.markdown("---")
         st.markdown('<div class="neon-header">📊 Recent Test Scores</div>', unsafe_allow_html=True)
@@ -3568,19 +3555,16 @@ def add_test_score():
 # ══════════════════════════════════════════════════════════════════════════════
 # REVISION TRACKER
 # ══════════════════════════════════════════════════════════════════════════════
-def revision():
+def revision(log_df, rev_df, rev_sess_df, pend):
     st.markdown("<h1>🔄 Revision Tracker</h1>", unsafe_allow_html=True)
 
     prof        = st.session_state.profile
     r1_ratio    = float(prof.get("r1_ratio",    0.25))
     r2_ratio    = float(prof.get("r2_ratio",    0.25))
     num_rev     = int(prof.get("num_revisions", 6))
-    rev_df      = get_revision()
-    log_df      = get_logs()
-    rev_sess_df = get_rev_sessions()
 
     # ── TODAY'S REVISION AGENDA (moved from Dashboard) ───────────────────────
-    _pend_rev = get_pendencies(rev_df, log_df)
+    _pend_rev = pend
     st.markdown('<div class="neon-header neon-header-glow">📅 Today\'s Revision Agenda</div>', unsafe_allow_html=True)
     today_str = date.today().strftime("%A, %d %B %Y")
     st.markdown(f"<p style='font-size:12px;color:#7BA7CC;margin-top:-8px'>📆 {today_str}</p>",
@@ -3775,7 +3759,7 @@ def revision():
                 next_due_str = "—"
                 days_ov      = None
                 if t_stat == "completed":
-                    pend_row = get_pendencies(rev_df, log_df)
+                    pend_row = pend
                     if not pend_row.empty:
                         pr = pend_row[(pend_row["subject"]==ds) & (pend_row["topic"]==topic)]
                         if not pr.empty:
@@ -3900,7 +3884,7 @@ def revision():
     # TAB 2 — Pending Revisions by class
     # ════════════════════════════════════════════════════════
     with tab2:
-        pend_all = get_pendencies(rev_df, log_df)
+        pend_all = pend
         pend_show = pend_all if (pend_all.empty or subj == "ALL") else pend_all[pend_all["subject"] == subj]
 
         if not pend_show.empty:
@@ -4059,9 +4043,9 @@ def revision():
     # ────────────────────────────────────────────────────────────────────────
     # MEMORY STRENGTH BY TOPIC (moved from Dashboard)
     # ────────────────────────────────────────────────────────────────────────
-    _ms_log   = get_logs()
-    _ms_rev   = get_revision()
-    _ms_rsess = get_rev_sessions()
+    _ms_log   = log_df
+    _ms_rev   = rev_df
+    _ms_rsess = rev_sess_df
     _ms_num_rev = int(st.session_state.profile.get("num_revisions", 6))
 
     from collections import defaultdict as _ms_dd
@@ -4117,13 +4101,12 @@ def revision():
 # ══════════════════════════════════════════════════════════════════════════════
 # MY DATA
 # ══════════════════════════════════════════════════════════════════════════════
-def my_data():
+def my_data(log, tst, rev):
     st.markdown("<h1>📋 My Data</h1>", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["📚 STUDY LOG", "🏆 TEST SCORES", "🔄 REVISION"])
 
     with tab1:
-        log = get_logs()
         if not log.empty:
             f = st.multiselect("Filter by Subject", SUBJECTS, default=SUBJECTS)
             d = log[log["subject"].isin(f)].copy()
@@ -4136,7 +4119,6 @@ def my_data():
             st.info("No study sessions logged yet. Start by going to **Log Study**.")
 
     with tab2:
-        tst = get_scores()
         if not tst.empty:
             t = tst.copy()
             t["date"] = t["date"].dt.strftime("%d %b %Y")
@@ -4148,7 +4130,6 @@ def my_data():
             st.info("No test scores yet. Add scores via **Add Score**.")
 
     with tab3:
-        rev = get_revision()
         if not rev.empty:
             s  = st.selectbox("Filter by Subject", ["All"] + SUBJECTS, key="mydata_rev_filter")
             df = rev if s == "All" else rev[rev["subject"] == s]
@@ -4282,9 +4263,14 @@ else:
             icon="🔧"
         )
 
+    # ── Fetch ALL data once — shared across every tab (no duplicate DB calls) ──
+    _log_h    = get_logs()
+    _tst_h    = get_scores()
+    _rev_h    = get_rev_sessions()
+    _revt_h   = get_revision()
+    _pend_h   = get_pendencies(_revt_h, _log_h)
+
     # ── XP info for header ─────────────────────────────────────────────────────
-    _log_h  = get_logs()
-    _rev_h  = get_rev_sessions()
     _read_h = float(_log_h["hours"].sum()) if not _log_h.empty else 0.0
     _rev_xp = float(_rev_h["hours"].sum()) if not _rev_h.empty and "hours" in _rev_h.columns else 0.0
     _total_xp = _read_h + _rev_xp
@@ -4473,19 +4459,19 @@ else:
     ])
 
     with tab_dashboard:
-        dashboard()
+        dashboard(_log_h, _tst_h, _revt_h, _rev_h, _pend_h)
 
     with tab_log:
-        log_study()
+        log_study(_log_h, _revt_h, _rev_h)
 
     with tab_score:
-        add_test_score()
+        add_test_score(_tst_h)
 
     with tab_revision:
-        revision()
+        revision(_log_h, _revt_h, _rev_h, _pend_h)
 
     with tab_data:
-        my_data()
+        my_data(_log_h, _tst_h, _revt_h)
 
     with tab_profile:
-        profile_page()
+        profile_page(_log_h, _revt_h, _rev_h, _tst_h)
