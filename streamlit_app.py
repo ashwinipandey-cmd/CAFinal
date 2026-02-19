@@ -1929,13 +1929,11 @@ def profile_page():
     <div style="background:linear-gradient(135deg,rgba(8,18,50,0.95),rgba(14,40,100,0.90));
                 border:2px solid rgba(56,189,248,0.30);border-radius:24px;
                 padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden">
-        <!-- Animated top line -->
         <div style="position:absolute;top:0;left:0;right:0;height:2px;
                     background:linear-gradient(90deg,transparent,{lvl_clr},{lvl_clr_88},transparent);
                     animation:scanline 2.5s ease-in-out infinite"></div>
 
         <div style="display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap">
-            <!-- Avatar -->
             <div style="text-align:center;min-width:110px">
                 <div style="width:90px;height:90px;border-radius:50%;
                             background:linear-gradient(135deg,#0E5AC8,#38BDF8);
@@ -1948,8 +1946,6 @@ def profile_page():
                     LVL {lvl}</div>
                 <div style="font-size:10px;color:#7AB4D0;margin-top:2px">{lvl_name}</div>
             </div>
-
-            <!-- Name + XP bar -->
             <div style="flex:1;min-width:200px">
                 <div style="font-family:'DM Mono',monospace;font-size:20px;
                             font-weight:800;color:#FFF;margin-bottom:2px">{name}</div>
@@ -1957,8 +1953,6 @@ def profile_page():
                     @{uname} &nbsp;·&nbsp; {prof.get('exam_month','')} {prof.get('exam_year','')}
                     &nbsp;·&nbsp; {days_left}d left
                 </div>
-
-                <!-- XP Bar -->
                 <div style="margin-bottom:6px;display:flex;justify-content:space-between;
                             align-items:center">
                     <span style="font-size:11px;color:#7AB4D0;font-family:'DM Mono',monospace">
@@ -1977,8 +1971,6 @@ def profile_page():
                 <div style="font-size:10px;color:#4A6A90;margin-top:5px">
                     {hrs_to_next:.0f}h to Level {min(lvl+1,25)}</div>
             </div>
-
-            <!-- Showcase badges -->
             {showcase_badges_html}
         </div>
     </div>
@@ -3899,7 +3891,6 @@ else:
     with h_av:
         st.markdown(f"""
         <div style="position:relative;width:76px;height:76px;margin-bottom:0">
-            <!-- XP ring SVG -->
             <svg width="76" height="76" style="position:absolute;top:0;left:0;
                                                transform:rotate(-90deg)">
                 <circle cx="38" cy="38" r="35" fill="none"
@@ -3911,7 +3902,6 @@ else:
                         style="animation:ring-fill 1.5s cubic-bezier(0.4,0,0.2,1) forwards;
                                filter:drop-shadow(0 0 8px rgba({_glow_rgb},1.0))"/>
             </svg>
-            <!-- Avatar initial circle -->
             <div style="position:absolute;top:6px;left:6px;
                         width:64px;height:64px;border-radius:50%;
                         background:linear-gradient(135deg,#0B4FB3,#38BDF8);
@@ -3929,14 +3919,12 @@ else:
         hrs_to_next = max(_lvl_info["next_threshold"] - _total_xp, 0)
         st.markdown(f"""
         <div style="padding:4px 0 0 4px">
-            <!-- Name row -->
             <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1px">
                 <div style="font-family:'DM Mono',monospace;font-size:15px;
                             font-weight:800;color:#FFF;
                             text-shadow:0 0 15px rgba(56,189,248,0.5)">{name}</div>
                 <div style="font-size:10px;color:#4A6A90">@{profile.get("username","")}</div>
             </div>
-            <!-- Level badge row -->
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
                 <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:900;
                             color:{_lvl_clr};letter-spacing:1px;
@@ -3949,7 +3937,6 @@ else:
                 <div style="font-size:10px;color:#4A6A90;margin-left:auto">
                     {_total_xp:.0f}h &nbsp;/&nbsp; {_lvl_info["next_threshold"]}h</div>
             </div>
-            <!-- XP progress bar with shimmer glow -->
             <div style="background:rgba(255,255,255,0.06);border-radius:8px;
                         height:12px;overflow:hidden;position:relative;
                         border:1px solid rgba({_glow_rgb},0.15)">
