@@ -283,12 +283,12 @@ GLASSY_CSS = """
     --neon-pink:    #818CF8;
     --neon-blue:    #60A5FA;
     --neon-gold:    #FCD34D;
-    --dark-bg:      #000000;
-    --dark-card:    rgba(255,255,255,0.04);
-    --dark-glass:   rgba(255,255,255,0.06);
+    --dark-bg:      #020818;
+    --dark-card:    rgba(14,60,140,0.09);
+    --dark-glass:   rgba(14,60,140,0.15);
     --border-glow:  rgba(56, 189, 248, 0.35);
-    --text-primary: #E0F0FF;
-    --text-muted:   #4A6A90;
+    --text-primary: #E8F4FF;
+    --text-muted:   #6B91B8;
     --font-display: 'DM Mono', monospace;
     --font-ui:      'DM Sans', sans-serif;
     --font-body:    'DM Sans', sans-serif;
@@ -300,13 +300,20 @@ GLASSY_CSS = """
 *, *::before, *::after { box-sizing: border-box; }
 
 .stApp {
-    background: var(--dark-bg) !important;
+    background: #020818 !important;
     font-family: var(--font-body) !important;
 }
 
-/* ── PURE BLACK BACKGROUND ── */
+/* ── BLUE RADIAL GRADIENT BACKGROUND ── */
 [data-testid="stAppViewContainer"] {
-    background: #000000 !important;
+    background:
+        radial-gradient(ellipse 120% 80% at -10% -10%, rgba(14,60,160,0.70) 0%, transparent 50%),
+        radial-gradient(ellipse 100% 70% at 110% 110%, rgba(20,90,210,0.55) 0%, transparent 50%),
+        radial-gradient(ellipse  80% 60% at  50%  45%, rgba(56,189,248,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse  55% 50% at  90%   5%, rgba(99,102,241,0.25) 0%, transparent 50%),
+        radial-gradient(ellipse  45% 45% at  10%  85%, rgba(14,165,233,0.20) 0%, transparent 50%),
+        radial-gradient(ellipse  35% 35% at  70%  55%, rgba(56,189,248,0.08) 0%, transparent 50%),
+        linear-gradient(160deg, #020818 0%, #040D20 45%, #030A18 100%) !important;
     min-height: 100vh;
 }
 
@@ -329,7 +336,7 @@ GLASSY_CSS = """
    SIDEBAR
 ════════════════════════════════════════ */
 [data-testid="stSidebar"] {
-    background: rgba(5, 5, 5, 0.97) !important;
+    background: rgba(2, 6, 20, 0.97) !important;
     border-right: 1px solid rgba(56,189,248,0.2) !important;
     backdrop-filter: blur(30px) !important;
     box-shadow: 4px 0 30px rgba(56,189,248,0.08) !important;
@@ -397,7 +404,7 @@ GLASSY_CSS = """
    NEON METRIC CARDS
 ════════════════════════════════════════ */
 div[data-testid="stMetric"] {
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(14,60,140,0.12) !important;
     border: 2px solid rgba(56,189,248,0.55) !important;
     border-radius: 16px !important;
     padding: 20px 18px !important;
@@ -437,7 +444,7 @@ div[data-testid="stMetric"]::after {
 div[data-testid="stMetric"]:hover {
     transform: translateY(-4px) !important;
     border-color: rgba(56,189,248,0.85) !important;
-    background: rgba(255,255,255,0.08) !important;
+    background: rgba(14,60,140,0.20) !important;
     box-shadow:
         0 0 0 1px rgba(56,189,248,0.30),
         0 0 30px rgba(56,189,248,0.35),
@@ -460,8 +467,8 @@ div[data-testid="stMetricLabel"] {
     font-size: 11px !important;
     text-transform: none !important;
     letter-spacing: 0.3px !important;
-    color: var(--text-muted) !important;
-    font-weight: 500 !important;
+    color: #8BB8D8 !important;
+    font-weight: 600 !important;
 }
 
 div[data-testid="stMetricDelta"] {
@@ -500,7 +507,7 @@ h3 {
 
 p, .stMarkdown p {
     font-family: var(--font-body) !important;
-    color: #B0BDD8 !important;
+    color: #D0E4F8 !important;
     line-height: 1.7 !important;
 }
 
@@ -511,7 +518,7 @@ p, .stMarkdown p {
 .stNumberInput input,
 .stTextArea textarea,
 .stDateInput input {
-    background: rgba(255,255,255,0.06) !important;
+    background: rgba(14,60,140,0.15) !important;
     border: 2px solid rgba(56,189,248,0.40) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
@@ -520,12 +527,12 @@ p, .stMarkdown p {
     padding: 11px 14px !important;
     transition: all 0.25s !important;
     backdrop-filter: blur(20px) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -1px 0 rgba(0,0,0,0.3) !important;
 }
 
 .stTextInput input::placeholder,
 .stTextArea textarea::placeholder {
-    color: #4A6A90 !important;
+    color: #5A80A0 !important;
     opacity: 1 !important;
 }
 
@@ -533,7 +540,7 @@ p, .stMarkdown p {
 .stTextArea textarea:focus,
 .stNumberInput input:focus {
     border-color: rgba(56,189,248,0.70) !important;
-    background: rgba(255,255,255,0.09) !important;
+    background: rgba(14,60,140,0.22) !important;
     box-shadow:
         0 0 0 3px rgba(56,189,248,0.18),
         0 0 25px rgba(56,189,248,0.15),
@@ -554,20 +561,20 @@ p, .stMarkdown p {
     font-size: 12px !important;
     text-transform: none !important;
     letter-spacing: 0.1px !important;
-    color: #7AB4D0 !important;
+    color: #93C8E8 !important;
     font-weight: 500 !important;
 }
 
 /* Selectbox */
 .stSelectbox > div > div {
-    background: rgba(255,255,255,0.06) !important;
+    background: rgba(14,60,140,0.15) !important;
     border: 2px solid rgba(56,189,248,0.40) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.4) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 16px rgba(0,0,0,0.4) !important;
     transition: all 0.25s !important;
 }
 
@@ -583,11 +590,11 @@ p, .stMarkdown p {
 
 /* Select dropdown options */
 [data-baseweb="select"] [role="listbox"] {
-    background: rgba(8,8,8,0.97) !important;
+    background: rgba(4,10,28,0.98) !important;
     border: 1px solid rgba(56,189,248,0.25) !important;
     border-radius: 10px !important;
     backdrop-filter: blur(40px) saturate(180%) !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.08), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 30px rgba(56,189,248,0.08), inset 0 1px 0 rgba(255,255,255,0.10) !important;
 }
 
 [data-baseweb="select"] [role="option"]:hover {
@@ -619,7 +626,7 @@ p, .stMarkdown p {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.07), transparent);
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
     opacity: 0;
     transition: opacity 0.2s;
 }
@@ -649,7 +656,7 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
    FORMS (containers)
 ════════════════════════════════════════ */
 .stForm {
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(14,60,140,0.12) !important;
     border: 2px solid rgba(56,189,248,0.50) !important;
     border-radius: 20px !important;
     backdrop-filter: blur(40px) saturate(180%) !important;
@@ -677,7 +684,7 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
    PROGRESS BARS
 ════════════════════════════════════════ */
 .stProgress > div > div {
-    background: rgba(255,255,255,0.07) !important;
+    background: rgba(14,60,140,0.18) !important;
     border-radius: 6px !important;
     height: 6px !important;
     overflow: hidden !important;
@@ -708,7 +715,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 .stTabs [data-baseweb="tab-list"] {
-    background: rgba(0,0,0,0.92) !important;
+    background: rgba(2,8,24,0.96) !important;
     border-radius: 0 !important;
     padding: 0 24px !important;
     gap: 0 !important;
@@ -735,7 +742,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 
 .stTabs [data-baseweb="tab"] {
     border-radius: 0 !important;
-    color: #4A6A90 !important;
+    color: #7BA7CC !important;
     font-family: var(--font-ui) !important;
     font-size: 13px !important;
     font-weight: 500 !important;
@@ -787,7 +794,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     position: relative !important;
     top: unset !important;
     z-index: unset !important;
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(14,60,140,0.12) !important;
     border-radius: 12px !important;
     padding: 4px !important;
     gap: 3px !important;
@@ -797,7 +804,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     box-shadow:
         0 0 16px rgba(56,189,248,0.14),
         0 4px 20px rgba(0,0,0,0.6),
-        inset 0 1px 0 rgba(255,255,255,0.08) !important;
+        inset 0 1px 0 rgba(255,255,255,0.10) !important;
     overflow-x: unset !important;
 }
 
@@ -851,10 +858,10 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 [data-testid="stDataFrameResizable"] td {
-    color: #B0BDD8 !important;
+    color: #C8D8EE !important;
     font-family: var(--font-body) !important;
     font-size: 13px !important;
-    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    border-bottom: 1px solid rgba(56,189,248,0.15) !important;
 }
 
 [data-testid="stDataFrameResizable"] tr:hover td {
@@ -931,7 +938,7 @@ hr {
    PLOTLY MODEBAR
 ════════════════════════════════════════ */
 .js-plotly-plot .plotly .modebar {
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(14,60,140,0.12) !important;
     backdrop-filter: blur(20px) !important;
     border-radius: 8px !important;
     border: 1px solid rgba(56,189,248,0.15) !important;
@@ -962,7 +969,7 @@ hr {
    CAPTION
 ════════════════════════════════════════ */
 .stCaption {
-    color: var(--text-muted) !important;
+    color: #7BA7CC !important;
     font-family: var(--font-body) !important;
     font-size: 11px !important;
     letter-spacing: 0.3px !important;
@@ -1004,7 +1011,7 @@ hr {
 
 /* Glassy Cards */
 .glass-card {
-    background: rgba(255,255,255,0.05);
+    background: rgba(14,60,140,0.12);
     border: 2px solid rgba(56,189,248,0.50);
     border-radius: 16px;
     padding: 20px;
@@ -1033,7 +1040,7 @@ hr {
 
 .glass-card:hover {
     border-color: rgba(56,189,248,0.80);
-    background: rgba(255,255,255,0.08);
+    background: rgba(14,60,140,0.20);
     box-shadow:
         0 0 0 1px rgba(56,189,248,0.25),
         0 0 35px rgba(56,189,248,0.30),
@@ -1045,7 +1052,7 @@ hr {
 
 /* Leaderboard Cards */
 .lb-card {
-    background: rgba(255,255,255,0.05);
+    background: rgba(14,60,140,0.12);
     border-radius: 14px;
     padding: 16px 20px;
     margin: 8px 0;
@@ -1265,9 +1272,9 @@ def get_exam_date():
 
 # ── PLOTLY DARK THEME ─────────────────────────────────────────────────────────
 PLOTLY_LAYOUT = dict(
-    paper_bgcolor="rgba(8,8,8,0.95)",
-    plot_bgcolor ="rgba(8,8,8,0.95)",
-    font=dict(family="DM Sans, sans-serif", color="#B0D4F0", size=12),
+    paper_bgcolor="rgba(4,10,28,0.95)",
+    plot_bgcolor ="rgba(4,10,28,0.95)",
+    font=dict(family="DM Sans, sans-serif", color="#C8E5F8", size=12),
     title_font=dict(family="DM Mono, monospace", size=14, color="#FFFFFF"),
     legend=dict(
         bgcolor="rgba(6,14,38,0.7)",
@@ -1277,13 +1284,13 @@ PLOTLY_LAYOUT = dict(
     ),
     margin=dict(t=50, b=40, l=40, r=20),
     xaxis=dict(
-        gridcolor="rgba(255,255,255,0.05)",
+        gridcolor="rgba(14,60,140,0.12)",
         linecolor="rgba(56,189,248,0.2)",
         tickfont=dict(size=10),
         zerolinecolor="rgba(56,189,248,0.1)"
     ),
     yaxis=dict(
-        gridcolor="rgba(255,255,255,0.05)",
+        gridcolor="rgba(14,60,140,0.12)",
         linecolor="rgba(56,189,248,0.2)",
         tickfont=dict(size=10),
         zerolinecolor="rgba(56,189,248,0.1)"
@@ -1297,15 +1304,15 @@ def apply_theme(fig, title="", height=None, extra_layout=None):
     update_xaxes/update_yaxes separately to avoid validator crashes.
     """
     fig.update_layout(
-        paper_bgcolor="rgba(8,8,8,0.95)",
-        plot_bgcolor ="rgba(8,8,8,0.95)",
+        paper_bgcolor="rgba(4,10,28,0.95)",
+        plot_bgcolor ="rgba(4,10,28,0.95)",
         margin       =dict(t=50, b=40, l=40, r=20),
-        font         =dict(family="DM Sans, sans-serif", color="#B0D4F0", size=12),
+        font         =dict(family="DM Sans, sans-serif", color="#C8E5F8", size=12),
         legend       =dict(
             bgcolor="rgba(6,14,38,0.8)",
             bordercolor="rgba(56,189,248,0.2)",
             borderwidth=1,
-            font=dict(size=11, color="#B0D4F0")
+            font=dict(size=11, color="#C8E5F8")
         ),
         transition   =dict(duration=600, easing="cubic-in-out"),
     )
@@ -2173,7 +2180,7 @@ def profile_page():
                         f'background:{bg};text-align:center;cursor:pointer;'
                         f'transition:all 0.2s">'
                         f'{get_avatar_svg(av["id"], 52)}'
-                        f'<div style="font-size:10px;color:#B0D4F0;margin-top:4px;font-weight:500">'
+                        f'<div style="font-size:10px;color:#C8E5F8;margin-top:4px;font-weight:500">'
                         f'{av["label"]}</div></div>',
                         unsafe_allow_html=True
                     )
@@ -2254,9 +2261,9 @@ def profile_page():
         cur_backdate = bool(prof.get("allow_backdate", False))
         bd1, bd2 = st.columns([2,1])
         with bd1:
-            st.markdown(f"""<div style="background:{'rgba(251,191,36,0.10)' if cur_backdate else 'rgba(74,106,144,0.10)'};
-                border:2px solid {'rgba(251,191,36,0.35)' if cur_backdate else 'rgba(74,106,144,0.25)'};
-                border-radius:10px;padding:12px 14px;font-size:12px;color:#B0D4F0">
+            st.markdown(f"""<div style="background:{'rgba(251,191,36,0.10)' if cur_backdate else 'rgba(14,60,140,0.25)'};
+                border:2px solid {'rgba(251,191,36,0.35)' if cur_backdate else 'rgba(14,60,140,0.35)'};
+                border-radius:10px;padding:12px 14px;font-size:12px;color:#C8E5F8">
                 {'⚠️ <b>Backdated entries enabled</b> — all past dates accessible'
                  if cur_backdate else '🔒 <b>Backdated entries restricted</b> — only last 3 days'}
             </div>""", unsafe_allow_html=True)
@@ -2294,7 +2301,7 @@ def profile_page():
     # ════════════════════════════════
     with ptab2:
         st.markdown('<div class="neon-header">🏅 Your Achievements</div>', unsafe_allow_html=True)
-        st.markdown(f"""<div style="font-size:12px;color:#7AB4D0;margin-bottom:16px">
+        st.markdown(f"""<div style="font-size:12px;color:#93C8E8;margin-bottom:16px">
             Earn medals and badges by completing topics, revisions, and mock tests.
             Locked items show what you need to unlock them.
         </div>""", unsafe_allow_html=True)
@@ -2317,7 +2324,7 @@ def profile_page():
                             <div style="font-size:32px;margin-bottom:6px">{item["icon"]}</div>
                             <div style="font-size:11px;font-weight:700;color:#34D399;
                                         font-family:Helvetica,sans-serif">{item["name"]}</div>
-                            <div style="font-size:9px;color:#7AB4D0;margin-top:4px">✅ Unlocked</div>
+                            <div style="font-size:9px;color:#93C8E8;margin-top:4px">✅ Unlocked</div>
                         </div>""", unsafe_allow_html=True)
                     else:
                         # Show locked with popover hint
@@ -2326,8 +2333,8 @@ def profile_page():
                                     border-radius:16px;padding:16px 10px;text-align:center;
                                     opacity:0.55;cursor:default" title="{item['desc']}">
                             <div style="font-size:32px;margin-bottom:6px;filter:grayscale(1)">🔒</div>
-                            <div style="font-size:11px;font-weight:700;color:#4A6A90">{item["name"]}</div>
-                            <div style="font-size:9px;color:#4A6A90;margin-top:4px">Locked</div>
+                            <div style="font-size:11px;font-weight:700;color:#7BA7CC">{item["name"]}</div>
+                            <div style="font-size:9px;color:#7BA7CC;margin-top:4px">Locked</div>
                         </div>""", unsafe_allow_html=True)
                         if st.button(f"How to unlock?", key=f"ach_{item['id']}",
                                      use_container_width=True):
@@ -2354,10 +2361,10 @@ def profile_page():
             <div style="font-size:64px;margin-bottom:20px">🚀</div>
             <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;
                         color:#38BDF8;margin-bottom:12px">COMING SOON</div>
-            <div style="font-size:14px;color:#4A6A90;max-width:380px;margin:0 auto;line-height:1.8">
+            <div style="font-size:14px;color:#7BA7CC;max-width:380px;margin:0 auto;line-height:1.8">
                 The Global Leaderboard is under construction.<br>
                 Compete with CA Final students across India.<br><br>
-                <span style="color:#7AB4D0">Features planned:</span><br>
+                <span style="color:#93C8E8">Features planned:</span><br>
                 🏆 Rank by study hours &amp; test scores<br>
                 📊 Subject-wise leaderboards<br>
                 🎖️ Weekly &amp; all-time rankings
@@ -2384,7 +2391,7 @@ def profile_page():
                 <div style="font-size:48px;margin-bottom:16px">🚪</div>
                 <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;
                             color:#FFFFFF;margin-bottom:8px">Sign Out</div>
-                <div style="font-size:13px;color:#4A6A90;margin-bottom:24px">
+                <div style="font-size:13px;color:#7BA7CC;margin-bottom:24px">
                     You are signed in as <b style="color:#38BDF8">{name}</b>
                 </div>
             </div>
@@ -2547,9 +2554,9 @@ def dashboard():
                 <div style="font-family:'DM Mono',monospace;font-size:14px;
                             font-weight:800;color:{clr};
                             text-shadow:0 0 14px {glow};margin-bottom:4px">{s}</div>
-                <div style="font-size:9px;color:#7AB4D0;letter-spacing:0.5px;
+                <div style="font-size:9px;color:#93C8E8;letter-spacing:0.5px;
                             margin-bottom:10px">{SUBJ_FULL[s]}</div>
-                <div style="background:rgba(255,255,255,0.07);border-radius:6px;
+                <div style="background:rgba(14,60,140,0.18);border-radius:6px;
                             height:8px;overflow:hidden;margin-bottom:8px">
                     <div style="width:{pct:.0f}%;height:100%;border-radius:6px;
                                 background:linear-gradient(90deg,{clr}99,{clr});
@@ -2557,7 +2564,7 @@ def dashboard():
                 </div>
                 <div style="font-family:'DM Mono',monospace;font-size:17px;
                             font-weight:700;color:#FFFFFF">{pct:.0f}%</div>
-                <div style="font-size:10px;color:#4A6A90;margin-top:3px">
+                <div style="font-size:10px;color:#7BA7CC;margin-top:3px">
                     {done:.0f}h / {tgt}h
                 </div>
                 <div style="font-size:10px;color:#34D399;margin-top:4px">
@@ -2588,13 +2595,13 @@ def dashboard():
                             border-radius:12px;padding:12px 10px;text-align:center">
                     <div style="font-family:'DM Mono',monospace;font-size:12px;
                                 font-weight:800;color:{clr};margin-bottom:4px">{s}</div>
-                    <div style="background:rgba(255,255,255,0.06);border-radius:5px;
+                    <div style="background:rgba(14,60,140,0.15);border-radius:5px;
                                 height:6px;overflow:hidden;margin-bottom:6px">
                         <div style="width:{rev_pct:.0f}%;height:100%;border-radius:5px;
                                     background:linear-gradient(90deg,#34D39988,#34D399)"></div>
                     </div>
                     <div style="font-size:15px;font-weight:700;color:#34D399">{rev_pct:.0f}%</div>
-                    <div style="font-size:10px;color:#4A6A90;margin-top:2px">
+                    <div style="font-size:10px;color:#7BA7CC;margin-top:2px">
                         {rev_rounds}/{max_rounds} rounds
                     </div>
                 </div>
@@ -2709,19 +2716,19 @@ def dashboard():
                             border-radius:12px;padding:12px 10px;text-align:center">
                     <div style="font-family:'DM Mono',monospace;font-size:12px;
                                 font-weight:800;color:{clr}">{s}</div>
-                    <div style="font-size:10px;color:#4A6A90;margin:4px 0 8px">{SUBJ_FULL[s]}</div>
+                    <div style="font-size:10px;color:#7BA7CC;margin:4px 0 8px">{SUBJ_FULL[s]}</div>
                     <div style="display:flex;justify-content:space-around">
                         <div>
                             <div style="font-size:16px;font-weight:700;color:#FFFFFF">{topics_studied}</div>
-                            <div style="font-size:9px;color:#4A6A90">Topics</div>
+                            <div style="font-size:9px;color:#7BA7CC">Topics</div>
                         </div>
                         <div>
                             <div style="font-size:16px;font-weight:700;color:#38BDF8">{total_revs}</div>
-                            <div style="font-size:9px;color:#4A6A90">Revisions</div>
+                            <div style="font-size:9px;color:#7BA7CC">Revisions</div>
                         </div>
                         <div>
                             <div style="font-size:16px;font-weight:700;color:{health_clr}">{overdue}</div>
-                            <div style="font-size:9px;color:#4A6A90">Overdue</div>
+                            <div style="font-size:9px;color:#7BA7CC">Overdue</div>
                         </div>
                     </div>
                 </div>
@@ -2762,7 +2769,7 @@ def dashboard():
                             extra_layout=dict(barmode="stack"))
                 fig_p.update_layout(
                     legend=dict(orientation="h", x=0, y=1.08,
-                                font=dict(size=10, color="#B0D4F0"),
+                                font=dict(size=10, color="#C8E5F8"),
                                 bgcolor="rgba(0,0,0,0)"),
                     margin=dict(t=55, b=40, l=210, r=20)
                 )
@@ -2861,15 +2868,15 @@ def dashboard():
                 hovertemplate="%{label}: %{value}<extra></extra>"
             ))
             fig_d.update_layout(
-                paper_bgcolor="rgba(8,8,8,0.95)",
-                plot_bgcolor ="rgba(8,8,8,0.95)",
+                paper_bgcolor="rgba(4,10,28,0.95)",
+                plot_bgcolor ="rgba(4,10,28,0.95)",
                 height=220,
                 margin=dict(t=40, b=10, l=10, r=10),
                 title=dict(text=title,
                            font=dict(family="DM Mono, monospace", size=11, color="#FFFFFF"), x=0.5),
                 showlegend=True,
                 legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.15,
-                            font=dict(size=9, color="#B0D4F0"), bgcolor="rgba(0,0,0,0)"),
+                            font=dict(size=9, color="#C8E5F8"), bgcolor="rgba(0,0,0,0)"),
                 annotations=[dict(text=center_text, x=0.5, y=0.5,
                                   font=dict(size=14, color="#FFFFFF",
                                             family="DM Mono, monospace"),
@@ -2904,7 +2911,7 @@ def dashboard():
         st.markdown("---")
         st.markdown('<div class="neon-header">📅 Today\'s Revision Agenda</div>', unsafe_allow_html=True)
         today_str = date.today().strftime("%A, %d %B %Y")
-        st.markdown(f"<p style='font-size:12px;color:#4A6A90;margin-top:-8px'>📆 {today_str}</p>",
+        st.markdown(f"<p style='font-size:12px;color:#7BA7CC;margin-top:-8px'>📆 {today_str}</p>",
                     unsafe_allow_html=True)
 
         if not pend.empty:
@@ -2994,11 +3001,11 @@ def dashboard():
                 <div style="background:rgba(56,189,248,0.06);border:2px solid rgba(56,189,248,0.20);
                             border-radius:12px;padding:12px 18px;margin-top:6px;
                             display:flex;justify-content:space-between;align-items:center">
-                    <div style="font-size:12px;color:#B0D4F0">
+                    <div style="font-size:12px;color:#C8E5F8">
                         📋 <b>{total_agenda}</b> topic(s) on today's agenda
                         &nbsp;·&nbsp; ⏱ Estimated <b>~{est_hrs}h</b> revision time
                     </div>
-                    <div style="font-size:10px;color:#4A6A90">~45 min per topic</div>
+                    <div style="font-size:10px;color:#7BA7CC">~45 min per topic</div>
                 </div>
                 """, unsafe_allow_html=True)
         else:
@@ -3075,12 +3082,12 @@ def dashboard():
                 <span style="font-family:'DM Mono',monospace;font-size:20px;
                              font-weight:700;color:#FFFFFF">{_overall}%</span>
             </div>
-            <div style="background:rgba(255,255,255,0.07);border-radius:8px;height:14px;overflow:hidden">
+            <div style="background:rgba(14,60,140,0.18);border-radius:8px;height:14px;overflow:hidden">
                 <div style="width:{_overall}%;height:100%;border-radius:8px;
                             background:linear-gradient(90deg,{_bar_clr_88},{_bar_clr});
                             box-shadow:0 0 12px {_bar_clr_88};transition:width 1.2s ease"></div>
             </div>
-            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#4A6A90">
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#7BA7CC">
                 <span>Completion {_coverage_pct:.0f}% × 35%</span>
                 <span>Revision Depth {_depth_pct:.0f}% × 50%</span>
                 <span>Overdue penalty −{_penalty:.0f}% × 15%</span>
@@ -3123,7 +3130,7 @@ def dashboard():
         <div class="glass-card" style="text-align:center; padding:50px">
             <div style="font-size:48px; margin-bottom:16px">🚀</div>
             <h2 style="color:#FFFFFF">Welcome! Start Your Journey</h2>
-            <p style="color:#4A6A90">Log your first study session to see your dashboard come alive.</p>
+            <p style="color:#7BA7CC">Log your first study session to see your dashboard come alive.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -3188,7 +3195,7 @@ def log_study():
                 border-radius:12px;padding:10px 16px;margin:8px 0">
         <div style="font-family:Helvetica,sans-serif;font-size:12px;
                     color:{badge_clr};font-weight:700">{badge_txt}</div>
-        <div style="font-size:11px;color:#7AB4D0">
+        <div style="font-size:11px;color:#93C8E8">
             TFR so far: <b style="color:#FFFFFF">{tfr_so_far:.1f}h</b>
         </div>
     </div>
@@ -3233,11 +3240,11 @@ def log_study():
                 <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
                     <div>
                         <span style="font-size:24px;font-weight:800;color:#FFFFFF">{locked_hrs:.2f}h</span>
-                        <span style="font-size:11px;color:#4A6A90;margin-left:8px">
+                        <span style="font-size:11px;color:#7BA7CC;margin-left:8px">
                             = TFR {tfr_stored:.1f}h × {ratio_used*100:.0f}%
                         </span>
                     </div>
-                    <div style="font-size:11px;color:#7AB4D0">
+                    <div style="font-size:11px;color:#93C8E8">
                         Revision {next_round} of {num_rev} &nbsp;·&nbsp;
                         {comp_revs} completed so far
                     </div>
@@ -3278,7 +3285,7 @@ def log_study():
         /* Default: unchecked box stays neutral */
         div[data-testid="stCheckbox"] label {
             font-size: 13px !important;
-            color: #7AB4D0 !important;
+            color: #93C8E8 !important;
             font-weight: 500 !important;
         }
         /* When checked: label text turns green */
@@ -3308,7 +3315,7 @@ def log_study():
             r2_h = projected_tfr * r2_ratio
             st.markdown(f"""
             <div style="background:rgba(52,211,153,0.10);border:2px solid rgba(52,211,153,0.35);
-                        border-radius:10px;padding:10px 14px;margin:4px 0;font-size:11px;color:#7AB4D0">
+                        border-radius:10px;padding:10px 14px;margin:4px 0;font-size:11px;color:#93C8E8">
                 On save — TFR locked at <b style="color:#FFFFFF">{projected_tfr:.1f}h</b> &nbsp;·&nbsp;
                 R1 = <b style="color:#34D399">{r1_h:.2f}h</b> &nbsp;·&nbsp;
                 R2 = <b style="color:#34D399">{r2_h:.2f}h</b> &nbsp;·&nbsp;
@@ -3617,15 +3624,15 @@ def revision():
                         st.markdown(f"""
                         <div style="display:flex;gap:16px;align-items:center;margin-bottom:8px">
                             <div>
-                                <span style="font-size:11px;color:#7AB4D0">TFR: </span>
+                                <span style="font-size:11px;color:#93C8E8">TFR: </span>
                                 <b style="color:#FFFFFF">{tfr:.1f}h</b>
                             </div>
                             <div>
-                                <span style="font-size:11px;color:#7AB4D0">Completed: </span>
+                                <span style="font-size:11px;color:#93C8E8">Completed: </span>
                                 <b style="color:#FFFFFF">{str(comp_d)[:10]}</b>
                             </div>
                             <div>
-                                <span style="font-size:11px;color:#7AB4D0">Memory: </span>
+                                <span style="font-size:11px;color:#93C8E8">Memory: </span>
                                 <b style="color:{ms_clr}">{ms_lbl} ({ms_pct:.0f}%)</b>
                             </div>
                         </div>
@@ -3665,7 +3672,7 @@ def revision():
                                 row_bg  = "rgba(6,14,38,0.50)"
                                 row_bdr = "rgba(56,189,248,0.10)"
                                 status_badge = f'📅 {due_d}'
-                                rn_clr  = "#4A6A90"
+                                rn_clr  = "#7BA7CC"
 
                             st.markdown(f"""
                             <div style="display:flex;align-items:center;gap:10px;
@@ -3674,9 +3681,9 @@ def revision():
                                         border-radius:8px;padding:8px 12px;margin:3px 0">
                                 <div style="font-family:'DM Mono',monospace;font-size:11px;
                                             font-weight:800;color:{rn_clr};min-width:28px">R{rn}</div>
-                                <div style="flex:1;font-size:11px;color:#B0D4F0">
+                                <div style="flex:1;font-size:11px;color:#C8E5F8">
                                     <b style="color:#FFFFFF">{dur:.2f}h</b>
-                                    <span style="color:#4A6A90;margin-left:6px">
+                                    <span style="color:#7BA7CC;margin-left:6px">
                                         ({rnd['ratio']*100:.0f}% of TFR · after {rnd['interval_days']}d)
                                     </span>
                                 </div>
@@ -3690,10 +3697,10 @@ def revision():
                         st.markdown(f"""
                         <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.20);
                                     border-radius:8px;padding:10px 14px">
-                            <div style="font-size:11px;color:#7AB4D0;margin-bottom:6px">
+                            <div style="font-size:11px;color:#93C8E8;margin-bottom:6px">
                                 📖 In Progress — TFR so far: <b style="color:#FFFFFF">{read_h:.1f}h</b>
                             </div>
-                            <div style="font-size:10px;color:#4A6A90">
+                            <div style="font-size:10px;color:#7BA7CC">
                                 When completed → R1 will be <b style="color:#38BDF8">{read_h*r1_ratio:.2f}h</b>,
                                 R2: <b style="color:#38BDF8">{read_h*r2_ratio:.2f}h</b>
                                 (mark as Complete in Study Log)
@@ -3741,10 +3748,10 @@ def revision():
                                      color:{sc};font-weight:700">{row['subject']}</span>
                         <span style="font-size:12px;color:#FFFFFF;margin-left:8px">{row['topic'][:55]}</span>
                         <span style="font-family:'DM Mono',monospace;font-size:9px;
-                                     color:#4A6A90;margin-left:8px">{row['round_label']}</span>
+                                     color:#7BA7CC;margin-left:8px">{row['round_label']}</span>
                     </div>
                     <div style="text-align:right;white-space:nowrap">
-                        <div style="font-size:9px;color:#4A6A90">{dur_str}</div>
+                        <div style="font-size:9px;color:#7BA7CC">{dur_str}</div>
                         <div style="font-family:'DM Mono',monospace;font-size:11px;
                                     font-weight:700;color:{clr}">{badge}</div>
                     </div>
@@ -3809,13 +3816,13 @@ def revision():
             <div style="background:rgba(8,18,50,0.80);border:2px solid rgba(56,189,248,0.25);
                         border-radius:12px;padding:14px 18px;margin-bottom:12px;
                         display:flex;gap:24px;flex-wrap:wrap">
-                <div><span style="font-size:10px;color:#4A6A90">Status</span>
+                <div><span style="font-size:10px;color:#7BA7CC">Status</span>
                      <div style="font-size:13px;color:#FFFFFF;font-weight:700">{stat_lbl}</div></div>
-                <div><span style="font-size:10px;color:#4A6A90">TFR</span>
+                <div><span style="font-size:10px;color:#7BA7CC">TFR</span>
                      <div style="font-size:13px;color:#FFFFFF;font-weight:700">{tfr_val:.1f}h</div></div>
-                <div><span style="font-size:10px;color:#4A6A90">Completed On</span>
+                <div><span style="font-size:10px;color:#7BA7CC">Completed On</span>
                      <div style="font-size:13px;color:#FFFFFF;font-weight:700">{str(comp_date)[:10] if comp_date else "—"}</div></div>
-                <div><span style="font-size:10px;color:#4A6A90">Revisions Done</span>
+                <div><span style="font-size:10px;color:#7BA7CC">Revisions Done</span>
                      <div style="font-size:13px;color:#FFFFFF;font-weight:700">{len(set(rev_dates_map.get(key,[])))}/{num_rev}</div></div>
             </div>
             """, unsafe_allow_html=True)
@@ -3928,7 +3935,7 @@ def leaderboard():
         <div class="glass-card" style="text-align:center;padding:50px 30px">
             <div style="font-size:56px;margin-bottom:18px">🔒</div>
             <h2 style="color:#FFFFFF;margin-bottom:10px">Leaderboard is Locked</h2>
-            <p style="color:#4A6A90;max-width:380px;margin:0 auto 20px">
+            <p style="color:#7BA7CC;max-width:380px;margin:0 auto 20px">
                 You haven't opted in to the leaderboard yet. 
                 Opt in from your <b style='color:#38BDF8'>Profile</b> tab to appear on the 
                 leaderboard and see how others are performing.
@@ -3956,7 +3963,7 @@ def leaderboard():
         <div class="glass-card" style="text-align:center;padding:40px">
             <div style="font-size:40px;margin-bottom:12px">🏆</div>
             <h2>No Rankings Yet</h2>
-            <p style="color:#4A6A90">Be the first to climb the leaderboard!</p>
+            <p style="color:#7BA7CC">Be the first to climb the leaderboard!</p>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -3973,7 +3980,7 @@ def leaderboard():
         border = "#38BDF8" if is_me else (medal_colors.get(i, "rgba(56,189,248,0.15)"))
         glow   = "rgba(56,189,248,0.2)" if is_me else neon_glow.get(i, "transparent")
         you    = " · <span style='color:#38BDF8;font-size:11px;letter-spacing:1px'>YOU</span>" if is_me else ""
-        rank_style = f"color:{medal_colors.get(i, '#B0BDD8')};font-size:22px" if i < 3 else "color:#4A6A90;font-size:14px;font-family:'DM Mono',monospace"
+        rank_style = f"color:{medal_colors.get(i, '#C8D8EE')};font-size:22px" if i < 3 else "color:#7BA7CC;font-size:14px;font-family:'DM Mono',monospace"
 
         st.markdown(f"""
         <div class="lb-card" style="border-left:3px solid {border};box-shadow:0 0 20px {glow}">
@@ -3983,7 +3990,7 @@ def leaderboard():
                     <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;color:#FFFFFF">
                         {row['full_name']} {you}
                     </div>
-                    <div style="font-size:11px;color:#4A6A90;letter-spacing:0.5px">@{row['username']}</div>
+                    <div style="font-size:11px;color:#7BA7CC;letter-spacing:0.5px">@{row['username']}</div>
                 </div>
             </div>
             <div style="display:flex;gap:12px;align-items:center">
@@ -4162,7 +4169,7 @@ else:
                             background-clip:text;
                             animation:gradient-shift 4s ease infinite;
                             letter-spacing:-0.5px;line-height:1.1">{name}</div>
-                <div style="font-size:10px;color:#4A6A90;align-self:center">@{profile.get("username","")}</div>
+                <div style="font-size:10px;color:#7BA7CC;align-self:center">@{profile.get("username","")}</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
                 <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:900;
@@ -4173,10 +4180,10 @@ else:
                             font-size:11px;font-weight:700;color:{_lvl_clr};
                             font-family:'DM Mono',monospace;letter-spacing:0.5px">
                     {_lvl_info["name"].upper()}</div>
-                <div style="font-size:10px;color:#4A6A90;margin-left:auto">
+                <div style="font-size:10px;color:#7BA7CC;margin-left:auto">
                     {_total_xp:.0f}h &nbsp;/&nbsp; {_lvl_info["next_threshold"]}h</div>
             </div>
-            <div style="background:rgba(255,255,255,0.06);border-radius:8px;
+            <div style="background:rgba(14,60,140,0.15);border-radius:8px;
                         height:12px;overflow:hidden;position:relative;
                         border:1px solid rgba({_glow_rgb},0.15)">
                 <div style="width:{_lvl_pct:.1f}%;height:100%;border-radius:8px;
@@ -4191,7 +4198,7 @@ else:
                                        0 0 60px rgba(14,165,233,0.4)">
                 </div>
             </div>
-            <div style="font-size:9px;color:#4A6A90;margin-top:3px">
+            <div style="font-size:9px;color:#7BA7CC;margin-top:3px">
                 {hrs_to_next:.0f}h more to Level {min(_lvl+1,25)}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -4208,7 +4215,7 @@ else:
             <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;
                         color:#FFF;line-height:1;
                         animation:pulse-count 2s ease-in-out infinite">{days_left}</div>
-            <div style="font-size:8px;color:#4A6A90;letter-spacing:2px;margin-top:2px">DAYS</div>
+            <div style="font-size:8px;color:#7BA7CC;letter-spacing:2px;margin-top:2px">DAYS</div>
             <div style="font-size:9px;color:#38BDF8;margin-top:1px">
                 {prof.get("exam_month","")[:3]} {prof.get("exam_year","")}</div>
         </div>
