@@ -102,7 +102,7 @@ TOPICS = {
 # ── WORLD CLASS GLASSY NEON CSS ───────────────────────────────────────────────
 GLASSY_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&display=swap');
 
 /* ════════════════════════════════════════
    ROOT VARIABLES
@@ -121,8 +121,8 @@ GLASSY_CSS = """
     --text-primary: #E0F0FF;
     --text-muted:   #4A6A90;
     --font-display: 'Orbitron', monospace;
-    --font-ui:      'Rajdhani', sans-serif;
-    --font-body:    'Space Grotesk', sans-serif;
+    --font-ui:      'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-body:    'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 /* ════════════════════════════════════════
@@ -1208,19 +1208,25 @@ def _cache_key():
 
 @st.cache_data(ttl=120, show_spinner=False)
 def _fetch_logs(user_id):
-    r  = sb.table("daily_log") \
-           .select("date,subject,topic,hours,pages_done,difficulty,notes,session_type,topic_status,completion_date") \
-           .eq("user_id", user_id) \
-           .order("date", desc=True) \
-           .execute()
+    # Try with new columns first; fall back to base columns if migration not yet run
+    try:
+        r = sb.table("daily_log") \
+               .select("date,subject,topic,hours,pages_done,difficulty,notes,session_type,topic_status,completion_date") \
+               .eq("user_id", user_id).order("date", desc=True).execute()
+    except Exception:
+        r = sb.table("daily_log") \
+               .select("date,subject,topic,hours,pages_done,difficulty,notes") \
+               .eq("user_id", user_id).order("date", desc=True).execute()
     df = pd.DataFrame(r.data)
     if not df.empty:
         df["date"]  = pd.to_datetime(df["date"])
         df["hours"] = pd.to_numeric(df["hours"])
-        if "session_type" not in df.columns:
-            df["session_type"] = "reading"
-        if "topic_status" not in df.columns:
-            df["topic_status"] = "reading"
+    if "session_type" not in df.columns:
+        df["session_type"] = "reading"
+    if "topic_status" not in df.columns:
+        df["topic_status"] = "not_started"
+    if "completion_date" not in df.columns:
+        df["completion_date"] = None
     return df
 
 
@@ -1240,18 +1246,21 @@ def _fetch_scores(user_id):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _fetch_revision(user_id):
-    r = sb.table("revision_tracker") \
-          .select("subject,topic,first_read,first_read_date,revision_count,last_revision_date,topic_status,total_first_reading_time,completion_date") \
-          .eq("user_id", user_id) \
-          .execute()
+    try:
+        r = sb.table("revision_tracker") \
+              .select("subject,topic,first_read,first_read_date,revision_count,last_revision_date,topic_status,total_first_reading_time,completion_date") \
+              .eq("user_id", user_id).execute()
+    except Exception:
+        r = sb.table("revision_tracker") \
+              .select("subject,topic,first_read,first_read_date,revision_count,last_revision_date") \
+              .eq("user_id", user_id).execute()
     df = pd.DataFrame(r.data)
-    if not df.empty:
-        if "topic_status" not in df.columns:
-            df["topic_status"] = "not_started"
-        if "total_first_reading_time" not in df.columns:
-            df["total_first_reading_time"] = 0.0
-        if "completion_date" not in df.columns:
-            df["completion_date"] = None
+    if "topic_status" not in df.columns:
+        df["topic_status"] = "not_started"
+    if "total_first_reading_time" not in df.columns:
+        df["total_first_reading_time"] = 0.0
+    if "completion_date" not in df.columns:
+        df["completion_date"] = None
     return df
 
 
@@ -1341,6 +1350,9 @@ def complete_topic(subject: str, topic: str, tfr: float):
         invalidate_cache()
         return True, f"✅ {topic} marked as Completed! Revision schedule generated."
     except Exception as e:
+        err = str(e)
+        if "column" in err.lower() or "topic_status" in err:
+            return False, "⚠️ Database migration required. Please run the updated supabase_setup.sql in your Supabase SQL Editor to enable the new revision engine."
         return False, f"Error: {e}"
 
 
@@ -1694,6 +1706,20 @@ def update_profile(data):
             st.session_state.exam_date = date(exam_y, exam_m, 1)
         return True, "Profile updated!"
     except Exception as e:
+        err = str(e)
+        # If new columns don't exist yet, retry with only known-safe columns
+        new_cols = {"r1_ratio","r2_ratio","num_revisions",
+                    "target_hrs_fr","target_hrs_afm","target_hrs_aa","target_hrs_dt","target_hrs_idt"}
+        if any(c in err for c in new_cols) or "column" in err.lower():
+            safe_data = {k: v for k, v in data.items() if k not in new_cols}
+            try:
+                if safe_data:
+                    sb.table("profiles").update(safe_data).eq("id", uid()).execute()
+                # Also update session_state with whatever was passed
+                st.session_state.profile.update(data)
+                return True, "Profile updated! (Run SQL migration to save revision settings)"
+            except Exception as e2:
+                return False, f"Error: {e2}"
         return False, f"Error: {e}"
 
 
@@ -1724,163 +1750,301 @@ def set_leaderboard_opt_in(enabled: bool):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PROFILE EDIT
+# XP / LEVEL SYSTEM
+# ══════════════════════════════════════════════════════════════════════════════
+# Level thresholds (cumulative hours): L1=10, L2=25, L3=45 ... L25=1750
+# Formula: gap starts at 10, increases by 5 each level
+XP_THRESHOLDS = [0]
+_gap = 10
+for _i in range(25):
+    XP_THRESHOLDS.append(XP_THRESHOLDS[-1] + _gap)
+    _gap += 5
+
+LEVEL_NAMES = {
+    1:"Beginner", 2:"Novice", 3:"Scholar", 4:"Apprentice", 5:"Student",
+    6:"Enthusiast", 7:"Studious", 8:"Focused", 9:"Dedicated", 10:"Committed",
+    11:"Diligent", 12:"Persistent", 13:"Advanced", 14:"Expert", 15:"Elite",
+    16:"Master", 17:"Virtuoso", 18:"Prodigy", 19:"Genius", 20:"Legend",
+    21:"Titan", 22:"Oracle", 23:"Sage", 24:"Champion", 25:"Grand Master",
+}
+
+def get_level_info(total_hours: float) -> dict:
+    """Returns current level, XP progress, and threshold info."""
+    lvl = 0
+    for i in range(1, 26):
+        if total_hours >= XP_THRESHOLDS[i]:
+            lvl = i
+        else:
+            break
+    lvl = max(lvl, 0)
+    if lvl >= 25:
+        return {"level": 25, "name": LEVEL_NAMES[25], "pct": 100,
+                "current_xp": total_hours, "next_threshold": XP_THRESHOLDS[25],
+                "prev_threshold": XP_THRESHOLDS[24]}
+    prev = XP_THRESHOLDS[lvl]
+    nxt  = XP_THRESHOLDS[lvl + 1]
+    pct  = min((total_hours - prev) / (nxt - prev) * 100, 100) if nxt > prev else 100
+    return {
+        "level": lvl,
+        "name":  LEVEL_NAMES.get(lvl, f"Level {lvl}") if lvl > 0 else "Unranked",
+        "pct":   pct,
+        "current_xp":     total_hours,
+        "next_threshold": nxt,
+        "prev_threshold": prev,
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ACHIEVEMENT SYSTEM
+# ══════════════════════════════════════════════════════════════════════════════
+ACHIEVEMENTS = {
+    "topics": [
+        {"id":"t1",  "icon":"📖", "name":"First Chapter",   "desc":"Complete your first topic",          "req": 1,  "type":"completed_topics"},
+        {"id":"t2",  "icon":"📚", "name":"Bookworm",         "desc":"Complete 5 topics",                  "req": 5,  "type":"completed_topics"},
+        {"id":"t3",  "icon":"🎓", "name":"Scholar",          "desc":"Complete 10 topics",                 "req":10,  "type":"completed_topics"},
+        {"id":"t4",  "icon":"🏛️", "name":"Academician",     "desc":"Complete 25 topics",                 "req":25,  "type":"completed_topics"},
+        {"id":"t5",  "icon":"👑", "name":"Grand Scholar",    "desc":"Complete all 86 topics",             "req":86,  "type":"completed_topics"},
+    ],
+    "revisions": [
+        {"id":"r1",  "icon":"🔄", "name":"First Revision",  "desc":"Complete your first revision",       "req": 1,  "type":"total_revisions"},
+        {"id":"r2",  "icon":"🔁", "name":"Revisionist",     "desc":"Complete 10 revisions",              "req":10,  "type":"total_revisions"},
+        {"id":"r3",  "icon":"💪", "name":"Iron Memory",     "desc":"Complete 25 revisions",              "req":25,  "type":"total_revisions"},
+        {"id":"r4",  "icon":"🧠", "name":"Mastermind",      "desc":"Complete 50 revisions",              "req":50,  "type":"total_revisions"},
+        {"id":"r5",  "icon":"⚡", "name":"Revision King",   "desc":"Complete 100 revisions",             "req":100, "type":"total_revisions"},
+    ],
+    "tests": [
+        {"id":"ts1", "icon":"✍️",  "name":"Test Pilot",     "desc":"Attempt your first mock test",       "req": 1,  "type":"total_tests"},
+        {"id":"ts2", "icon":"🎯",  "name":"Sharp Shooter",  "desc":"Score 60%+ on any test",             "req": 60, "type":"max_score"},
+        {"id":"ts3", "icon":"🏅",  "name":"Consistent",     "desc":"Attempt 5 tests",                    "req": 5,  "type":"total_tests"},
+        {"id":"ts4", "icon":"🥇",  "name":"Top Scorer",     "desc":"Score 80%+ on any test",             "req": 80, "type":"max_score"},
+        {"id":"ts5", "icon":"🏆",  "name":"Exam Ready",     "desc":"Avg score 70%+ across 10 tests",     "req": 70, "type":"avg_score_10"},
+    ],
+}
+
+def compute_achievements(log_df, rev_df, rev_sess_df, test_df):
+    """Returns dict of achievement_id -> bool (unlocked)."""
+    unlocked = {}
+    # Topics
+    completed_topics = 0
+    if not rev_df.empty and "topic_status" in rev_df.columns:
+        completed_topics = int((rev_df["topic_status"] == "completed").sum())
+    total_revisions = len(rev_sess_df) if not rev_sess_df.empty else 0
+    total_tests     = len(test_df) if not test_df.empty else 0
+    max_score       = float(test_df["score_pct"].max()) if not test_df.empty and "score_pct" in test_df.columns else 0
+    avg_score_10    = float(test_df["score_pct"].tail(10).mean()) if not test_df.empty and len(test_df) >= 10 else 0
+
+    vals = {
+        "completed_topics": completed_topics,
+        "total_revisions":  total_revisions,
+        "total_tests":      total_tests,
+        "max_score":        max_score,
+        "avg_score_10":     avg_score_10,
+    }
+    for cat, items in ACHIEVEMENTS.items():
+        for item in items:
+            v = vals.get(item["type"], 0)
+            unlocked[item["id"]] = v >= item["req"]
+    return unlocked, vals
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROFILE PAGE (full rewrite with tabs)
 # ══════════════════════════════════════════════════════════════════════════════
 def profile_page():
-    st.markdown("<h1>👤 My Profile</h1>", unsafe_allow_html=True)
-    prof = st.session_state.profile
+    prof       = st.session_state.profile
+    log_df     = get_logs()
+    rev_df     = get_revision()
+    rev_sess   = get_rev_sessions()
+    test_df    = get_scores()
 
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        init = prof.get("full_name", "U")
-        st.markdown(f"""
-        <div style="text-align:center;padding:30px 20px;
-                    background:rgba(8,18,50,0.80);
-                    border:2px solid rgba(56,189,248,0.25);
-                    border-radius:20px;margin-bottom:16px">
-            <div style="width:80px;height:80px;border-radius:50%;
-                        background:linear-gradient(135deg,#0E5AC8,#38BDF8);
-                        display:flex;align-items:center;justify-content:center;
-                        margin:0 auto 14px;font-size:32px;font-weight:800;color:#FFF;
-                        font-family:'Orbitron',monospace;
-                        box-shadow:0 0 30px rgba(56,189,248,0.5)">{init[0].upper()}</div>
-            <div style="font-family:'Orbitron',monospace;font-size:16px;
-                        font-weight:700;color:#FFF">{prof.get('full_name','')}</div>
-            <div style="font-size:12px;color:#4A6A90;margin-top:4px">
-                @{prof.get('username','')}</div>
-            <div style="margin-top:14px;padding:8px 16px;
-                        background:rgba(56,189,248,0.10);border-radius:8px;
-                        font-size:11px;color:#7AB4D0;letter-spacing:1px">
-                {prof.get('exam_month','')} {prof.get('exam_year','')} Attempt
+    # Total XP = reading hours + revision hours
+    read_hrs = float(log_df["hours"].sum()) if not log_df.empty else 0.0
+    rev_hrs  = float(rev_sess["hours"].sum()) if not rev_sess.empty and "hours" in rev_sess.columns else 0.0
+    total_xp_hrs = read_hrs + rev_hrs
+
+    lvl_info = get_level_info(total_xp_hrs)
+    lvl      = lvl_info["level"]
+    lvl_name = lvl_info["name"]
+    lvl_pct  = lvl_info["pct"]
+    nxt_thr  = lvl_info["next_threshold"]
+    hrs_to_next = max(nxt_thr - total_xp_hrs, 0)
+
+    name  = prof.get("full_name", "Student")
+    uname = prof.get("username", "")
+    init  = name[0].upper() if name else "U"
+
+    # Level colour
+    lvl_clr = (
+        "#34D399" if lvl >= 20 else "#60A5FA" if lvl >= 15 else
+        "#FBBF24" if lvl >= 10 else "#38BDF8"  if lvl >= 5  else "#94A3B8"
+    )
+
+    # ── Hero card: avatar + XP bar ──────────────────────────────────────────
+    unlocked, ach_vals = compute_achievements(log_df, rev_df, rev_sess, test_df)
+    # Latest unlocked per category
+    def latest_badge(cat):
+        for item in reversed(ACHIEVEMENTS[cat]):
+            if unlocked.get(item["id"]):
+                return item
+        return None
+
+    latest_topic_badge = latest_badge("topics")
+    latest_rev_badge   = latest_badge("revisions")
+    latest_test_badge  = latest_badge("tests")
+    showcase_badges    = [b for b in [latest_topic_badge, latest_rev_badge, latest_test_badge] if b]
+
+    days_left = max((get_exam_date() - date.today()).days, 0)
+
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg,rgba(8,18,50,0.95),rgba(14,40,100,0.90));
+                border:2px solid rgba(56,189,248,0.30);border-radius:24px;
+                padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden">
+        <!-- Animated top line -->
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                    background:linear-gradient(90deg,transparent,{lvl_clr},{lvl_clr}88,transparent);
+                    animation:scanline 2.5s ease-in-out infinite"></div>
+
+        <div style="display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap">
+            <!-- Avatar -->
+            <div style="text-align:center;min-width:110px">
+                <div style="width:90px;height:90px;border-radius:50%;
+                            background:linear-gradient(135deg,#0E5AC8,#38BDF8);
+                            display:flex;align-items:center;justify-content:center;
+                            margin:0 auto 10px;font-size:36px;font-weight:800;color:#FFF;
+                            font-family:'Orbitron',monospace;
+                            box-shadow:0 0 0 3px {lvl_clr}66, 0 0 30px {lvl_clr}44">{init}</div>
+                <div style="font-family:'Orbitron',monospace;font-size:10px;
+                            color:{lvl_clr};font-weight:700;letter-spacing:1px">
+                    LVL {lvl}</div>
+                <div style="font-size:10px;color:#7AB4D0;margin-top:2px">{lvl_name}</div>
             </div>
+
+            <!-- Name + XP bar -->
+            <div style="flex:1;min-width:200px">
+                <div style="font-family:'Orbitron',monospace;font-size:20px;
+                            font-weight:800;color:#FFF;margin-bottom:2px">{name}</div>
+                <div style="font-size:12px;color:#4A6A90;margin-bottom:16px">
+                    @{uname} &nbsp;·&nbsp; {prof.get('exam_month','')} {prof.get('exam_year','')}
+                    &nbsp;·&nbsp; {days_left}d left
+                </div>
+
+                <!-- XP Bar -->
+                <div style="margin-bottom:6px;display:flex;justify-content:space-between;
+                            align-items:center">
+                    <span style="font-size:11px;color:#7AB4D0;font-family:'Orbitron',monospace">
+                        XP PROGRESS</span>
+                    <span style="font-size:11px;color:{lvl_clr};font-weight:700">
+                        {total_xp_hrs:.0f}h / {nxt_thr}h</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.07);border-radius:8px;
+                            height:12px;overflow:hidden;position:relative">
+                    <div style="width:{lvl_pct:.1f}%;height:100%;border-radius:8px;
+                                background:linear-gradient(90deg,{lvl_clr}88,{lvl_clr});
+                                box-shadow:0 0 12px {lvl_clr}88;
+                                transition:width 1.2s cubic-bezier(0.4,0,0.2,1);
+                                animation:xp-pulse 2s ease-in-out infinite"></div>
+                </div>
+                <div style="font-size:10px;color:#4A6A90;margin-top:5px">
+                    {hrs_to_next:.0f}h to Level {min(lvl+1,25)}</div>
+            </div>
+
+            <!-- Showcase badges -->
+            {"".join([f'<div style="text-align:center;min-width:60px"><div style="font-size:28px">{b["icon"]}</div><div style="font-size:9px;color:#7AB4D0;margin-top:2px">{b["name"]}</div></div>' for b in showcase_badges]) if showcase_badges else "<div style=\'font-size:10px;color:#4A6A90;align-self:center\'>No badges yet — keep studying!</div>"}
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    <style>
+    @keyframes xp-pulse {{
+        0%,100% {{ box-shadow: 0 0 12px {lvl_clr}88; }}
+        50%       {{ box-shadow: 0 0 22px {lvl_clr}CC, 0 0 40px {lvl_clr}44; }}
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
-        # Leaderboard opt-in toggle
-        st.markdown('<div class="neon-header">🏆 Leaderboard</div>', unsafe_allow_html=True)
-        current_opt = bool(prof.get("leaderboard_opt_in", False))
-        st.markdown(f"""
-        <div style="background:{'rgba(52,211,153,0.10)' if current_opt else 'rgba(56,189,248,0.07)'};
-                    border:2px solid {'rgba(52,211,153,0.35)' if current_opt else 'rgba(56,189,248,0.18)'};
-                    border-radius:12px;padding:14px;margin-bottom:12px">
-            <div style="font-size:12px;color:#B0D4F0;margin-bottom:6px">
-                {'✅ You are <b>participating</b> in the leaderboard' if current_opt
-                 else '🔒 You are <b>not</b> participating in the leaderboard'}
-            </div>
-            <div style="font-size:10px;color:#4A6A90">
-                {'Others can see your hours, days & avg score.' if current_opt
-                 else 'Enable to appear on leaderboard and see others\' stats.'}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        if current_opt:
-            if st.button("🚫 Opt Out of Leaderboard", use_container_width=True):
-                ok, msg = set_leaderboard_opt_in(False)
-                if ok: st.success("Opted out."); st.rerun()
-                else: st.error(msg)
-        else:
-            if st.button("🏆 Join Leaderboard", use_container_width=True):
-                ok, msg = set_leaderboard_opt_in(True)
-                if ok: st.success("You're on the leaderboard!"); st.rerun()
-                else: st.error(msg)
+    # ── Profile tabs ────────────────────────────────────────────────────────
+    ptab1, ptab2, ptab3, ptab4 = st.tabs([
+        "⚙️  General Settings",
+        "🏅  Achievements",
+        "🥇  Leaderboard",
+        "🚪  Sign Out",
+    ])
 
-    with c2:
-        st.markdown('<div class="neon-header">✏️ Edit Personal Details</div>', unsafe_allow_html=True)
-
-        if "prof_edit_subj" not in st.session_state:
-            st.session_state.prof_edit_subj = prof.get("exam_month", "January")
-
+    # ════════════════════════════════
+    # TAB 1 — General Settings
+    # ════════════════════════════════
+    with ptab1:
+        st.markdown('<div class="neon-header">✏️ Personal Details</div>', unsafe_allow_html=True)
         p1, p2 = st.columns(2)
-        new_full  = p1.text_input("Full Name", value=prof.get("full_name",""), key="prof_full")
-        new_user  = p2.text_input("Username",  value=prof.get("username",""),  key="prof_user")
+        new_full = p1.text_input("Full Name", value=prof.get("full_name",""), key="prof_full")
+        new_user = p2.text_input("Username",  value=prof.get("username",""),  key="prof_user")
 
         p3, p4 = st.columns(2)
-        new_srn   = p3.text_input("SRN No. (ICAI Registration)",
-                                   value=prof.get("srn_no",""),
-                                   placeholder="e.g. CRO0123456",
-                                   key="prof_srn")
-        dob_val   = prof.get("dob", None)
+        new_srn = p3.text_input("SRN No. (ICAI Registration)",
+                                 value=prof.get("srn_no",""),
+                                 placeholder="e.g. CRO0123456", key="prof_srn")
+        dob_val = prof.get("dob", None)
         try:
-            dob_default = date.fromisoformat(dob_val) if dob_val else date(2000, 1, 1)
+            dob_default = date.fromisoformat(dob_val) if dob_val else date(2000,1,1)
         except:
-            dob_default = date(2000, 1, 1)
-        new_dob   = p4.date_input("Date of Birth", value=dob_default,
-                                   min_value=date(1970,1,1), max_value=date.today(),
-                                   key="prof_dob")
+            dob_default = date(2000,1,1)
+        new_dob = p4.date_input("Date of Birth", value=dob_default,
+                                 min_value=date(1970,1,1), max_value=date.today(), key="prof_dob")
 
         p5, p6 = st.columns(2)
         gender_opts = ["Prefer not to say","Male","Female","Non-binary","Other"]
         cur_gender  = prof.get("gender","Prefer not to say")
         g_idx       = gender_opts.index(cur_gender) if cur_gender in gender_opts else 0
         new_gender  = p5.selectbox("Gender", gender_opts, index=g_idx, key="prof_gender")
-        new_phone   = p6.text_input("Phone (optional)",
-                                    value=prof.get("phone",""),
-                                    placeholder="+91 9XXXXXXXXX",
-                                    key="prof_phone")
+        new_phone   = p6.text_input("Phone (optional)", value=prof.get("phone",""),
+                                     placeholder="+91 9XXXXXXXXX", key="prof_phone")
+
+        st.markdown("---")
+        st.markdown('<div class="neon-header">📅 Exam Details</div>', unsafe_allow_html=True)
+        ep1, ep2 = st.columns(2)
+        month_list = ["January","May","September"]
+        cur_month  = prof.get("exam_month","January")
+        m_idx      = month_list.index(cur_month) if cur_month in month_list else 0
+        new_month  = ep1.selectbox("Exam Month", month_list, index=m_idx, key="prof_month")
+        new_year   = ep2.selectbox("Exam Year", [2025,2026,2027,2028],
+                                    index=[2025,2026,2027,2028].index(int(prof.get("exam_year",2027)))
+                                    if int(prof.get("exam_year",2027)) in [2025,2026,2027,2028] else 2,
+                                    key="prof_year")
 
         st.markdown("---")
         st.markdown('<div class="neon-header">🔄 Revision Engine Settings</div>', unsafe_allow_html=True)
-        st.markdown("""<div style='font-size:12px;color:#7AB4D0;margin-bottom:12px'>
-            These settings control how your revision schedule is computed.
-            <b>R1 & R2 Ratios</b> are set by you; all later ratios are auto-calculated using
-            weighted average logic.
-        </div>""", unsafe_allow_html=True)
-
+        st.caption("R1 & R2 Ratios set by you — all later ratios auto-calculated via weighted average.")
         re1, re2, re3 = st.columns(3)
-        cur_r1 = float(prof.get("r1_ratio", 0.25))
-        cur_r2 = float(prof.get("r2_ratio", 0.25))
+        cur_r1   = float(prof.get("r1_ratio", 0.25))
+        cur_r2   = float(prof.get("r2_ratio", 0.25))
         cur_nrev = int(prof.get("num_revisions", 6))
-
-        new_r1 = re1.slider("R1 Ratio (% of TFR)", 5, 80, int(cur_r1 * 100), 5,
-                             key="prof_r1",
-                             help="R1 duration = TFR × this ratio") / 100
-        new_r2 = re2.slider("R2 Ratio (% of TFR)", 5, 80, int(cur_r2 * 100), 5,
-                             key="prof_r2",
-                             help="R2 duration = TFR × this ratio") / 100
-        new_nrev = re3.slider("Number of Revisions", 3, 10, cur_nrev, 1,
-                               key="prof_nrev",
-                               help="Minimum 3, Maximum 10. Default 6.")
-
-        # Show auto-generated ratios preview
+        new_r1   = re1.slider("R1 Ratio (% of TFR)", 5, 80, int(cur_r1*100), 5, key="prof_r1",
+                               help="R1 duration = TFR × this ratio") / 100
+        new_r2   = re2.slider("R2 Ratio (% of TFR)", 5, 80, int(cur_r2*100), 5, key="prof_r2",
+                               help="R2 duration = TFR × this ratio") / 100
+        new_nrev = re3.slider("Number of Revisions", 3, 10, cur_nrev, 1, key="prof_nrev")
         ratios = get_revision_ratios(new_r1, new_r2, new_nrev)
-        ratio_preview = " → ".join([f"R{i+1}:{r*100:.0f}%" for i, r in enumerate(ratios)])
-        st.caption(f"Auto-generated schedule: **{ratio_preview}**")
+        st.caption("Auto schedule: " + " → ".join([f"R{i+1}:{r*100:.0f}%" for i,r in enumerate(ratios)]))
 
         st.markdown("---")
-        st.markdown('<div class="neon-header">📚 First Reading Target Hours (per Subject)</div>', unsafe_allow_html=True)
-        st.markdown("""<div style='font-size:12px;color:#7AB4D0;margin-bottom:10px'>
-            Set your target hours for completing the first reading of each subject.
-            These targets are used in Subject Progress tracking.
-        </div>""", unsafe_allow_html=True)
+        st.markdown('<div class="neon-header">📚 First Reading Targets (hours per subject)</div>', unsafe_allow_html=True)
         th_cols = st.columns(5)
         new_target_hrs = {}
         for i, s in enumerate(SUBJECTS):
             cur_tgt = int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s]))
-            new_target_hrs[s] = th_cols[i].number_input(
-                f"{s}", min_value=50, max_value=500, value=cur_tgt, step=10,
-                key=f"prof_tgt_{s}"
-            )
+            new_target_hrs[s] = th_cols[i].number_input(f"{s}", min_value=50, max_value=500,
+                                                          value=cur_tgt, step=10, key=f"prof_tgt_{s}")
 
         st.markdown("---")
         st.markdown('<div class="neon-header">📅 Backdated Entry Access</div>', unsafe_allow_html=True)
-        st.markdown("""<div style='font-size:12px;color:#7AB4D0;margin-bottom:10px'>
-            Enable this to log study sessions or test scores on past dates beyond the default 3-day limit.
-            Use responsibly — only for genuine missed entries.
-        </div>""", unsafe_allow_html=True)
         cur_backdate = bool(prof.get("allow_backdate", False))
-        bd_col1, bd_col2 = st.columns([2,1])
-        with bd_col1:
-            st.markdown(f"""
-            <div style="background:{'rgba(251,191,36,0.10)' if cur_backdate else 'rgba(74,106,144,0.10)'};
-                        border:2px solid {'rgba(251,191,36,0.35)' if cur_backdate else 'rgba(74,106,144,0.25)'};
-                        border-radius:10px;padding:12px 14px">
-                <div style="font-size:12px;color:#B0D4F0">
-                    {'⚠️ <b>Backdated entries enabled</b> — all past dates accessible' if cur_backdate
-                     else '🔒 <b>Backdated entries restricted</b> — only last 3 days allowed'}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        with bd_col2:
+        bd1, bd2 = st.columns([2,1])
+        with bd1:
+            st.markdown(f"""<div style="background:{'rgba(251,191,36,0.10)' if cur_backdate else 'rgba(74,106,144,0.10)'};
+                border:2px solid {'rgba(251,191,36,0.35)' if cur_backdate else 'rgba(74,106,144,0.25)'};
+                border-radius:10px;padding:12px 14px;font-size:12px;color:#B0D4F0">
+                {'⚠️ <b>Backdated entries enabled</b> — all past dates accessible'
+                 if cur_backdate else '🔒 <b>Backdated entries restricted</b> — only last 3 days'}
+            </div>""", unsafe_allow_html=True)
+        with bd2:
             if cur_backdate:
                 if st.button("🔒 Disable Backdating", use_container_width=True, key="bd_disable"):
                     ok, msg = update_profile({"allow_backdate": False})
@@ -1890,52 +2054,131 @@ def profile_page():
                     ok, msg = update_profile({"allow_backdate": True})
                     if ok: st.rerun()
 
-        st.markdown('<div class="neon-header">📅 Update Exam Details</div>', unsafe_allow_html=True)
-        ep1, ep2 = st.columns(2)
-        month_list = ["January","May","September"]
-        cur_month  = prof.get("exam_month","January")
-        m_idx      = month_list.index(cur_month) if cur_month in month_list else 0
-        new_month  = ep1.selectbox("Exam Month", month_list, index=m_idx, key="prof_month")
-        new_year   = ep2.selectbox("Exam Year",  [2025,2026,2027,2028],
-                                    index=[2025,2026,2027,2028].index(
-                                        int(prof.get("exam_year",2027)))
-                                    if int(prof.get("exam_year",2027)) in [2025,2026,2027,2028] else 2,
-                                    key="prof_year")
-
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("💾 SAVE PROFILE CHANGES", use_container_width=True):
+        if st.button("💾 SAVE ALL SETTINGS", use_container_width=True, key="prof_save"):
             errors = []
-            if not new_full.strip():
-                errors.append("Full Name cannot be empty")
-            if not new_user.strip():
-                errors.append("Username cannot be empty")
+            if not new_full.strip(): errors.append("Full Name cannot be empty")
+            if not new_user.strip(): errors.append("Username cannot be empty")
             if errors:
                 for e in errors: st.warning(f"⚠️ {e}")
             else:
                 ok, msg = update_profile({
-                    "full_name":         new_full.strip(),
-                    "username":          new_user.strip(),
-                    "srn_no":            new_srn.strip(),
-                    "dob":               str(new_dob),
-                    "gender":            new_gender,
-                    "phone":             new_phone.strip(),
-                    "exam_month":        new_month,
-                    "exam_year":         new_year,
-                    "r1_ratio":          new_r1,
-                    "r2_ratio":          new_r2,
-                    "num_revisions":     new_nrev,
+                    "full_name": new_full.strip(), "username": new_user.strip(),
+                    "srn_no": new_srn.strip(), "dob": str(new_dob),
+                    "gender": new_gender, "phone": new_phone.strip(),
+                    "exam_month": new_month, "exam_year": new_year,
+                    "r1_ratio": new_r1, "r2_ratio": new_r2, "num_revisions": new_nrev,
                     **{f"target_hrs_{s.lower()}": new_target_hrs[s] for s in SUBJECTS},
                 })
-                if ok:
-                    st.success(f"✅ {msg}")
-                    st.rerun()
-                else:
-                    st.error(msg)
+                if ok: st.success(f"✅ {msg}"); st.rerun()
+                else:  st.error(msg)
+
+    # ════════════════════════════════
+    # TAB 2 — Achievements
+    # ════════════════════════════════
+    with ptab2:
+        st.markdown('<div class="neon-header">🏅 Your Achievements</div>', unsafe_allow_html=True)
+        st.markdown(f"""<div style="font-size:12px;color:#7AB4D0;margin-bottom:16px">
+            Earn medals and badges by completing topics, revisions, and mock tests.
+            Locked items show what you need to unlock them.
+        </div>""", unsafe_allow_html=True)
+
+        for cat_key, cat_label, cat_icon in [
+            ("topics",    "Topic Completion",  "📖"),
+            ("revisions", "Revision Mastery",  "🔄"),
+            ("tests",     "Test Performance",  "✍️"),
+        ]:
+            st.markdown(f"#### {cat_icon} {cat_label}")
+            cols = st.columns(5)
+            for idx, item in enumerate(ACHIEVEMENTS[cat_key]):
+                is_unlocked = unlocked.get(item["id"], False)
+                with cols[idx % 5]:
+                    if is_unlocked:
+                        st.markdown(f"""
+                        <div style="background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(56,189,248,0.10));
+                                    border:2px solid rgba(52,211,153,0.50);border-radius:16px;
+                                    padding:16px 10px;text-align:center;cursor:default">
+                            <div style="font-size:32px;margin-bottom:6px">{item["icon"]}</div>
+                            <div style="font-size:11px;font-weight:700;color:#34D399;
+                                        font-family:Helvetica,sans-serif">{item["name"]}</div>
+                            <div style="font-size:9px;color:#7AB4D0;margin-top:4px">✅ Unlocked</div>
+                        </div>""", unsafe_allow_html=True)
+                    else:
+                        # Show locked with popover hint
+                        st.markdown(f"""
+                        <div style="background:rgba(6,14,38,0.80);border:2px solid rgba(56,189,248,0.12);
+                                    border-radius:16px;padding:16px 10px;text-align:center;
+                                    opacity:0.55;cursor:default" title="{item['desc']}">
+                            <div style="font-size:32px;margin-bottom:6px;filter:grayscale(1)">🔒</div>
+                            <div style="font-size:11px;font-weight:700;color:#4A6A90">{item["name"]}</div>
+                            <div style="font-size:9px;color:#4A6A90;margin-top:4px">Locked</div>
+                        </div>""", unsafe_allow_html=True)
+                        if st.button(f"How to unlock?", key=f"ach_{item['id']}",
+                                     use_container_width=True):
+                            st.info(f"🔓 **{item['name']}**: {item['desc']}")
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        # Stats summary
+        st.markdown("---")
+        st.markdown('<div class="neon-header">📊 Achievement Stats</div>', unsafe_allow_html=True)
+        total_possible = sum(len(v) for v in ACHIEVEMENTS.values())
+        total_unlocked = sum(1 for v in unlocked.values() if v)
+        a1, a2, a3, a4 = st.columns(4)
+        a1.metric("🏅 Unlocked",        f"{total_unlocked}/{total_possible}")
+        a2.metric("📖 Topics Done",      f"{ach_vals['completed_topics']}")
+        a3.metric("🔄 Revisions Done",   f"{ach_vals['total_revisions']}")
+        a4.metric("✍️ Tests Attempted",  f"{ach_vals['total_tests']}")
+
+    # ════════════════════════════════
+    # TAB 3 — Leaderboard (coming soon)
+    # ════════════════════════════════
+    with ptab3:
+        st.markdown("""
+        <div style="text-align:center;padding:60px 30px">
+            <div style="font-size:64px;margin-bottom:20px">🚀</div>
+            <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;
+                        color:#38BDF8;margin-bottom:12px">COMING SOON</div>
+            <div style="font-size:14px;color:#4A6A90;max-width:380px;margin:0 auto;line-height:1.8">
+                The Global Leaderboard is under construction.<br>
+                Compete with CA Final students across India.<br><br>
+                <span style="color:#7AB4D0">Features planned:</span><br>
+                🏆 Rank by study hours &amp; test scores<br>
+                📊 Subject-wise leaderboards<br>
+                🎖️ Weekly &amp; all-time rankings
+            </div>
+            <div style="margin-top:24px;background:rgba(56,189,248,0.07);
+                        border:2px solid rgba(56,189,248,0.20);border-radius:14px;
+                        padding:14px 20px;display:inline-block">
+                <div style="font-size:11px;color:#38BDF8;font-family:Helvetica,sans-serif">
+                    Stay tuned for the next update!
+                </div>
+            </div>
+        </div>""", unsafe_allow_html=True)
+
+    # ════════════════════════════════
+    # TAB 4 — Sign Out
+    # ════════════════════════════════
+    with ptab4:
+        st.markdown("<br>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1,1,1])
+        with col2:
+            st.markdown(f"""
+            <div style="background:rgba(8,18,50,0.88);border:2px solid rgba(248,113,113,0.30);
+                        border-radius:20px;padding:40px 30px;text-align:center">
+                <div style="font-size:48px;margin-bottom:16px">🚪</div>
+                <div style="font-family:'Orbitron',monospace;font-size:16px;font-weight:700;
+                            color:#FFFFFF;margin-bottom:8px">Sign Out</div>
+                <div style="font-size:13px;color:#4A6A90;margin-bottom:24px">
+                    You are signed in as <b style="color:#38BDF8">{name}</b>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🚪 SIGN OUT", use_container_width=True, key="prof_logout"):
+                do_logout()
+                st.rerun()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# AUTH PAGE
-# ══════════════════════════════════════════════════════════════════════════════
 def auth_page():
     st.markdown(GLASSY_CSS, unsafe_allow_html=True)
 
@@ -2547,9 +2790,9 @@ def log_study():
     existing_log = get_logs()
     rev_df       = get_revision()
     prof         = st.session_state.profile
-    r1_ratio     = float(prof.get("r1_ratio",     0.25))
-    r2_ratio     = float(prof.get("r2_ratio",     0.25))
-    num_rev      = int(prof.get("num_revisions",  6))
+    r1_ratio     = float(prof.get("r1_ratio",    0.25))
+    r2_ratio     = float(prof.get("r2_ratio",    0.25))
+    num_rev      = int(prof.get("num_revisions", 6))
 
     if "log_subj" not in st.session_state:
         st.session_state.log_subj = SUBJECTS[0]
@@ -2559,10 +2802,9 @@ def log_study():
         allow_bd = bool(prof.get("allow_backdate", False))
         min_date = date(2020, 1, 1) if allow_bd else date.today() - timedelta(days=3)
         s_date = st.date_input("📅 Date *", value=date.today(),
-                               min_value=min_date, max_value=date.today(),
-                               key="log_date")
+                               min_value=min_date, max_value=date.today(), key="log_date")
         if allow_bd:
-            st.caption("⚠️ Backdated mode ON — go to 👤 Profile to disable")
+            st.caption("⚠️ Backdated mode ON — go to Profile to disable")
         subj = st.selectbox("📚 Subject *", SUBJECTS,
                             index=SUBJECTS.index(st.session_state.log_subj),
                             format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
@@ -2582,160 +2824,191 @@ def log_study():
                                                         "⭐⭐⭐⭐⭐ Brutal"][x],
                                  key="log_diff")
 
-    # ── Determine topic status ──
-    t_status = get_topic_status(subj, topic, rev_df)
+    # ── Determine current topic status ────────────────────────────────────────
+    t_status   = get_topic_status(subj, topic, rev_df)
     tfr_so_far = get_tfr(subj, topic, existing_log)
 
-    # ── Status badge ──
+    # ── Status badge ──────────────────────────────────────────────────────────
     status_badges = {
         "not_started": ("⬜ Not Started",  "#94A3B8"),
-        "reading":     ("📖 Reading",       "#38BDF8"),
-        "completed":   ("✅ Completed",     "#34D399"),
+        "reading":     ("📖 In Progress",  "#38BDF8"),
+        "completed":   ("✅ First Read Complete", "#34D399"),
     }
     badge_txt, badge_clr = status_badges.get(t_status, ("⬜", "#94A3B8"))
     st.markdown(f"""
     <div style="display:flex;align-items:center;gap:16px;
                 background:rgba(8,18,50,0.80);border:2px solid {badge_clr}44;
-                border-radius:12px;padding:12px 18px;margin:8px 0">
-        <div style="font-family:'Orbitron',monospace;font-size:11px;
+                border-radius:12px;padding:10px 16px;margin:8px 0">
+        <div style="font-family:Helvetica,sans-serif;font-size:12px;
                     color:{badge_clr};font-weight:700">{badge_txt}</div>
         <div style="font-size:11px;color:#7AB4D0">
             TFR so far: <b style="color:#FFFFFF">{tfr_so_far:.1f}h</b>
         </div>
-        {"<div style='font-size:10px;color:#4A6A90;margin-left:auto'>Revisions start after completion</div>" if t_status == "reading" else ""}
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Hours input — locked for revision sessions ──
+    # ════════════════════════════════════════════════════════════════════════
+    # BRANCH: Topic COMPLETED → show revision save UI
+    # ════════════════════════════════════════════════════════════════════════
     if t_status == "completed":
-        # Get next revision round and compute locked duration
         rev_sessions = get_rev_sessions()
         comp_revs = 0
-        if not rev_sessions.empty:
+        if not rev_sessions.empty and "subject" in rev_sessions.columns:
             done = rev_sessions[
                 (rev_sessions["subject"] == subj) &
-                (rev_sessions["topic"]   == topic) &
-                (rev_sessions["status"]  == "completed")
+                (rev_sessions["topic"]   == topic)
             ]
             comp_revs = len(done)
 
-        next_round  = comp_revs + 1
-        tfr_stored  = float(rev_df[(rev_df["subject"] == subj) &
-                                    (rev_df["topic"] == topic)
-                                   ]["total_first_reading_time"].values[0]) \
-                      if not rev_df.empty and len(rev_df[(rev_df["subject"]==subj) &
-                                                          (rev_df["topic"]==topic)]) > 0 else tfr_so_far
+        next_round = comp_revs + 1
+
+        # TFR stored in rev_df (fallback to log-derived)
+        tfr_stored = tfr_so_far
+        if not rev_df.empty:
+            _mask = (rev_df["subject"] == subj) & (rev_df["topic"] == topic)
+            if _mask.any():
+                _val = rev_df[_mask]["total_first_reading_time"].values[0]
+                if _val and float(_val) > 0:
+                    tfr_stored = float(_val)
 
         if next_round <= num_rev:
-            schedule = compute_revision_schedule(tfr_stored, r1_ratio, r2_ratio,
-                                                  num_rev, date.today())
+            schedule   = compute_revision_schedule(tfr_stored, r1_ratio, r2_ratio, num_rev, date.today())
             locked_hrs = schedule[min(next_round-1, len(schedule)-1)]["duration_hrs"]
+            ratio_used = schedule[min(next_round-1, len(schedule)-1)]["ratio"]
+
             st.markdown(f"""
-            <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.3);
-                        border-radius:10px;padding:12px 16px;margin:6px 0">
+            <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.30);
+                        border-radius:12px;padding:14px 18px;margin:8px 0">
                 <div style="font-family:'Orbitron',monospace;font-size:11px;
-                            color:#34D399;margin-bottom:4px">
-                    🔒 R{next_round} — Duration Auto-Calculated
+                            color:#34D399;margin-bottom:6px;letter-spacing:1px">
+                    🔒 REVISION R{next_round} — AUTO-CALCULATED DURATION
                 </div>
-                <div style="font-size:13px;color:#FFFFFF;font-weight:700">
-                    {locked_hrs:.2f} hours
-                </div>
-                <div style="font-size:10px;color:#4A6A90;margin-top:2px">
-                    TFR {tfr_stored:.1f}h × {r1_ratio*100:.0f}%
-                    {'→ weighted' if next_round > 2 else ''}
-                    = {locked_hrs:.2f}h
+                <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+                    <div>
+                        <span style="font-size:24px;font-weight:800;color:#FFFFFF">{locked_hrs:.2f}h</span>
+                        <span style="font-size:11px;color:#4A6A90;margin-left:8px">
+                            = TFR {tfr_stored:.1f}h × {ratio_used*100:.0f}%
+                        </span>
+                    </div>
+                    <div style="font-size:11px;color:#7AB4D0">
+                        Revision {next_round} of {num_rev} &nbsp;·&nbsp;
+                        {comp_revs} completed so far
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            hours = locked_hrs
+
+            hours        = locked_hrs
             session_type = "revision"
             round_num    = next_round
+
+            notes = st.text_area("📝 Notes (optional)", placeholder="Key observations from this revision...",
+                                  height=70, key="log_notes")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button(f"💾 SAVE REVISION R{next_round}", use_container_width=True, key="log_save"):
+                ok, msg = log_revision_session(subj, topic, round_num, hours, s_date, diff, notes)
+                if ok:
+                    st.success(f"✅ {msg}")
+                    st.balloons()
+                    invalidate_cache()
+                else:
+                    st.error(msg)
         else:
-            st.success(f"🏆 All {num_rev} revisions completed for this topic!")
-            hours = 0.0
-            session_type = "revision"
-            round_num    = num_rev
+            st.success(f"🏆 All {num_rev} revisions completed for **{topic}**! Mastery achieved.")
+
+    # ════════════════════════════════════════════════════════════════════════
+    # BRANCH: Topic NOT YET COMPLETED → reading session
+    # ════════════════════════════════════════════════════════════════════════
     else:
-        # Reading session — user enters hours
-        hours        = st.number_input("⏱️ Hours Studied *", 0.5, 12.0, 2.0, 0.5, key="log_hours")
+        hours = st.number_input("⏱️ Hours Studied *", 0.5, 12.0, 2.0, 0.5, key="log_hours")
+        notes = st.text_area("📝 Notes & Key Points (optional)",
+                             placeholder="Key takeaways, doubts, formulas...",
+                             height=70, key="log_notes")
+
+        # ── Checkbox: Mark as completed on save ──────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        mark_complete = st.checkbox(
+            f"✅  Mark **'{topic}'** as First Read Completed",
+            value=False,
+            key="mark_complete_cb",
+            help="Tick this if you are finishing the first read of this topic today. "
+                 "Once saved, the revision schedule will be generated automatically. "
+                 "Leave unticked if the topic continues in future sessions."
+        )
+
+        if mark_complete:
+            projected_tfr = tfr_so_far + hours
+            r1_h = projected_tfr * r1_ratio
+            r2_h = projected_tfr * r2_ratio
+            st.markdown(f"""
+            <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.25);
+                        border-radius:10px;padding:10px 14px;margin:6px 0;font-size:11px;color:#7AB4D0">
+                🎓 On save: TFR will be locked at <b style="color:#FFFFFF">{projected_tfr:.1f}h</b> &nbsp;·&nbsp;
+                R1 = <b style="color:#34D399">{r1_h:.2f}h</b> &nbsp;·&nbsp;
+                R2 = <b style="color:#34D399">{r2_h:.2f}h</b> &nbsp;·&nbsp;
+                {num_rev} revisions scheduled
+            </div>
+            """, unsafe_allow_html=True)
+            save_label = f"✅ SAVE & COMPLETE FIRST READ — {topic[:30]}"
+        else:
+            save_label = "💾 SAVE READING SESSION"
+
         session_type = "reading"
         round_num    = 0
 
-    notes = st.text_area("📝 Notes & Key Points (optional)",
-                         placeholder="Key takeaways, doubts, formulas...",
-                         height=80, key="log_notes")
+        if st.button(save_label, use_container_width=True, key="log_save"):
+            errors = []
+            if not topic:
+                errors.append("Topic is required")
+            if pages == 0:
+                errors.append("Pages / Questions must be greater than 0")
+            if hours <= 0:
+                errors.append("Hours must be greater than 0")
 
-    # ── Complete Topic Button (only shown for Reading topics) ──
-    if t_status in ("not_started", "reading") and tfr_so_far > 0:
-        st.markdown("<br>", unsafe_allow_html=True)
-        ct_col1, ct_col2 = st.columns([1, 2])
-        with ct_col1:
-            st.markdown(f"""
-            <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.3);
-                        border-radius:10px;padding:10px 14px;font-size:11px;color:#7AB4D0">
-                TFR = <b style="color:#FFFFFF">{tfr_so_far:.1f}h</b><br>
-                R1 will be <b style="color:#34D399">{tfr_so_far * r1_ratio:.2f}h</b>,
-                R2: <b style="color:#34D399">{tfr_so_far * r2_ratio:.2f}h</b>
-            </div>
-            """, unsafe_allow_html=True)
-        with ct_col2:
-            if st.button(f"✅ Mark '{topic}' as COMPLETED", use_container_width=True,
-                         key="complete_topic_btn",
-                         help="This locks TFR and starts the revision schedule"):
-                ok, msg = complete_topic(subj, topic, tfr_so_far)
-                if ok:
-                    st.success(msg)
-                    st.balloons()
-                    st.rerun()
-                else:
-                    st.error(msg)
+            # Chronology check
+            if not existing_log.empty and topic:
+                topic_prev = existing_log[
+                    (existing_log["subject"] == subj) &
+                    (existing_log["topic"]   == topic) &
+                    ((existing_log["session_type"] != "revision") if "session_type" in existing_log.columns
+                     else pd.Series([True]*len(existing_log)))
+                ].copy()
+                if not topic_prev.empty:
+                    topic_prev["date_only"] = topic_prev["date"].dt.date
+                    earliest = topic_prev["date_only"].min()
+                    if s_date < earliest:
+                        errors.append(f"Date cannot be earlier than first session ({earliest.strftime('%d %b %Y')})")
 
-    # ── Save Session button ──
-    st.markdown("<br>", unsafe_allow_html=True)
-    save_label = f"✅ SAVE {'REVISION R'+str(round_num) if session_type == 'revision' else 'READING SESSION'}"
-    if st.button(save_label, use_container_width=True, key="log_save",
-                 disabled=(t_status == "completed" and round_num > num_rev)):
-        errors = []
-        if not topic:
-            errors.append("Topic is required")
-        if session_type == "reading" and pages == 0:
-            errors.append("Pages / Questions must be greater than 0")
-        if session_type == "reading" and hours <= 0:
-            errors.append("Hours must be greater than 0")
-
-        # Chronology check for reading sessions
-        if session_type == "reading" and not existing_log.empty and topic:
-            topic_prev = existing_log[
-                (existing_log["subject"]      == subj) &
-                (existing_log["topic"]        == topic) &
-                (existing_log["session_type"] != "revision")
-            ].copy()
-            if not topic_prev.empty:
-                topic_prev["date_only"] = topic_prev["date"].dt.date
-                earliest = topic_prev["date_only"].min()
-                if s_date < earliest:
-                    errors.append(f"Date cannot be earlier than your first session ({earliest.strftime('%d %b %Y')})")
-
-        if errors:
-            for e in errors:
-                st.warning(f"⚠️ {e}")
-        else:
-            if session_type == "revision":
-                ok, msg = log_revision_session(subj, topic, round_num, hours, s_date, diff, notes)
+            if errors:
+                for e in errors:
+                    st.warning(f"⚠️ {e}")
             else:
+                # Save the reading session first
                 ok, msg = add_log({
                     "date": str(s_date), "subject": subj, "topic": topic,
                     "hours": hours, "pages_done": pages, "difficulty": diff,
                     "notes": notes, "session_type": "reading",
-                    "topic_status": t_status,
+                    "topic_status": "completed" if mark_complete else t_status,
                 })
-            if ok:
-                st.success(f"✅ {msg}")
-                st.balloons()
-            else:
-                st.error(msg)
+                if ok:
+                    if mark_complete:
+                        # Calculate final TFR (all prior sessions + this one)
+                        final_tfr = tfr_so_far + hours
+                        ok2, msg2 = complete_topic(subj, topic, final_tfr)
+                        if ok2:
+                            st.success(f"✅ Session saved & **{topic}** marked as First Read Complete!")
+                            st.success(f"📅 Revision schedule started — R1 due in 3 days ({(s_date + timedelta(days=3)).strftime('%d %b %Y')})")
+                            st.balloons()
+                            invalidate_cache()
+                        else:
+                            st.warning(f"Session saved. {msg2}")
+                    else:
+                        st.success(f"✅ {msg}")
+                        st.balloons()
+                else:
+                    st.error(msg)
 
-    # ── Recent Sessions ──
+    # ── Recent Sessions ────────────────────────────────────────────────────────
     if not existing_log.empty:
         st.markdown("---")
         st.markdown('<div class="neon-header">📋 Recent Sessions</div>', unsafe_allow_html=True)
@@ -2744,11 +3017,11 @@ def log_study():
         show_cols = [c for c in ["date","subject","topic","session_type","hours","pages_done","difficulty"]
                      if c in r.columns]
         st.dataframe(r[show_cols], use_container_width=True)
-        reading_hrs = existing_log[(existing_log["session_type"] != "revision" if "session_type" in existing_log.columns else pd.Series([True]*len(existing_log)))]["hours"].sum() \
-                      if "session_type" in existing_log.columns else existing_log["hours"].sum()
+        reading_hrs = existing_log[
+            (existing_log["session_type"] != "revision") if "session_type" in existing_log.columns
+            else pd.Series([True]*len(existing_log))
+        ]["hours"].sum()
         st.caption(f"{len(existing_log)} total sessions · {reading_hrs:.1f}h first reading")
-
-
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3462,82 +3735,121 @@ else:
     days_left = max((exam - date.today()).days, 0)
     prof      = st.session_state.profile
 
-    # ── ANIMATED TOP HEADER BAR ──
+    # ── Migration check ────────────────────────────────────────────────────────
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def _check_migration(user_id):
+        try:
+            sb.table("revision_tracker").select("topic_status").eq("user_id", user_id).limit(1).execute()
+            return True
+        except Exception:
+            return False
+
+    migration_ok = _check_migration(_cache_key())
+    if not migration_ok:
+        st.warning(
+            "⚠️ **Database migration required** — Run the updated `supabase_setup.sql` in Supabase → SQL Editor.",
+            icon="🔧"
+        )
+
+    # ── XP info for header ─────────────────────────────────────────────────────
+    _log_h  = get_logs()
+    _rev_h  = get_rev_sessions()
+    _read_h = float(_log_h["hours"].sum()) if not _log_h.empty else 0.0
+    _rev_xp = float(_rev_h["hours"].sum()) if not _rev_h.empty and "hours" in _rev_h.columns else 0.0
+    _total_xp = _read_h + _rev_xp
+    _lvl_info = get_level_info(_total_xp)
+    _lvl     = _lvl_info["level"]
+    _lvl_clr = (
+        "#34D399" if _lvl >= 20 else "#60A5FA" if _lvl >= 15 else
+        "#FBBF24" if _lvl >= 10 else "#38BDF8" if _lvl >= 5  else "#94A3B8"
+    )
+    _lvl_pct = _lvl_info["pct"]
+
+    # ── Profile open state ──────────────────────────────────────────────────────
+    if "show_profile" not in st.session_state:
+        st.session_state.show_profile = False
+
+    # ── ANIMATED TOP HEADER BAR ────────────────────────────────────────────────
+    hcol1, hcol2 = st.columns([5, 1])
+    with hcol2:
+        if st.button(f"{name[0].upper()} Profile", key="open_profile_btn",
+                     use_container_width=True):
+            st.session_state.show_profile = not st.session_state.show_profile
+            st.rerun()
+
     st.markdown(f"""
-    <div style="
-        display:flex; align-items:center; justify-content:space-between;
-        padding:14px 8px 10px;
-        border-bottom:1px solid rgba(56,189,248,0.12);
-        margin-bottom:0;
-    ">
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:10px 8px 6px;border-bottom:1px solid rgba(56,189,248,0.12);
+                margin-bottom:0;margin-top:-44px">
         <div style="display:flex;align-items:center;gap:14px">
-            <div style="
-                width:38px;height:38px;border-radius:50%;
-                background:linear-gradient(135deg,#0E5AC8,#38BDF8);
-                display:flex;align-items:center;justify-content:center;
-                font-size:16px;font-weight:700;color:#FFF;
-                box-shadow:0 0 16px rgba(56,189,248,0.5);
-                font-family:'Orbitron',monospace;
-            ">{name[0].upper()}</div>
+            <!-- Clickable avatar circle with XP ring -->
+            <div style="position:relative;width:48px;height:48px">
+                <svg width="48" height="48" style="position:absolute;top:0;left:0">
+                    <circle cx="24" cy="24" r="22" fill="none"
+                            stroke="rgba(56,189,248,0.20)" stroke-width="3"/>
+                    <circle cx="24" cy="24" r="22" fill="none"
+                            stroke="{_lvl_clr}" stroke-width="3"
+                            stroke-dasharray="{int(_lvl_pct*1.382)} 138.2"
+                            stroke-linecap="round"
+                            transform="rotate(-90 24 24)"
+                            style="transition:stroke-dasharray 1s ease"/>
+                </svg>
+                <div style="position:absolute;top:4px;left:4px;
+                            width:40px;height:40px;border-radius:50%;
+                            background:linear-gradient(135deg,#0E5AC8,#38BDF8);
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:15px;font-weight:800;color:#FFF;
+                            font-family:'Orbitron',monospace">{name[0].upper()}</div>
+            </div>
             <div>
                 <div style="font-family:'Orbitron',monospace;font-size:13px;
                             font-weight:700;color:#FFF;
-                            text-shadow:0 0 15px rgba(56,189,248,0.5)">
-                    {name}
-                </div>
-                <div style="font-size:10px;color:#4A6A90;letter-spacing:1px">
-                    @{profile.get('username','')}
-                </div>
+                            text-shadow:0 0 15px rgba(56,189,248,0.5)">{name}</div>
+                <div style="font-size:10px;color:{_lvl_clr};letter-spacing:1px">
+                    LVL {_lvl} · {_lvl_info["name"]} · @{profile.get("username","")}</div>
             </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
-            <div style="
-                background:rgba(56,189,248,0.08);
-                border:2px solid rgba(56,189,248,0.22);
-                border-radius:14px;padding:8px 20px;text-align:center;
-                position:relative;overflow:hidden;
-            ">
-                <div style="
-                    position:absolute;top:0;left:0;right:0;height:2px;
-                    background:linear-gradient(90deg,transparent,#38BDF8,#7DD3FC,transparent);
-                    animation:scanline 2.5s ease-in-out infinite;
-                "></div>
-                <div style="
-                    font-family:'Orbitron',monospace;font-size:24px;font-weight:800;
-                    color:#FFFFFF;line-height:1;
-                    text-shadow:0 0 20px rgba(56,189,248,0.8),0 0 40px rgba(56,189,248,0.4);
-                    animation:pulse-count 2s ease-in-out infinite;
-                ">{days_left}</div>
-                <div style="
-                    font-family:'Rajdhani',sans-serif;font-size:9px;color:#4A6A90;
-                    letter-spacing:2px;text-transform:uppercase;margin-top:3px;
-                ">DAYS LEFT</div>
-                <div style="
-                    font-family:'Rajdhani',sans-serif;font-size:10px;color:#38BDF8;
-                    letter-spacing:1px;margin-top:1px;
-                ">{prof.get('exam_month','')} {prof.get('exam_year','')}</div>
-            </div>
+        <div style="background:rgba(56,189,248,0.08);border:2px solid rgba(56,189,248,0.22);
+                    border-radius:14px;padding:8px 20px;text-align:center;position:relative;overflow:hidden">
+            <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                        background:linear-gradient(90deg,transparent,#38BDF8,#7DD3FC,transparent);
+                        animation:scanline 2.5s ease-in-out infinite"></div>
+            <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:800;
+                        color:#FFFFFF;line-height:1;
+                        text-shadow:0 0 20px rgba(56,189,248,0.8);
+                        animation:pulse-count 2s ease-in-out infinite">{days_left}</div>
+            <div style="font-size:9px;color:#4A6A90;letter-spacing:2px;margin-top:2px">DAYS LEFT</div>
+            <div style="font-size:10px;color:#38BDF8">{prof.get("exam_month","")} {prof.get("exam_year","")}</div>
         </div>
     </div>
     <style>
     @keyframes pulse-count {{
-        0%, 100% {{ text-shadow: 0 0 20px rgba(56,189,248,0.8), 0 0 40px rgba(56,189,248,0.4); }}
-        50%       {{ text-shadow: 0 0 30px rgba(56,189,248,1.0), 0 0 60px rgba(56,189,248,0.6),
-                                   0 0 80px rgba(125,211,252,0.3); }}
+        0%,100% {{ text-shadow:0 0 20px rgba(56,189,248,0.8),0 0 40px rgba(56,189,248,0.4); }}
+        50%      {{ text-shadow:0 0 30px rgba(56,189,248,1.0),0 0 60px rgba(56,189,248,0.6); }}
     }}
     </style>
+    <br>
     """, unsafe_allow_html=True)
 
-    # ── TOP NAV TABS ──
-    tab_dashboard, tab_log, tab_score, tab_revision, tab_data, tab_lb, tab_profile, tab_logout = st.tabs([
+    # ── Profile panel (shown when avatar clicked) ──────────────────────────────
+    if st.session_state.show_profile:
+        with st.container():
+            st.markdown("""<div style="background:rgba(6,14,38,0.95);border:2px solid rgba(56,189,248,0.30);
+                border-radius:20px;padding:6px;margin-bottom:12px">""", unsafe_allow_html=True)
+            profile_page()
+            if st.button("✕ Close Profile", key="close_profile_btn", use_container_width=True):
+                st.session_state.show_profile = False
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
+
+    # ── MAIN NAV TABS (5 tabs — Leaderboard, Profile, Logout moved into Profile) ──
+    tab_dashboard, tab_log, tab_score, tab_revision, tab_data = st.tabs([
         "📊  Dashboard",
         "📝  Log Study",
         "🏆  Add Score",
         "🔄  Revision",
         "📋  My Data",
-        "🥇  Leaderboard",
-        "👤  Profile",
-        "🚪  Logout",
     ])
 
     with tab_dashboard:
@@ -3554,26 +3866,3 @@ else:
 
     with tab_data:
         my_data()
-
-    with tab_lb:
-        leaderboard()
-
-    with tab_profile:
-        profile_page()
-
-    with tab_logout:
-        st.markdown("<br>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col2:
-            st.markdown("""
-            <div class="glass-card" style="text-align:center;padding:40px 30px">
-                <div style="font-size:48px;margin-bottom:16px">🚪</div>
-                <h2 style="color:#FFFFFF;margin-bottom:8px">Sign Out</h2>
-                <p style="color:#4A6A90;margin-bottom:24px">
-                    You'll need to log in again to access your tracker.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🚪 Confirm Logout", use_container_width=True):
-                do_logout()
