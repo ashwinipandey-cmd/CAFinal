@@ -1874,113 +1874,44 @@ def profile_page():
     rev_hrs  = float(rev_sess["hours"].sum()) if not rev_sess.empty and "hours" in rev_sess.columns else 0.0
     total_xp_hrs = read_hrs + rev_hrs
 
-    lvl_info = get_level_info(total_xp_hrs)
-    lvl      = lvl_info["level"]
-    lvl_name = lvl_info["name"]
-    lvl_pct  = lvl_info["pct"]
-    nxt_thr  = lvl_info["next_threshold"]
+    lvl_info    = get_level_info(total_xp_hrs)
+    lvl         = lvl_info["level"]
+    lvl_name    = lvl_info["name"]
+    lvl_pct     = lvl_info["pct"]
+    nxt_thr     = lvl_info["next_threshold"]
     hrs_to_next = max(nxt_thr - total_xp_hrs, 0)
+    name        = prof.get("full_name", "Student")
+    uname       = prof.get("username", "")
 
-    name  = prof.get("full_name", "Student")
-    uname = prof.get("username", "")
-    init  = name[0].upper() if name else "U"
-
-    # Level colour
-    lvl_clr = (
-        "#34D399" if lvl >= 20 else "#60A5FA" if lvl >= 15 else
-        "#FBBF24" if lvl >= 10 else "#38BDF8"  if lvl >= 5  else "#94A3B8"
-    )
-
-    # ── Hero card: avatar + XP bar ──────────────────────────────────────────
+    # ── Profile summary (Streamlit-native, no raw HTML) ──────────────────────
     unlocked, ach_vals = compute_achievements(log_df, rev_df, rev_sess, test_df)
-    # Latest unlocked per category
+
     def latest_badge(cat):
         for item in reversed(ACHIEVEMENTS[cat]):
             if unlocked.get(item["id"]):
                 return item
         return None
 
-    latest_topic_badge = latest_badge("topics")
-    latest_rev_badge   = latest_badge("revisions")
-    latest_test_badge  = latest_badge("tests")
-    showcase_badges    = [b for b in [latest_topic_badge, latest_rev_badge, latest_test_badge] if b]
+    showcase_badges = [b for b in [
+        latest_badge("topics"), latest_badge("revisions"), latest_badge("tests")
+    ] if b]
 
-    days_left = max((get_exam_date() - date.today()).days, 0)
+    # Top summary row
+    sc1, sc2, sc3, sc4 = st.columns(4)
+    sc1.metric("👤 User",     name,          f"@{uname}")
+    sc2.metric("⚡ Level",    f"Lvl {lvl}",  lvl_name)
+    sc3.metric("📚 XP Hours", f"{total_xp_hrs:.0f}h", f"{hrs_to_next:.0f}h to Lvl {min(lvl+1,25)}")
+    sc4.metric("🏅 Badges",   f"{sum(unlocked.values())}", "unlocked")
 
-    # Pre-build color variants to avoid f-string hex-suffix parsing errors
-    lvl_clr_88 = lvl_clr + "88"
-    lvl_clr_66 = lvl_clr + "66"
-    lvl_clr_44 = lvl_clr + "44"
-    lvl_clr_CC = lvl_clr + "CC"
+    # XP progress bar
+    st.progress(int(lvl_pct), text=f"Level {lvl} — {lvl_pct:.0f}% to Level {min(lvl+1,25)}")
 
-    # Pre-build badges HTML to avoid broken nested f-string expressions
+    # Showcase badges inline
     if showcase_badges:
-        showcase_badges_html = "".join([
-            f'<div style="text-align:center;min-width:60px">'
-            f'<div style="font-size:28px">{b["icon"]}</div>'
-            f'<div style="font-size:9px;color:#7AB4D0;margin-top:2px">{b["name"]}</div>'
-            f'</div>'
-            for b in showcase_badges
-        ])
-    else:
-        showcase_badges_html = '<div style="font-size:10px;color:#4A6A90;align-self:center">No badges yet — keep studying!</div>'
+        badge_str = "  ·  ".join([f"{b['icon']} **{b['name']}**" for b in showcase_badges])
+        st.caption(f"Latest badges: {badge_str}")
 
-    st.markdown(f"""
-    <div style="background:linear-gradient(135deg,rgba(8,18,50,0.95),rgba(14,40,100,0.90));
-                border:2px solid rgba(56,189,248,0.30);border-radius:24px;
-                padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;
-                    background:linear-gradient(90deg,transparent,{lvl_clr},{lvl_clr_88},transparent);
-                    animation:scanline 2.5s ease-in-out infinite"></div>
-
-        <div style="display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap">
-            <div style="text-align:center;min-width:110px">
-                <div style="width:90px;height:90px;border-radius:50%;
-                            background:linear-gradient(135deg,#0E5AC8,#38BDF8);
-                            display:flex;align-items:center;justify-content:center;
-                            margin:0 auto 10px;font-size:36px;font-weight:800;color:#FFF;
-                            font-family:'DM Mono',monospace;
-                            box-shadow:0 0 0 3px {lvl_clr_66}, 0 0 30px {lvl_clr_44}">{init}</div>
-                <div style="font-family:'DM Mono',monospace;font-size:10px;
-                            color:{lvl_clr};font-weight:700;letter-spacing:1px">
-                    LVL {lvl}</div>
-                <div style="font-size:10px;color:#7AB4D0;margin-top:2px">{lvl_name}</div>
-            </div>
-            <div style="flex:1;min-width:200px">
-                <div style="font-family:'DM Mono',monospace;font-size:20px;
-                            font-weight:800;color:#FFF;margin-bottom:2px">{name}</div>
-                <div style="font-size:12px;color:#4A6A90;margin-bottom:16px">
-                    @{uname} &nbsp;·&nbsp; {prof.get('exam_month','')} {prof.get('exam_year','')}
-                    &nbsp;·&nbsp; {days_left}d left
-                </div>
-                <div style="margin-bottom:6px;display:flex;justify-content:space-between;
-                            align-items:center">
-                    <span style="font-size:11px;color:#7AB4D0;font-family:'DM Mono',monospace">
-                        XP PROGRESS</span>
-                    <span style="font-size:11px;color:{lvl_clr};font-weight:700">
-                        {total_xp_hrs:.0f}h / {nxt_thr}h</span>
-                </div>
-                <div style="background:rgba(255,255,255,0.07);border-radius:8px;
-                            height:12px;overflow:hidden;position:relative">
-                    <div style="width:{lvl_pct:.1f}%;height:100%;border-radius:8px;
-                                background:linear-gradient(90deg,{lvl_clr_88},{lvl_clr});
-                                box-shadow:0 0 12px {lvl_clr_88};
-                                transition:width 1.2s cubic-bezier(0.4,0,0.2,1);
-                                animation:xp-pulse 2s ease-in-out infinite"></div>
-                </div>
-                <div style="font-size:10px;color:#4A6A90;margin-top:5px">
-                    {hrs_to_next:.0f}h to Level {min(lvl+1,25)}</div>
-            </div>
-            {showcase_badges_html}
-        </div>
-    </div>
-    <style>
-    @keyframes xp-pulse {{
-        0%,100% {{ box-shadow: 0 0 12px {lvl_clr_88}; }}
-        50%       {{ box-shadow: 0 0 22px {lvl_clr_CC}, 0 0 40px {lvl_clr_44}; }}
-    }}
-    </style>
-    """, unsafe_allow_html=True)
+    st.divider()
 
     # ── Profile tabs ────────────────────────────────────────────────────────
     ptab1, ptab2, ptab3, ptab4 = st.tabs([
