@@ -412,8 +412,57 @@ GLASSY_CSS = """
 section[data-testid="stSidebar"] { display: none !important; }
 
 /* ═══════════════════════════════════════════════════════════
-   SCROLLBAR
+   DARK THEMED DATAFRAMES — remove white bg, white text
 ═══════════════════════════════════════════════════════════ */
+/* Outer wrapper */
+[data-testid="stDataFrame"] > div,
+[data-testid="stDataFrame"] iframe {
+    background: transparent !important;
+}
+/* Table container */
+.stDataFrame, [data-testid="stDataFrameResizable"] {
+    background: rgba(4,14,38,0.85) !important;
+    border: 1.5px solid rgba(56,189,248,0.20) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+/* Apply dark styles via injected iframe workaround — target glide-data-grid canvas wrapper */
+[data-testid="stDataFrame"] > div > div {
+    background: rgba(4,14,38,0.85) !important;
+    border-radius: 10px !important;
+}
+/* Column header row */
+[data-testid="stDataFrame"] [role="columnheader"],
+[data-testid="stDataFrame"] [role="rowheader"] {
+    background: rgba(6,20,54,0.95) !important;
+    color: var(--cyan-bright) !important;
+    font-family: var(--font-ui) !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+    border-bottom: 1px solid rgba(56,189,248,0.25) !important;
+}
+/* Data cells */
+[data-testid="stDataFrame"] [role="gridcell"] {
+    background: rgba(4,14,38,0.80) !important;
+    color: #E8F4FF !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    border-bottom: 1px solid rgba(56,189,248,0.08) !important;
+}
+/* Hover row */
+[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"] {
+    background: rgba(56,189,248,0.10) !important;
+}
+/* Scrollbars inside dataframe */
+[data-testid="stDataFrame"] ::-webkit-scrollbar { width: 4px; height: 4px; }
+[data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: rgba(2,8,22,0.5); }
+[data-testid="stDataFrame"] ::-webkit-scrollbar-thumb {
+    background: var(--cyan-dim);
+    border-radius: 2px;
+}
+
+
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: rgba(2,8,22,0.5); }
 ::-webkit-scrollbar-thumb {
@@ -673,16 +722,13 @@ div[data-testid="stMetricDelta"] {
 }
 .stTabs [aria-selected="true"] {
     color: #FFFFFF !important;
-    background: rgba(56,189,248,0.07) !important;
+    background: transparent !important;
     border-bottom: 2px solid var(--cyan) !important;
     border-top: none !important;
     border-left: none !important;
     border-right: none !important;
     outline: none !important;
-    text-shadow:
-        0 0 12px rgba(56,189,248,1.0),
-        0 0 24px rgba(56,189,248,0.8),
-        0 0 48px rgba(56,189,248,0.5) !important;
+    text-shadow: none !important;
     box-shadow: none !important;
 }
 /* Suppress Streamlit's own focus/active outline that causes red underline */
@@ -694,22 +740,7 @@ div[data-testid="stMetricDelta"] {
     border-color: transparent !important;
 }
 .stTabs [aria-selected="true"]::after {
-    content: '';
-    position: absolute;
-    bottom: -1px; left: 10%; right: 10%;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, var(--cyan-bright), #FFFFFF, var(--cyan-bright), transparent);
-    box-shadow:
-        0 0 8px rgba(56,189,248,1.0),
-        0 0 16px rgba(56,189,248,0.9),
-        0 0 32px rgba(56,189,248,0.7),
-        0 0 64px rgba(56,189,248,0.4);
-    border-radius: 2px;
-    animation: tab-pulse 2s ease-in-out infinite;
-}
-@keyframes tab-pulse {
-    0%,100% { opacity: 0.85; box-shadow: 0 0 8px rgba(56,189,248,1.0), 0 0 20px rgba(56,189,248,0.7); }
-    50%      { opacity: 1.0;  box-shadow: 0 0 12px rgba(56,189,248,1.0), 0 0 32px rgba(56,189,248,0.9), 0 0 64px rgba(56,189,248,0.5); }
+    display: none !important;
 }
 .stTabs [data-baseweb="tab-panel"] {
     padding: 24px 0 0 !important;
@@ -1760,6 +1791,51 @@ def _async_sync_if_needed(subject, topic):
 
 
 
+
+# ── DARK TABLE HELPER ─────────────────────────────────────────────────────────
+def dark_table(df, caption=""):
+    """Render a pandas DataFrame as a dark-themed HTML table matching the UI."""
+    if df.empty:
+        return
+    cols  = list(df.columns)
+    hdr   = "".join(
+        f'<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;'
+        f'letter-spacing:0.8px;text-transform:uppercase;color:#7DD3FC;'
+        f'border-bottom:1px solid rgba(56,189,248,0.25);white-space:nowrap">{c}</th>'
+        for c in cols
+    )
+    rows_html = ""
+    for i, (_, row) in enumerate(df.iterrows()):
+        bg = "rgba(6,18,52,0.70)" if i % 2 == 0 else "rgba(4,12,38,0.55)"
+        cells = "".join(
+            f'<td style="padding:7px 12px;font-size:12px;color:#E8F4FF;'
+            f'border-bottom:1px solid rgba(56,189,248,0.07);white-space:nowrap">{str(v)}</td>'
+            for v in row.values
+        )
+        rows_html += (
+            f'<tr style="background:{bg};transition:background 0.15s" '
+            f'onmouseover="this.style.background=\'rgba(56,189,248,0.10)\'" '
+            f'onmouseout="this.style.background=\'{bg}\'">'
+            f'{cells}</tr>'
+        )
+    cap_html = (
+        f'<div style="font-size:10px;color:#6B91B8;margin-top:6px;padding-left:4px">{caption}</div>'
+        if caption else ""
+    )
+    st.markdown(f"""
+    <div style="overflow-x:auto;border:1.5px solid rgba(56,189,248,0.18);
+                border-radius:10px;background:rgba(4,10,30,0.85);margin-top:4px">
+        <table style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr style="background:rgba(6,20,54,0.95)">{hdr}</tr>
+            </thead>
+            <tbody>{rows_html}</tbody>
+        </table>
+    </div>
+    {cap_html}
+    """, unsafe_allow_html=True)
+
+
 # ── REVISION ENGINE ───────────────────────────────────────────────────────────
 # Base intervals (days after previous event)
 REVISION_INTERVALS = [3, 7, 15, 30, 45, 60]   # R1→R6
@@ -2631,12 +2707,16 @@ def dashboard():
         bg, clr, glow = subj_bg[s]
         with cols[i]:
             st.markdown(f"""
-            <div style="background:{bg};border:2px solid {clr}33;border-radius:14px;
+            <div style="background:{bg};border:2px solid {clr}55;border-radius:14px;
                         padding:14px 12px;text-align:center;
-                        box-shadow:0 0 20px {clr}22">
+                        box-shadow:0 0 18px {clr}44, 0 0 36px {clr}22, inset 0 1px 0 rgba(255,255,255,0.08);
+                        position:relative;overflow:hidden;animation:card-in 0.35s ease both">
+                <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
+                            background:linear-gradient(90deg,transparent,{clr},transparent);
+                            opacity:0.8"></div>
                 <div style="font-family:'DM Mono',monospace;font-size:14px;
                             font-weight:800;color:{clr};
-                            text-shadow:0 0 14px {glow};margin-bottom:4px">{s}</div>
+                            text-shadow:0 0 14px {glow},0 0 28px {glow};margin-bottom:4px">{s}</div>
                 <div style="font-size:9px;color:#93C8E8;letter-spacing:0.5px;
                             margin-bottom:10px">{SUBJ_FULL[s]}</div>
                 <div style="background:rgba(14,60,140,0.18);border-radius:6px;
@@ -2646,11 +2726,13 @@ def dashboard():
                                 box-shadow:0 0 10px {glow};transition:width 1s ease"></div>
                 </div>
                 <div style="font-family:'DM Mono',monospace;font-size:17px;
-                            font-weight:700;color:#FFFFFF">{pct:.0f}%</div>
+                            font-weight:700;color:#FFFFFF;
+                            text-shadow:0 0 16px rgba(56,189,248,0.55)">{pct:.0f}%</div>
                 <div style="font-size:10px;color:#7BA7CC;margin-top:3px">
                     {done:.0f}h / {tgt}h
                 </div>
-                <div style="font-size:10px;color:#34D399;margin-top:4px">
+                <div style="font-size:10px;color:#34D399;margin-top:4px;
+                            text-shadow:0 0 8px rgba(52,211,153,0.7)">
                     ✅ {n_completed}/{n_topics} completed
                 </div>
             </div>
@@ -2672,20 +2754,33 @@ def dashboard():
             max_rounds  = n_completed * num_rev_prof
             rev_pct     = min(rev_rounds / max_rounds * 100, 100) if max_rounds > 0 else 0
             clr         = COLORS[s]
+            rev_hrs     = float(rev_sess[rev_sess["subject"]==s]["hours"].sum()) if not rev_sess.empty and "subject" in rev_sess.columns else 0.0
+            glow_rev    = clr + "88"
             with rev_cols[i]:
                 st.markdown(f"""
-                <div style="background:rgba(52,211,153,0.06);border:2px solid {clr}22;
-                            border-radius:12px;padding:12px 10px;text-align:center">
+                <div style="background:rgba(52,211,153,0.06);border:2px solid {clr}55;
+                            border-radius:12px;padding:12px 10px;text-align:center;
+                            box-shadow:0 0 18px {clr}33, 0 0 36px {clr}18, inset 0 1px 0 rgba(255,255,255,0.06);
+                            position:relative;overflow:hidden">
+                    <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
+                                background:linear-gradient(90deg,transparent,{clr},transparent);opacity:0.8"></div>
                     <div style="font-family:'DM Mono',monospace;font-size:12px;
-                                font-weight:800;color:{clr};margin-bottom:4px">{s}</div>
+                                font-weight:800;color:{clr};margin-bottom:4px;
+                                text-shadow:0 0 12px {glow_rev}">{s}</div>
                     <div style="background:rgba(14,60,140,0.15);border-radius:5px;
                                 height:6px;overflow:hidden;margin-bottom:6px">
                         <div style="width:{rev_pct:.0f}%;height:100%;border-radius:5px;
-                                    background:linear-gradient(90deg,#34D39988,#34D399)"></div>
+                                    background:linear-gradient(90deg,#34D39988,#34D399);
+                                    box-shadow:0 0 8px rgba(52,211,153,0.6)"></div>
                     </div>
-                    <div style="font-size:15px;font-weight:700;color:#34D399">{rev_pct:.0f}%</div>
+                    <div style="font-size:15px;font-weight:700;color:#34D399;
+                                text-shadow:0 0 12px rgba(52,211,153,0.8)">{rev_pct:.0f}%</div>
                     <div style="font-size:10px;color:#7BA7CC;margin-top:2px">
                         {rev_rounds}/{max_rounds} rounds
+                    </div>
+                    <div style="font-size:10px;color:#38BDF8;margin-top:3px;
+                                text-shadow:0 0 8px rgba(56,189,248,0.6)">
+                        ⏱ {rev_hrs:.1f}h revised
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -2754,22 +2849,29 @@ def dashboard():
             health_clr = "#F87171" if overdue > 3 else ("#FBBF24" if overdue > 0 else "#34D399")
             with s_cols[i]:
                 st.markdown(f"""
-                <div style="background:rgba(6,14,38,0.80);border:2px solid {clr}33;
-                            border-radius:12px;padding:12px 10px;text-align:center">
+                <div style="background:rgba(6,14,38,0.80);border:2px solid {clr}55;
+                            border-radius:12px;padding:12px 10px;text-align:center;
+                            box-shadow:0 0 18px {clr}33, 0 0 36px {clr}18, inset 0 1px 0 rgba(255,255,255,0.06);
+                            position:relative;overflow:hidden">
+                    <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
+                                background:linear-gradient(90deg,transparent,{clr},transparent);opacity:0.8"></div>
                     <div style="font-family:'DM Mono',monospace;font-size:12px;
-                                font-weight:800;color:{clr}">{s}</div>
+                                font-weight:800;color:{clr};text-shadow:0 0 12px {clr}88">{s}</div>
                     <div style="font-size:10px;color:#7BA7CC;margin:4px 0 8px">{SUBJ_FULL[s]}</div>
                     <div style="display:flex;justify-content:space-around">
                         <div>
-                            <div style="font-size:16px;font-weight:700;color:#FFFFFF">{topics_studied}</div>
+                            <div style="font-size:16px;font-weight:700;color:#FFFFFF;
+                                        text-shadow:0 0 10px rgba(56,189,248,0.5)">{topics_studied}</div>
                             <div style="font-size:9px;color:#7BA7CC">Topics</div>
                         </div>
                         <div>
-                            <div style="font-size:16px;font-weight:700;color:#38BDF8">{total_revs}</div>
+                            <div style="font-size:16px;font-weight:700;color:#38BDF8;
+                                        text-shadow:0 0 10px rgba(56,189,248,0.7)">{total_revs}</div>
                             <div style="font-size:9px;color:#7BA7CC">Revisions</div>
                         </div>
                         <div>
-                            <div style="font-size:16px;font-weight:700;color:{health_clr}">{overdue}</div>
+                            <div style="font-size:16px;font-weight:700;color:{health_clr};
+                                        text-shadow:0 0 10px {health_clr}88">{overdue}</div>
                             <div style="font-size:9px;color:#7BA7CC">Overdue</div>
                         </div>
                     </div>
@@ -2889,111 +2991,7 @@ def dashboard():
                 ["#F87171", "#1A3A1A"], "⚠️ Overdue", pct_ov
             ), use_container_width=True)
 
-        # ══════════════════════════════════════════════════════════
-        # TODAY'S REVISION AGENDA
-        # ══════════════════════════════════════════════════════════
-        st.markdown("---")
-        st.markdown('<div class="neon-header neon-header-glow">📅 Today\'s Revision Agenda</div>', unsafe_allow_html=True)
-        today_str = date.today().strftime("%A, %d %B %Y")
-        st.markdown(f"<p style='font-size:12px;color:#7BA7CC;margin-top:-8px'>📆 {today_str}</p>",
-                    unsafe_allow_html=True)
-
-        if not pend.empty:
-            # Topics due today or overdue — these MUST be done today
-            urgent = pend[pend["days_overdue"] >= 0].sort_values("days_overdue", ascending=False)
-            # Topics due within next 3 days — optional but recommended
-            soon   = pend[(pend["days_overdue"] < 0) & (pend["days_overdue"] >= -3)]
-
-            if urgent.empty and soon.empty:
-                st.success("✅ Nothing due today! Great job staying on track. Enjoy a light review day.")
-            else:
-                if not urgent.empty:
-                    st.markdown("""
-                    <div style="background:rgba(248,113,113,0.08);border:2px solid rgba(248,113,113,0.3);
-                                border-radius:14px;padding:14px 18px;margin-bottom:14px">
-                        <div style="font-family:'DM Mono',monospace;font-size:12px;
-                                    color:#F87171;letter-spacing:1px;margin-bottom:10px">
-                            🔴 MUST DO TODAY — Overdue & Due
-                        </div>
-                    """, unsafe_allow_html=True)
-                    for rank, (_, row) in enumerate(urgent.iterrows(), 1):
-                        badge_clr = "#F87171" if row["days_overdue"] > 0 else "#FBBF24"
-                        badge_txt = f"+{row['days_overdue']}d overdue" if row["days_overdue"] > 0 else "DUE TODAY"
-                        subj_clr  = COLORS.get(row["subject"], "#38BDF8")
-                        st.markdown(f"""
-                        <div style="display:flex;align-items:center;gap:12px;
-                                    padding:10px 14px;margin:5px 0;
-                                    background:rgba(248,113,113,0.06);
-                                    border-left:4px solid {badge_clr};
-                                    border-radius:8px">
-                            <div style="font-family:'DM Mono',monospace;font-size:13px;
-                                        font-weight:800;color:{badge_clr};min-width:24px">
-                                {rank}
-                            </div>
-                            <div style="flex:1">
-                                <span style="font-family:'DM Mono',monospace;font-size:10px;
-                                             color:{subj_clr};font-weight:700">{row['subject']}</span>
-                                <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
-                                             font-weight:600">{row['topic']}</span>
-                            </div>
-                            <div style="text-align:right">
-                                <div style="font-family:'DM Mono',monospace;font-size:11px;
-                                            color:{badge_clr};font-weight:700">{row['round_label']}</div>
-                                <div style="font-size:9px;color:#F87171">{badge_txt}</div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                if not soon.empty:
-                    st.markdown("""
-                    <div style="background:rgba(251,191,36,0.06);border:2px solid rgba(251,191,36,0.25);
-                                border-radius:14px;padding:14px 18px;margin-bottom:14px">
-                        <div style="font-family:'DM Mono',monospace;font-size:12px;
-                                    color:#FBBF24;letter-spacing:1px;margin-bottom:10px">
-                            🟡 RECOMMENDED — Due Within 3 Days
-                        </div>
-                    """, unsafe_allow_html=True)
-                    for _, row in soon.iterrows():
-                        days_away = abs(row["days_overdue"])
-                        subj_clr  = COLORS.get(row["subject"], "#38BDF8")
-                        st.markdown(f"""
-                        <div style="display:flex;align-items:center;gap:12px;
-                                    padding:10px 14px;margin:5px 0;
-                                    background:rgba(251,191,36,0.04);
-                                    border-left:4px solid #FBBF24;
-                                    border-radius:8px">
-                            <div style="flex:1">
-                                <span style="font-family:'DM Mono',monospace;font-size:10px;
-                                             color:{subj_clr};font-weight:700">{row['subject']}</span>
-                                <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
-                                             font-weight:600">{row['topic']}</span>
-                            </div>
-                            <div style="text-align:right">
-                                <div style="font-family:'DM Mono',monospace;font-size:11px;
-                                            color:#FBBF24;font-weight:700">{row['round_label']}</div>
-                                <div style="font-size:9px;color:#FBBF24">in {days_away}d · {row['due_date']}</div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                # Daily revision load estimate
-                total_agenda = len(urgent) + len(soon)
-                est_hrs = round(total_agenda * 0.75, 1)
-                st.markdown(f"""
-                <div style="background:rgba(56,189,248,0.06);border:2px solid rgba(56,189,248,0.20);
-                            border-radius:12px;padding:12px 18px;margin-top:6px;
-                            display:flex;justify-content:space-between;align-items:center">
-                    <div style="font-size:12px;color:#C8E5F8">
-                        📋 <b>{total_agenda}</b> topic(s) on today's agenda
-                        &nbsp;·&nbsp; ⏱ Estimated <b>~{est_hrs}h</b> revision time
-                    </div>
-                    <div style="font-size:10px;color:#7BA7CC">~45 min per topic</div>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.success("✅ Start logging study sessions to generate your daily revision agenda!")
+        # ── Donut charts continue above; agenda moved to Revision tab ──
 
     # ── Score Dashboard (moved from Revision tab) ─────────────────────────────
     rev_for_score = get_revision()
@@ -3058,18 +3056,35 @@ def dashboard():
         _bar_clr_88 = _bar_clr + "88"
         _bar_clr_44 = _bar_clr + "44"
         st.markdown(f"""
+        <style>
+        @keyframes bar-ltr-shimmer {{
+            0%   {{ background-position: -200% center; }}
+            100% {{ background-position: 200% center; }}
+        }}
+        @keyframes bar-fill-ltr {{
+            from {{ width: 0%; }}
+            to   {{ width: {_overall}%; }}
+        }}
+        </style>
         <div style="background:rgba(6,14,38,0.80);border:2px solid {_bar_clr_44};
-                    border-radius:16px;padding:20px 24px;margin:14px 0">
+                    border-radius:16px;padding:20px 24px;margin:14px 0;
+                    box-shadow:0 0 24px {_bar_clr_44}, inset 0 1px 0 rgba(255,255,255,0.06)">
             <div style="display:flex;justify-content:space-between;margin-bottom:10px">
                 <span style="font-family:'DM Mono',monospace;font-size:13px;
-                             font-weight:700;color:{_bar_clr}">{_grade[0]}</span>
+                             font-weight:700;color:{_bar_clr};
+                             text-shadow:0 0 12px {_bar_clr_88}">{_grade[0]}</span>
                 <span style="font-family:'DM Mono',monospace;font-size:20px;
-                             font-weight:700;color:#FFFFFF">{_overall}%</span>
+                             font-weight:700;color:#FFFFFF;
+                             text-shadow:0 0 16px rgba(255,255,255,0.4)">{_overall}%</span>
             </div>
-            <div style="background:rgba(14,60,140,0.18);border-radius:8px;height:14px;overflow:hidden">
+            <div style="background:rgba(14,60,140,0.18);border-radius:8px;height:14px;overflow:hidden;
+                        border:1px solid {_bar_clr_44}">
                 <div style="width:{_overall}%;height:100%;border-radius:8px;
-                            background:linear-gradient(90deg,{_bar_clr_88},{_bar_clr});
-                            box-shadow:0 0 12px {_bar_clr_88};transition:width 1.2s ease"></div>
+                            background:linear-gradient(90deg,{_bar_clr_44},{_bar_clr_88},{_bar_clr},#FFFFFF88,{_bar_clr},{_bar_clr_88},{_bar_clr_44});
+                            background-size:300% 100%;
+                            box-shadow:0 0 14px {_bar_clr_88},0 0 28px {_bar_clr_44};
+                            animation:bar-fill-ltr 1.2s cubic-bezier(0.4,0,0.2,1) both,
+                                      bar-ltr-shimmer 2.5s linear infinite"></div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#7BA7CC">
                 <span>Completion {_coverage_pct:.0f}% × 35%</span>
@@ -3079,35 +3094,7 @@ def dashboard():
         </div>
         """, unsafe_allow_html=True)
 
-        # Memory strength chart
-        _ms_labels, _ms_vals, _ms_clrs = [], [], []
-        for _ds in SUBJECTS:
-            for _t in TOPICS.get(_ds, []):
-                _k2 = (_ds, _t)
-                _inf = _completion_info.get(_k2, {})
-                if _inf.get("status") != "completed": continue
-                _rd = len(set(_rev_dates_map.get(_k2, [])))
-                _lr = max(_rev_dates_map[_k2]) if _rev_dates_map.get(_k2) else None
-                _pct_ms, _lbl_ms, _clr_ms = memory_strength(_rd, _lr, _num_rev)
-                _ms_labels.append(f"{_ds} · {_t[:30]}")
-                _ms_vals.append(_pct_ms)
-                _ms_clrs.append(_clr_ms)
-
-        if _ms_labels:
-            st.markdown('<div class="neon-header neon-header-glow" style="margin-top:18px">🧠 Memory Strength by Topic</div>', unsafe_allow_html=True)
-            _ms_fig = go.Figure(go.Bar(
-                y=_ms_labels, x=_ms_vals, orientation="h",
-                marker_color=_ms_clrs,
-                text=[f"{v:.0f}%" for v in _ms_vals],
-                textposition="inside", insidetextanchor="start",
-            ))
-            apply_theme(_ms_fig, title="Memory Strength by Topic",
-                        height=max(200, min(len(_ms_labels)*20+80, 600)))
-            _ms_fig.update_layout(margin=dict(t=50, b=40, l=230, r=20),
-                                  transition=dict(duration=700, easing="cubic-in-out"))
-            _ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
-            _ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
-            st.plotly_chart(_ms_fig, use_container_width=True)
+        # Memory strength chart moved to Revision tab
 
     elif log.empty and tst.empty:
         st.markdown("""
@@ -3379,12 +3366,12 @@ def log_study():
         r["date"] = r["date"].dt.strftime("%d %b %Y")
         show_cols = [c for c in ["date","subject","topic","session_type","hours","pages_done","difficulty"]
                      if c in r.columns]
-        st.dataframe(r[show_cols], use_container_width=True)
-        reading_hrs = existing_log[
+        _reading_hrs_cap = existing_log[
             (existing_log["session_type"] != "revision") if "session_type" in existing_log.columns
             else pd.Series([True]*len(existing_log))
         ]["hours"].sum()
-        st.caption(f"{len(existing_log)} total sessions · {reading_hrs:.1f}h first reading")
+        dark_table(r[show_cols],
+                   caption=f"{len(existing_log)} total sessions · {_reading_hrs_cap:.1f}h first reading")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3462,10 +3449,7 @@ def add_test_score():
         st.markdown('<div class="neon-header">📊 Recent Test Scores</div>', unsafe_allow_html=True)
         r = tst.head(10).copy()
         r["date"] = r["date"].dt.strftime("%d %b %Y")
-        st.dataframe(
-            r[["date", "subject", "test_name", "marks", "max_marks", "score_pct"]],
-            use_container_width=True
-        )
+        dark_table(r[["date", "subject", "test_name", "marks", "max_marks", "score_pct"]])
 
         # ── Score Trend & Avg Score by Subject charts ──
         st.markdown("---")
@@ -3524,6 +3508,105 @@ def revision():
     rev_df      = get_revision()
     log_df      = get_logs()
     rev_sess_df = get_rev_sessions()
+
+    # ── TODAY'S REVISION AGENDA (moved from Dashboard) ───────────────────────
+    _pend_rev = get_pendencies(rev_df, log_df)
+    st.markdown('<div class="neon-header neon-header-glow">📅 Today\'s Revision Agenda</div>', unsafe_allow_html=True)
+    today_str = date.today().strftime("%A, %d %B %Y")
+    st.markdown(f"<p style='font-size:12px;color:#7BA7CC;margin-top:-8px'>📆 {today_str}</p>",
+                unsafe_allow_html=True)
+
+    if not _pend_rev.empty:
+        _urgent = _pend_rev[_pend_rev["days_overdue"] >= 0].sort_values("days_overdue", ascending=False)
+        _soon   = _pend_rev[(_pend_rev["days_overdue"] < 0) & (_pend_rev["days_overdue"] >= -3)]
+
+        if _urgent.empty and _soon.empty:
+            st.success("✅ Nothing due today! Great job staying on track. Enjoy a light review day.")
+        else:
+            if not _urgent.empty:
+                st.markdown("""
+                <div style="background:rgba(248,113,113,0.08);border:2px solid rgba(248,113,113,0.3);
+                            border-radius:14px;padding:14px 18px;margin-bottom:14px">
+                    <div style="font-family:'DM Mono',monospace;font-size:12px;
+                                color:#F87171;letter-spacing:1px;margin-bottom:10px">
+                        🔴 MUST DO TODAY — Overdue & Due
+                    </div>
+                """, unsafe_allow_html=True)
+                for _rank, (_, _row) in enumerate(_urgent.iterrows(), 1):
+                    _badge_clr = "#F87171" if _row["days_overdue"] > 0 else "#FBBF24"
+                    _badge_txt = f"+{_row['days_overdue']}d overdue" if _row["days_overdue"] > 0 else "DUE TODAY"
+                    _subj_clr  = COLORS.get(_row["subject"], "#38BDF8")
+                    st.markdown(f"""
+                    <div style="display:flex;align-items:center;gap:12px;
+                                padding:10px 14px;margin:5px 0;
+                                background:rgba(248,113,113,0.06);
+                                border-left:4px solid {_badge_clr};border-radius:8px">
+                        <div style="font-family:'DM Mono',monospace;font-size:13px;
+                                    font-weight:800;color:{_badge_clr};min-width:24px">{_rank}</div>
+                        <div style="flex:1">
+                            <span style="font-family:'DM Mono',monospace;font-size:10px;
+                                         color:{_subj_clr};font-weight:700">{_row['subject']}</span>
+                            <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
+                                         font-weight:600">{_row['topic']}</span>
+                        </div>
+                        <div style="text-align:right">
+                            <div style="font-family:'DM Mono',monospace;font-size:11px;
+                                        color:{_badge_clr};font-weight:700">{_row['round_label']}</div>
+                            <div style="font-size:9px;color:#F87171">{_badge_txt}</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            if not _soon.empty:
+                st.markdown("""
+                <div style="background:rgba(251,191,36,0.06);border:2px solid rgba(251,191,36,0.25);
+                            border-radius:14px;padding:14px 18px;margin-bottom:14px">
+                    <div style="font-family:'DM Mono',monospace;font-size:12px;
+                                color:#FBBF24;letter-spacing:1px;margin-bottom:10px">
+                        🟡 RECOMMENDED — Due Within 3 Days
+                    </div>
+                """, unsafe_allow_html=True)
+                for _, _row in _soon.iterrows():
+                    _days_away = abs(_row["days_overdue"])
+                    _subj_clr  = COLORS.get(_row["subject"], "#38BDF8")
+                    st.markdown(f"""
+                    <div style="display:flex;align-items:center;gap:12px;
+                                padding:10px 14px;margin:5px 0;
+                                background:rgba(251,191,36,0.04);
+                                border-left:4px solid #FBBF24;border-radius:8px">
+                        <div style="flex:1">
+                            <span style="font-family:'DM Mono',monospace;font-size:10px;
+                                         color:{_subj_clr};font-weight:700">{_row['subject']}</span>
+                            <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
+                                         font-weight:600">{_row['topic']}</span>
+                        </div>
+                        <div style="text-align:right">
+                            <div style="font-family:'DM Mono',monospace;font-size:11px;
+                                        color:#FBBF24;font-weight:700">{_row['round_label']}</div>
+                            <div style="font-size:9px;color:#FBBF24">in {_days_away}d · {_row['due_date']}</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            _total_agenda = len(_urgent) + len(_soon)
+            _est_hrs = round(_total_agenda * 0.75, 1)
+            st.markdown(f"""
+            <div style="background:rgba(56,189,248,0.06);border:2px solid rgba(56,189,248,0.20);
+                        border-radius:12px;padding:12px 18px;margin-top:6px;
+                        display:flex;justify-content:space-between;align-items:center">
+                <div style="font-size:12px;color:#C8E5F8">
+                    📋 <b>{_total_agenda}</b> topic(s) on today's agenda
+                    &nbsp;·&nbsp; ⏱ Estimated <b>~{_est_hrs}h</b> revision time
+                </div>
+                <div style="font-size:10px;color:#7BA7CC">~45 min per topic</div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("✅ Start logging study sessions to generate your daily revision agenda!")
+
+    st.markdown("---")
 
     if "rev_subj" not in st.session_state:
         st.session_state.rev_subj = "ALL"
@@ -3903,7 +3986,63 @@ def revision():
                         </div>
                         """, unsafe_allow_html=True)
 
-    # ════════════════════════════════════════════════════════
+    # ────────────────────────────────────────────────────────────────────────
+    # MEMORY STRENGTH BY TOPIC (moved from Dashboard)
+    # ────────────────────────────────────────────────────────────────────────
+    _ms_log   = get_logs()
+    _ms_rev   = get_revision()
+    _ms_rsess = get_rev_sessions()
+    _ms_num_rev = int(st.session_state.profile.get("num_revisions", 6))
+
+    from collections import defaultdict as _ms_dd
+    _ms_completion: dict = {}
+    if not _ms_rev.empty:
+        for _, _r in _ms_rev.iterrows():
+            _ms_completion[(_r["subject"], _r["topic"])] = {
+                "status": _r.get("topic_status", "not_started") or "not_started"
+            }
+
+    _ms_rev_dates: dict = _ms_dd(list)
+    if not _ms_log.empty:
+        for _, _r in _ms_log.iterrows():
+            _stype = _r.get("session_type", "reading") if "session_type" in _ms_log.columns else "reading"
+            if _stype == "revision":
+                _d = _r["date"].date() if hasattr(_r["date"], "date") else date.fromisoformat(str(_r["date"])[:10])
+                _ms_rev_dates[(_r["subject"], _r["topic"])].append(_d)
+    if not _ms_rsess.empty:
+        for _, _r in _ms_rsess.iterrows():
+            _d = _r["date"] if isinstance(_r["date"], date) else date.fromisoformat(str(_r["date"])[:10])
+            _ms_rev_dates[(_r["subject"], _r["topic"])].append(_d)
+
+    _ms_labels, _ms_vals, _ms_clrs = [], [], []
+    for _ds in SUBJECTS:
+        for _t in TOPICS.get(_ds, []):
+            _k2 = (_ds, _t)
+            if _ms_completion.get(_k2, {}).get("status") != "completed":
+                continue
+            _rd = len(set(_ms_rev_dates.get(_k2, [])))
+            _lr = max(_ms_rev_dates[_k2]) if _ms_rev_dates.get(_k2) else None
+            _pct_ms, _lbl_ms, _clr_ms = memory_strength(_rd, _lr, _ms_num_rev)
+            _ms_labels.append(f"{_ds} · {_t[:30]}")
+            _ms_vals.append(_pct_ms)
+            _ms_clrs.append(_clr_ms)
+
+    if _ms_labels:
+        st.markdown("---")
+        st.markdown('<div class="neon-header neon-header-glow">🧠 Memory Strength by Topic</div>', unsafe_allow_html=True)
+        _ms_fig = go.Figure(go.Bar(
+            y=_ms_labels, x=_ms_vals, orientation="h",
+            marker_color=_ms_clrs,
+            text=[f"{v:.0f}%" for v in _ms_vals],
+            textposition="inside", insidetextanchor="start",
+        ))
+        apply_theme(_ms_fig, title="Memory Strength by Topic",
+                    height=max(200, min(len(_ms_labels)*20+80, 600)))
+        _ms_fig.update_layout(margin=dict(t=50, b=40, l=230, r=20),
+                              transition=dict(duration=700, easing="cubic-in-out"))
+        _ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
+        _ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
+        st.plotly_chart(_ms_fig, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MY DATA
@@ -3919,11 +4058,10 @@ def my_data():
             f = st.multiselect("Filter by Subject", SUBJECTS, default=SUBJECTS)
             d = log[log["subject"].isin(f)].copy()
             d["date"] = d["date"].dt.strftime("%d %b %Y")
-            st.dataframe(
+            dark_table(
                 d[["date", "subject", "topic", "hours", "pages_done", "difficulty", "notes"]],
-                use_container_width=True
+                caption=f"{len(d)} sessions · {d['hours'].sum():.1f}h total"
             )
-            st.caption(f"{len(d)} sessions · {d['hours'].sum():.1f}h total")
         else:
             st.info("No study sessions logged yet. Start by going to **Log Study**.")
 
@@ -3932,11 +4070,10 @@ def my_data():
         if not tst.empty:
             t = tst.copy()
             t["date"] = t["date"].dt.strftime("%d %b %Y")
-            st.dataframe(
+            dark_table(
                 t[["date", "subject", "test_name", "marks", "max_marks", "score_pct"]],
-                use_container_width=True
+                caption=f"{len(t)} tests · Avg: {tst['score_pct'].mean():.1f}%"
             )
-            st.caption(f"{len(t)} tests · Avg: {tst['score_pct'].mean():.1f}%")
         else:
             st.info("No test scores yet. Add scores via **Add Score**.")
 
@@ -3945,10 +4082,7 @@ def my_data():
         if not rev.empty:
             s  = st.selectbox("Filter by Subject", ["All"] + SUBJECTS, key="mydata_rev_filter")
             df = rev if s == "All" else rev[rev["subject"] == s]
-            st.dataframe(
-                df.drop(columns=["id", "user_id"], errors="ignore"),
-                use_container_width=True
-            )
+            dark_table(df.drop(columns=["id", "user_id"], errors="ignore"))
         else:
             st.info("No revision data yet.")
 
