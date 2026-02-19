@@ -255,13 +255,17 @@ AVATARS = [
 ]
 
 def get_avatar_svg(avatar_id: str, size: int = 64) -> str:
-    """Return the full SVG string for a given avatar_id at given pixel size."""
+    """Return a base64 data URI img tag for the avatar — safe to embed in st.markdown."""
+    import base64
     av = next((a for a in AVATARS if a["id"] == avatar_id), AVATARS[0])
-    return f"""<svg viewBox="0 0 64 64" width="{size}" height="{size}"
-                    xmlns="http://www.w3.org/2000/svg"
-                    style="border-radius:50%;background:{av['bg']}">
-                {av['svg']}
-               </svg>"""
+    svg_str = (
+        f'<svg viewBox="0 0 64 64" width="{size}" height="{size}" '
+        f'xmlns="http://www.w3.org/2000/svg" '
+        f'style="border-radius:50%;background:{av["bg"]}">'
+        f'{av["svg"]}</svg>'
+    )
+    b64 = base64.b64encode(svg_str.encode("utf-8")).decode("utf-8")
+    return f'<img src="data:image/svg+xml;base64,{b64}" width="{size}" height="{size}" style="border-radius:50%;display:block;"/>'
 
 
 # ── WORLD CLASS GLASSY NEON CSS ───────────────────────────────────────────────
@@ -1587,14 +1591,10 @@ def add_log(data):
 
 def add_score(data):
     try:
-        data["user_id"]  = uid()
-        # Always recompute score_pct to ensure it's correct
-        marks     = int(data.get("marks", 0))
-        max_marks = int(data.get("max_marks", 1))
-        data["score_pct"] = round(marks / max_marks * 100, 2) if max_marks > 0 else 0.0
-        # Only insert columns that exist in test_scores
+        data["user_id"] = uid()
+        # score_pct is a GENERATED column in Supabase — must NOT be inserted
         allowed = {"user_id","date","subject","test_name","marks","max_marks",
-                   "score_pct","weak_areas","strong_areas","action_plan"}
+                   "weak_areas","strong_areas","action_plan"}
         clean = {k: v for k, v in data.items() if k in allowed}
         sb.table("test_scores").insert(clean).execute()
         invalidate_cache()
@@ -3402,7 +3402,7 @@ def add_test_score():
             ok, msg = add_score({
                 "date": str(t_date), "subject": subj,
                 "test_name": test_name.strip(), "marks": int(marks),
-                "max_marks": int(max_marks), "score_pct": pct,
+                "max_marks": int(max_marks),
                 "weak_areas": weak.strip() if weak else "",
                 "strong_areas": strong.strip() if strong else "",
                 "action_plan": action.strip() if action else ""
