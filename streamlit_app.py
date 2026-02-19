@@ -2288,73 +2288,66 @@ def profile_page():
         st.markdown('<div class="neon-header">🎭 Choose Your Avatar</div>', unsafe_allow_html=True)
         cur_avatar = prof.get("avatar_id", "boy_student")
 
-        # Group by category
-        categories = {}
-        for av in AVATARS:
-            categories.setdefault(av["category"], []).append(av)
+        # Single flat grid — no categories, click card = select
+        st.markdown("""
+        <style>
+        /* Invisible overlay button fills the entire av-wrap div */
+        div[data-testid="column"] .av-wrap { position:relative; display:block; }
+        div[data-testid="column"] .av-wrap .stButton { 
+            position:absolute !important; inset:0 !important; 
+            z-index:10 !important; margin:0 !important; 
+        }
+        div[data-testid="column"] .av-wrap .stButton > button {
+            position:absolute !important; inset:0 !important;
+            width:100% !important; height:100% !important;
+            opacity:0 !important; cursor:pointer !important;
+            border:none !important; background:transparent !important;
+            padding:0 !important; min-height:0 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
-        for cat_name, cat_avatars in categories.items():
-            # Category label
-            st.markdown(
-                f'<div style="font-family:var(--font-ui);font-size:10px;font-weight:700;'
-                f'text-transform:uppercase;letter-spacing:2.5px;color:var(--text-muted);'
-                f'margin:12px 0 6px">{cat_name}</div>',
-                unsafe_allow_html=True
-            )
-            # Build all cards in one HTML block to avoid Streamlit wrapping issues
-            # Pre-compute all avatar images first, outside f-strings
-            av_imgs    = {av["id"]: get_avatar_svg(av["id"], 54) for av in cat_avatars}
-            cards_html = '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">'
-            for av in cat_avatars:
-                is_sel     = (av["id"] == cur_avatar)
-                sel_class  = "selected" if is_sel else ""
-                check_html = (
-                    '<div style="position:absolute;top:6px;right:8px;width:18px;height:18px;'
-                    'background:#38BDF8;border-radius:50%;font-size:10px;font-weight:900;'
-                    'color:#000;display:flex;align-items:center;justify-content:center;'
-                    'line-height:1">✓</div>'
-                ) if is_sel else ""
-                border_style = (
-                    "border:2px solid #38BDF8;background:rgba(14,60,140,0.40);"
-                    "box-shadow:0 0 0 2px rgba(56,189,248,0.25),0 0 20px rgba(56,189,248,0.25);"
-                ) if is_sel else (
-                    "border:1.5px solid rgba(56,189,248,0.18);background:rgba(4,14,40,0.70);"
-                )
-                cards_html += (
-                    f'<div style="position:relative;{border_style}'
-                    f'border-radius:14px;padding:12px 8px 8px;text-align:center;'
-                    f'min-width:90px;max-width:100px;flex:1;transition:all 0.22s ease;">'
-                    + check_html
-                    + '<div style="display:flex;justify-content:center;line-height:0">'
-                    + av_imgs[av["id"]]
-                    + '</div>'
-                    + f'<div style="font-size:10px;font-family:DM Sans,sans-serif;'
-                    + (f'color:#38BDF8;font-weight:700' if is_sel else f'color:#6B91B8;font-weight:500')
-                    + f';margin-top:7px;letter-spacing:0.2px">{av["label"]}</div>'
-                    + '</div>'
-                )
-            cards_html += '</div>'
-            st.markdown(cards_html, unsafe_allow_html=True)
-
-            # Select buttons row — one per avatar
-            btn_cols = st.columns(len(cat_avatars))
-            for i, av in enumerate(cat_avatars):
-                with btn_cols[i]:
-                    is_sel = (av["id"] == cur_avatar)
-                    if is_sel:
-                        st.markdown(
-                            '<div style="text-align:center;font-size:11px;font-weight:700;'
-                            'color:#38BDF8;padding:4px 0;font-family:DM Sans,sans-serif">✓ Active</div>',
-                            unsafe_allow_html=True
-                        )
-                    else:
-                        if st.button("Select", key=f"av_{av['id']}", use_container_width=True):
-                            ok, msg = update_profile({"avatar_id": av["id"]})
-                            if ok:
-                                st.cache_data.clear()
-                                st.rerun()
-                            else:
-                                st.error(msg)
+        cols_per_row = 4
+        rows = [AVATARS[i:i+cols_per_row] for i in range(0, len(AVATARS), cols_per_row)]
+        for row_avs in rows:
+            grid_cols = st.columns(cols_per_row)
+            for col_i, av in enumerate(row_avs):
+                with grid_cols[col_i]:
+                    is_sel  = (av["id"] == cur_avatar)
+                    av_img  = get_avatar_svg(av["id"], 54)
+                    border  = ("border:2px solid #38BDF8;"
+                                "box-shadow:0 0 0 2px rgba(56,189,248,0.30),"
+                                "0 0 22px rgba(56,189,248,0.35);") if is_sel else (
+                               "border:1.5px solid rgba(56,189,248,0.18);")
+                    bg      = "rgba(14,60,140,0.40)" if is_sel else "rgba(4,14,40,0.70)"
+                    lbl_clr = "#38BDF8" if is_sel else "#6B91B8"
+                    lbl_fw  = "700" if is_sel else "500"
+                    check   = ('<div style="position:absolute;top:6px;right:8px;width:18px;height:18px;'
+                               'background:#38BDF8;border-radius:50%;font-size:10px;font-weight:900;'
+                               'color:#000;display:flex;align-items:center;justify-content:center;'
+                               'line-height:1;z-index:5">✓</div>') if is_sel else ""
+                    st.markdown(
+                        f'<div class="av-wrap">'
+                        f'<div style="{border}background:{bg};border-radius:14px;'
+                        f'padding:12px 8px 8px;text-align:center;transition:all 0.22s ease;'
+                        f'cursor:pointer;user-select:none;position:relative">'
+                        + check
+                        + f'<div style="display:flex;justify-content:center;line-height:0">{av_img}</div>'
+                        + f'<div style="font-size:10px;font-family:DM Sans,sans-serif;color:{lbl_clr};'
+                        + f'font-weight:{lbl_fw};margin-top:7px;letter-spacing:0.2px">{av["label"]}</div>'
+                        + '</div></div>',
+                        unsafe_allow_html=True
+                    )
+                    if st.button("·", key=f"av_{av['id']}", use_container_width=True):
+                        ok, msg = update_profile({"avatar_id": av["id"]})
+                        if ok:
+                            st.cache_data.clear()
+                            st.rerun()
+                        else:
+                            st.error(msg)
+            # pad remaining slots
+            for pad_i in range(cols_per_row - len(row_avs)):
+                grid_cols[len(row_avs) + pad_i].empty()
 
         st.markdown("---")
         st.markdown('<div class="neon-header">✏️ Personal Details</div>', unsafe_allow_html=True)
@@ -2668,41 +2661,46 @@ def dashboard():
     with h1:
         st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
     with h2:
-        if st.button("🔄", key="dash_refresh", help="Refresh dashboard"):
+        if st.button("🔄", key="dash_refresh"):
             st.cache_data.clear()
             st.rerun()
     with h3:
-        if st.button("🖨️", key="dash_print", help="Print dashboard as PDF"):
-            st.markdown("""
-            <script>
-            (function() {
-                var style = document.createElement('style');
-                style.id = 'print-override';
-                style.innerHTML = `
-                    @media print {
-                        [data-testid="stSidebar"],
-                        [data-testid="stToolbar"],
-                        .stDeployButton,
-                        header, footer,
-                        #MainMenu { display: none !important; }
-                        [data-testid="stAppViewContainer"] {
-                            background: #020B18 !important;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
-                        * { -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important; }
-                    }
-                `;
-                document.head.appendChild(style);
-                window.print();
-                setTimeout(function() {
-                    var el = document.getElementById('print-override');
-                    if (el) el.remove();
-                }, 2000);
-            })();
-            </script>
-            """, unsafe_allow_html=True)
+        # Print button rendered as plain HTML/JS — st.button cannot execute JS
+        st.markdown("""
+        <style>
+        .print-btn {
+            display:inline-flex;align-items:center;justify-content:center;
+            width:100%;height:38px;
+            background:rgba(4,14,38,0.80);
+            border:1px solid rgba(56,189,248,0.30);
+            border-radius:8px;
+            font-size:18px;cursor:pointer;
+            transition:all 0.2s ease;
+            color:#FFFFFF;
+        }
+        .print-btn:hover {
+            background:rgba(56,189,248,0.12);
+            border-color:rgba(56,189,248,0.60);
+            box-shadow:0 0 12px rgba(56,189,248,0.25);
+        }
+        @media print {
+            [data-testid="stSidebar"],
+            [data-testid="stToolbar"],
+            [data-testid="stHeader"],
+            .stDeployButton, header, footer, #MainMenu,
+            .stTabs [data-baseweb="tab-list"],
+            section[data-testid="stSidebar"] { display:none !important; }
+            body, .stApp, [data-testid="stAppViewContainer"] {
+                background:#020B18 !important;
+                -webkit-print-color-adjust:exact !important;
+                print-color-adjust:exact !important;
+            }
+            * { -webkit-print-color-adjust:exact !important;
+                print-color-adjust:exact !important; }
+        }
+        </style>
+        <button class="print-btn" onclick="window.print()" title="">🖨️</button>
+        """, unsafe_allow_html=True)
 
     # KPIs
     c1, c2, c3, c4, c5 = st.columns(5)
