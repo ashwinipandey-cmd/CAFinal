@@ -397,17 +397,19 @@ GLASSY_CSS = """
    NEON METRIC CARDS
 ════════════════════════════════════════ */
 div[data-testid="stMetric"] {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(56,189,248,0.25) !important;
+    background: rgba(255,255,255,0.05) !important;
+    border: 2px solid rgba(56,189,248,0.55) !important;
     border-radius: 16px !important;
     padding: 20px 18px !important;
     backdrop-filter: blur(40px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
     box-shadow:
-        0 8px 32px rgba(0,0,0,0.6),
-        inset 0 1px 0 rgba(255,255,255,0.10),
-        inset 0 -1px 0 rgba(0,0,0,0.3),
-        0 0 0 0.5px rgba(255,255,255,0.05) !important;
+        0 0 0 1px rgba(56,189,248,0.15),
+        0 0 20px rgba(56,189,248,0.20),
+        0 0 40px rgba(56,189,248,0.08),
+        0 8px 32px rgba(0,0,0,0.7),
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.4) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     position: relative !important;
     overflow: hidden !important;
@@ -434,13 +436,14 @@ div[data-testid="stMetric"]::after {
 
 div[data-testid="stMetric"]:hover {
     transform: translateY(-4px) !important;
-    border-color: rgba(56,189,248,0.55) !important;
-    background: rgba(255,255,255,0.07) !important;
+    border-color: rgba(56,189,248,0.85) !important;
+    background: rgba(255,255,255,0.08) !important;
     box-shadow:
-        0 0 30px rgba(56,189,248,0.18),
-        0 0 60px rgba(56,189,248,0.07),
-        0 20px 40px rgba(0,0,0,0.7),
-        inset 0 1px 0 rgba(255,255,255,0.15) !important;
+        0 0 0 1px rgba(56,189,248,0.30),
+        0 0 30px rgba(56,189,248,0.35),
+        0 0 60px rgba(56,189,248,0.15),
+        0 20px 40px rgba(0,0,0,0.8),
+        inset 0 1px 0 rgba(255,255,255,0.18) !important;
 }
 
 div[data-testid="stMetricValue"] {
@@ -509,7 +512,7 @@ p, .stMarkdown p {
 .stTextArea textarea,
 .stDateInput input {
     background: rgba(255,255,255,0.06) !important;
-    border: 1px solid rgba(56,189,248,0.25) !important;
+    border: 2px solid rgba(56,189,248,0.40) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
@@ -558,7 +561,7 @@ p, .stMarkdown p {
 /* Selectbox */
 .stSelectbox > div > div {
     background: rgba(255,255,255,0.06) !important;
-    border: 1px solid rgba(56,189,248,0.25) !important;
+    border: 2px solid rgba(56,189,248,0.40) !important;
     border-radius: 10px !important;
     color: #FFFFFF !important;
     font-family: var(--font-body) !important;
@@ -646,16 +649,18 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
    FORMS (containers)
 ════════════════════════════════════════ */
 .stForm {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(56,189,248,0.22) !important;
+    background: rgba(255,255,255,0.05) !important;
+    border: 2px solid rgba(56,189,248,0.50) !important;
     border-radius: 20px !important;
     backdrop-filter: blur(40px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
     padding: 28px !important;
     box-shadow:
-        0 20px 60px rgba(0,0,0,0.70),
-        inset 0 1px 0 rgba(255,255,255,0.10),
-        inset 0 -1px 0 rgba(0,0,0,0.4) !important;
+        0 0 25px rgba(56,189,248,0.18),
+        0 0 50px rgba(56,189,248,0.07),
+        0 20px 60px rgba(0,0,0,0.80),
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.5) !important;
     position: relative !important;
     overflow: hidden !important;
 }
@@ -782,14 +787,17 @@ section[data-testid="stSidebar"] { display: none !important; }
     position: relative !important;
     top: unset !important;
     z-index: unset !important;
-    background: rgba(255,255,255,0.04) !important;
+    background: rgba(255,255,255,0.05) !important;
     border-radius: 12px !important;
     padding: 4px !important;
     gap: 3px !important;
-    border: 1px solid rgba(56,189,248,0.18) !important;
-    border-bottom: 1px solid rgba(56,189,248,0.18) !important;
+    border: 2px solid rgba(56,189,248,0.40) !important;
+    border-bottom: 2px solid rgba(56,189,248,0.40) !important;
     backdrop-filter: blur(20px) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+    box-shadow:
+        0 0 16px rgba(56,189,248,0.14),
+        0 4px 20px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.08) !important;
     overflow-x: unset !important;
 }
 
@@ -996,17 +1004,19 @@ hr {
 
 /* Glassy Cards */
 .glass-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(56,189,248,0.22);
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(56,189,248,0.50);
     border-radius: 16px;
     padding: 20px;
     backdrop-filter: blur(40px) saturate(180%);
     -webkit-backdrop-filter: blur(40px) saturate(180%);
     box-shadow:
-        0 8px 32px rgba(0,0,0,0.7),
-        inset 0 1px 0 rgba(255,255,255,0.10),
-        inset 0 -1px 0 rgba(0,0,0,0.4),
-        0 0 0 0.5px rgba(255,255,255,0.04);
+        0 0 0 1px rgba(56,189,248,0.12),
+        0 0 20px rgba(56,189,248,0.18),
+        0 0 40px rgba(56,189,248,0.07),
+        0 8px 32px rgba(0,0,0,0.8),
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.5);
     margin-bottom: 16px;
     position: relative;
     overflow: hidden;
@@ -1022,26 +1032,31 @@ hr {
 }
 
 .glass-card:hover {
-    border-color: rgba(56,189,248,0.45);
-    background: rgba(255,255,255,0.07);
+    border-color: rgba(56,189,248,0.80);
+    background: rgba(255,255,255,0.08);
     box-shadow:
-        0 16px 60px rgba(0,0,0,0.8),
-        0 0 40px rgba(56,189,248,0.12),
-        inset 0 1px 0 rgba(255,255,255,0.15);
+        0 0 0 1px rgba(56,189,248,0.25),
+        0 0 35px rgba(56,189,248,0.30),
+        0 0 70px rgba(56,189,248,0.12),
+        0 16px 60px rgba(0,0,0,0.9),
+        inset 0 1px 0 rgba(255,255,255,0.18);
     transform: translateY(-2px);
 }
 
 /* Leaderboard Cards */
 .lb-card {
-    background: rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.05);
     border-radius: 14px;
     padding: 16px 20px;
     margin: 8px 0;
-    border-left: 3px solid rgba(56,189,248,0.4);
-    border: 1px solid rgba(56,189,248,0.20);
+    border-left: 3px solid rgba(56,189,248,0.7);
+    border: 2px solid rgba(56,189,248,0.45);
     backdrop-filter: blur(40px) saturate(180%);
     -webkit-backdrop-filter: blur(40px) saturate(180%);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+    box-shadow:
+        0 0 18px rgba(56,189,248,0.15),
+        0 8px 32px rgba(0,0,0,0.7),
+        inset 0 1px 0 rgba(255,255,255,0.10);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1061,9 +1076,12 @@ hr {
 }
 
 .lb-card:hover {
-    border-color: rgba(56,189,248,0.35);
+    border-color: rgba(56,189,248,0.75);
     transform: translateX(4px);
-    box-shadow: 0 0 25px rgba(56,189,248,0.10);
+    box-shadow:
+        0 0 35px rgba(56,189,248,0.28),
+        0 0 70px rgba(56,189,248,0.10),
+        0 8px 32px rgba(0,0,0,0.8);
 }
 
 .lb-card:hover::before { opacity: 1; }
@@ -4096,42 +4114,40 @@ else:
     h_av, h_info, h_days = st.columns([1, 5, 1])
 
     # Left: Avatar circle (SVG)
+    # Pre-build avatar img to avoid Streamlit wrapping it in a <p> tag inside f-string
+    _av_img = get_avatar_svg(profile.get("avatar_id", "boy_student"), 64)
+    _av_html = (
+        '<div style="position:relative;width:76px;height:76px;margin-bottom:0;line-height:0">'
+        '<svg width="76" height="76" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">'
+        '<defs>'
+        '<linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">'
+        '<stop offset="0%"   stop-color="#0EA5E9"/>'
+        '<stop offset="35%"  stop-color="#38BDF8"/>'
+        '<stop offset="50%"  stop-color="#FFFFFF"/>'
+        '<stop offset="65%"  stop-color="#38BDF8"/>'
+        '<stop offset="100%" stop-color="#7DD3FC"/>'
+        '<animateTransform attributeName="gradientTransform" type="translate"'
+        ' values="1 0;-1 0;1 0" dur="2.2s" repeatCount="indefinite"/>'
+        '</linearGradient>'
+        '</defs>'
+        '<circle cx="38" cy="38" r="35" fill="none" stroke="rgba(56,189,248,0.12)" stroke-width="5"/>'
+        f'<circle cx="38" cy="38" r="35" fill="none" stroke="url(#ringGrad)" stroke-width="5"'
+        f' stroke-linecap="round" stroke-dasharray="{_filled:.2f} {_circ:.2f}"'
+        f' style="filter:drop-shadow(0 0 8px rgba(56,189,248,0.9)) drop-shadow(0 0 18px rgba(56,189,248,0.6))">'
+        f'<animate attributeName="stroke-dasharray"'
+        f' from="0 {_circ:.2f}" to="{_filled:.2f} {_circ:.2f}"'
+        f' dur="1.2s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1"/>'
+        '</circle>'
+        '</svg>'
+        '<div style="position:absolute;top:6px;left:6px;width:64px;height:64px;'
+        'border-radius:50%;overflow:hidden;line-height:0;font-size:0;'
+        'box-shadow:0 0 18px rgba(56,189,248,0.5)">'
+        + _av_img +
+        '</div>'
+        '</div>'
+    )
     with h_av:
-        st.markdown(f"""
-        <div style="position:relative;width:76px;height:76px;margin-bottom:0">
-            <svg width="76" height="76" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">
-                <defs>
-                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%"   stop-color="#0EA5E9"/>
-                        <stop offset="35%"  stop-color="#38BDF8"/>
-                        <stop offset="50%"  stop-color="#FFFFFF"/>
-                        <stop offset="65%"  stop-color="#38BDF8"/>
-                        <stop offset="100%" stop-color="#7DD3FC"/>
-                        <animateTransform attributeName="gradientTransform" type="translate"
-                            values="1 0;-1 0;1 0" dur="2.2s" repeatCount="indefinite"/>
-                    </linearGradient>
-                </defs>
-                <circle cx="38" cy="38" r="35" fill="none"
-                        stroke="rgba(56,189,248,0.12)" stroke-width="5"/>
-                <circle cx="38" cy="38" r="35" fill="none"
-                        stroke="url(#ringGrad)" stroke-width="5"
-                        stroke-linecap="round"
-                        stroke-dasharray="{_filled:.2f} {_circ:.2f}"
-                        style="filter:drop-shadow(0 0 8px rgba(56,189,248,0.9)) drop-shadow(0 0 18px rgba(56,189,248,0.6))">
-                    <animate attributeName="stroke-dasharray"
-                        from="0 {_circ:.2f}"
-                        to="{_filled:.2f} {_circ:.2f}"
-                        dur="1.2s" fill="freeze"
-                        calcMode="spline" keySplines="0.4 0 0.2 1"/>
-                </circle>
-            </svg>
-            <div style="position:absolute;top:6px;left:6px;
-                        width:64px;height:64px;border-radius:50%;overflow:hidden;
-                        box-shadow:0 0 18px rgba(56,189,248,0.5)">
-                {get_avatar_svg(profile.get("avatar_id","boy_student"), 64)}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(_av_html, unsafe_allow_html=True)
 
     # Middle: Name (brand-title style) + animated XP bar
     with h_info:
