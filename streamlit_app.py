@@ -3973,7 +3973,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>",
+    st.markdown("""<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>""",
                 unsafe_allow_html=True)
 
     # ── Profile panel slides in when avatar circle is clicked ──────────────────
