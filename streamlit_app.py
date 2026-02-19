@@ -342,9 +342,9 @@ GLASSY_CSS = """
     50%      { background-position: 100% 50%; }
 }
 @keyframes scanline {
-    0%,100% { opacity: 0.3; transform: translateX(-100%); }
+    0%,100% { opacity: 0.3; transform: translateX(100%); }
     50%      { opacity: 0.9; }
-    100%     { transform: translateX(100%); }
+    100%     { transform: translateX(-100%); }
 }
 @keyframes pulse-border {
     0%,100% { border-color: rgba(56,189,248,0.35); box-shadow: 0 0 12px rgba(56,189,248,0.15); }
@@ -355,8 +355,8 @@ GLASSY_CSS = """
     100% { opacity:1; transform: translateY(0); }
 }
 @keyframes shimmer-line {
-    0%   { background-position: -200% center; }
-    100% { background-position: 200% center; }
+    0%   { background-position: 200% center; }
+    100% { background-position: -200% center; }
 }
 @keyframes spin-slow {
     from { transform: rotate(0deg); }
@@ -1799,22 +1799,23 @@ def dark_table(df, caption=""):
         return
     cols  = list(df.columns)
     hdr   = "".join(
-        f'<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;'
-        f'letter-spacing:0.8px;text-transform:uppercase;color:#7DD3FC;'
-        f'border-bottom:1px solid rgba(56,189,248,0.25);white-space:nowrap">{c}</th>'
+        f'<th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;'
+        f'letter-spacing:0.9px;text-transform:uppercase;color:#7DD3FC;'
+        f'background:rgba(6,20,58,0.98);white-space:nowrap;'
+        f'border-bottom:2px solid rgba(56,189,248,0.35)">{c}</th>'
         for c in cols
     )
     rows_html = ""
     for i, (_, row) in enumerate(df.iterrows()):
-        bg = "rgba(6,18,52,0.70)" if i % 2 == 0 else "rgba(4,12,38,0.55)"
+        bg = "rgba(8,22,60,0.85)" if i % 2 == 0 else "rgba(4,14,44,0.75)"
         cells = "".join(
-            f'<td style="padding:7px 12px;font-size:12px;color:#E8F4FF;'
-            f'border-bottom:1px solid rgba(56,189,248,0.07);white-space:nowrap">{str(v)}</td>'
+            f'<td style="padding:8px 14px;font-size:12px;color:#E8F4FF;font-weight:500;'
+            f'border-bottom:1px solid rgba(56,189,248,0.10);white-space:nowrap">{str(v)}</td>'
             for v in row.values
         )
         rows_html += (
             f'<tr style="background:{bg};transition:background 0.15s" '
-            f'onmouseover="this.style.background=\'rgba(56,189,248,0.10)\'" '
+            f'onmouseover="this.style.background=\'rgba(56,189,248,0.13)\'" '
             f'onmouseout="this.style.background=\'{bg}\'">'
             f'{cells}</tr>'
         )
@@ -1823,11 +1824,12 @@ def dark_table(df, caption=""):
         if caption else ""
     )
     st.markdown(f"""
-    <div style="overflow-x:auto;border:1.5px solid rgba(56,189,248,0.18);
-                border-radius:10px;background:rgba(4,10,30,0.85);margin-top:4px">
+    <div style="overflow-x:auto;border:1.5px solid rgba(56,189,248,0.25);
+                border-radius:10px;background:rgba(4,12,36,0.92);margin-top:6px;
+                box-shadow:0 0 20px rgba(56,189,248,0.08)">
         <table style="width:100%;border-collapse:collapse">
             <thead>
-                <tr style="background:rgba(6,20,54,0.95)">{hdr}</tr>
+                <tr>{hdr}</tr>
             </thead>
             <tbody>{rows_html}</tbody>
         </table>
@@ -2661,14 +2663,46 @@ def dashboard():
     total_rev_hrs = float(rev_sess["hours"].sum()) if not rev_sess.empty and "hours" in rev_sess.columns else 0.0
     rev_sh    = rev_sess.groupby("subject")["hours"].sum() if not rev_sess.empty and "subject" in rev_sess.columns else pd.Series(dtype=float)
 
-    # ── Header row with refresh ──
-    h1, h2 = st.columns([5, 1])
+    # ── Header row with refresh + print ──
+    h1, h2, h3 = st.columns([5, 0.6, 0.6])
     with h1:
         st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
     with h2:
         if st.button("🔄", key="dash_refresh", help="Refresh dashboard"):
             st.cache_data.clear()
             st.rerun()
+    with h3:
+        if st.button("🖨️", key="dash_print", help="Print dashboard as PDF"):
+            st.markdown("""
+            <script>
+            (function() {
+                var style = document.createElement('style');
+                style.id = 'print-override';
+                style.innerHTML = `
+                    @media print {
+                        [data-testid="stSidebar"],
+                        [data-testid="stToolbar"],
+                        .stDeployButton,
+                        header, footer,
+                        #MainMenu { display: none !important; }
+                        [data-testid="stAppViewContainer"] {
+                            background: #020B18 !important;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        * { -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important; }
+                    }
+                `;
+                document.head.appendChild(style);
+                window.print();
+                setTimeout(function() {
+                    var el = document.getElementById('print-override');
+                    if (el) el.remove();
+                }, 2000);
+            })();
+            </script>
+            """, unsafe_allow_html=True)
 
     # KPIs
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -2707,31 +2741,32 @@ def dashboard():
         bg, clr, glow = subj_bg[s]
         with cols[i]:
             st.markdown(f"""
-            <div style="background:{bg};border:2px solid {clr}55;border-radius:14px;
+            <div style="background:rgba(6,14,38,0.82);border:2px solid {clr}77;border-radius:14px;
                         padding:14px 12px;text-align:center;
-                        box-shadow:0 0 18px {clr}44, 0 0 36px {clr}22, inset 0 1px 0 rgba(255,255,255,0.08);
+                        box-shadow:0 0 22px {clr}55, 0 0 44px {clr}22, inset 0 1px 0 rgba(255,255,255,0.09);
                         position:relative;overflow:hidden;animation:card-in 0.35s ease both">
                 <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
                             background:linear-gradient(90deg,transparent,{clr},transparent);
-                            opacity:0.8"></div>
+                            opacity:0.9"></div>
                 <div style="font-family:'DM Mono',monospace;font-size:14px;
                             font-weight:800;color:{clr};
                             text-shadow:0 0 14px {glow},0 0 28px {glow};margin-bottom:4px">{s}</div>
                 <div style="font-size:9px;color:#93C8E8;letter-spacing:0.5px;
                             margin-bottom:10px">{SUBJ_FULL[s]}</div>
-                <div style="background:rgba(14,60,140,0.18);border-radius:6px;
-                            height:8px;overflow:hidden;margin-bottom:8px">
+                <div style="background:rgba(14,60,140,0.30);border-radius:6px;
+                            height:8px;overflow:hidden;margin-bottom:8px;
+                            border:1px solid rgba(56,189,248,0.12)">
                     <div style="width:{pct:.0f}%;height:100%;border-radius:6px;
                                 background:linear-gradient(90deg,{clr}99,{clr});
-                                box-shadow:0 0 10px {glow};transition:width 1s ease"></div>
+                                box-shadow:0 0 12px {glow};transition:width 1s ease"></div>
                 </div>
                 <div style="font-family:'DM Mono',monospace;font-size:17px;
                             font-weight:700;color:#FFFFFF;
-                            text-shadow:0 0 16px rgba(56,189,248,0.55)">{pct:.0f}%</div>
-                <div style="font-size:10px;color:#7BA7CC;margin-top:3px">
+                            text-shadow:0 0 18px rgba(56,189,248,0.65)">{pct:.0f}%</div>
+                <div style="font-size:10px;color:#93C8E8;margin-top:3px;font-weight:600">
                     {done:.0f}h / {tgt}h
                 </div>
-                <div style="font-size:10px;color:#34D399;margin-top:4px;
+                <div style="font-size:10px;color:#34D399;margin-top:4px;font-weight:600;
                             text-shadow:0 0 8px rgba(52,211,153,0.7)">
                     ✅ {n_completed}/{n_topics} completed
                 </div>
@@ -2756,31 +2791,48 @@ def dashboard():
             clr         = COLORS[s]
             rev_hrs     = float(rev_sess[rev_sess["subject"]==s]["hours"].sum()) if not rev_sess.empty and "subject" in rev_sess.columns else 0.0
             glow_rev    = clr + "88"
+            # Estimate total revision hours required: sum each completed topic's TFR × ratios
+            r1_r = float(prof.get("r1_ratio", 0.25))
+            r2_r = float(prof.get("r2_ratio", 0.25))
+            # avg ratio per remaining rounds beyond R1/R2
+            extra_ratio = (r1_r + r2_r) / 2 if num_rev_prof > 2 else 0.0
+            total_req_hrs = 0.0
+            if not rev.empty and "topic_status" in rev.columns:
+                subj_rev_rows = rev[(rev["subject"] == s) & (rev["topic_status"] == "completed")]
+                if "total_first_reading_time" in subj_rev_rows.columns:
+                    for _, row_r in subj_rev_rows.iterrows():
+                        tfr_v = float(row_r.get("total_first_reading_time") or 0)
+                        if tfr_v > 0:
+                            ratios_sum = r1_r + r2_r + extra_ratio * max(num_rev_prof - 2, 0)
+                            total_req_hrs += tfr_v * ratios_sum
+            if total_req_hrs <= 0:
+                total_req_hrs = n_completed * num_rev_prof * 1.5  # fallback estimate
             with rev_cols[i]:
                 st.markdown(f"""
-                <div style="background:rgba(52,211,153,0.06);border:2px solid {clr}55;
+                <div style="background:rgba(6,14,38,0.82);border:2px solid {clr}77;
                             border-radius:12px;padding:12px 10px;text-align:center;
-                            box-shadow:0 0 18px {clr}33, 0 0 36px {clr}18, inset 0 1px 0 rgba(255,255,255,0.06);
+                            box-shadow:0 0 22px {clr}55, 0 0 44px {clr}22, inset 0 1px 0 rgba(255,255,255,0.09);
                             position:relative;overflow:hidden">
                     <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
-                                background:linear-gradient(90deg,transparent,{clr},transparent);opacity:0.8"></div>
+                                background:linear-gradient(90deg,transparent,{clr},transparent);opacity:0.9"></div>
                     <div style="font-family:'DM Mono',monospace;font-size:12px;
                                 font-weight:800;color:{clr};margin-bottom:4px;
                                 text-shadow:0 0 12px {glow_rev}">{s}</div>
-                    <div style="background:rgba(14,60,140,0.15);border-radius:5px;
-                                height:6px;overflow:hidden;margin-bottom:6px">
+                    <div style="background:rgba(14,60,140,0.30);border-radius:5px;
+                                height:6px;overflow:hidden;margin-bottom:6px;
+                                border:1px solid rgba(56,189,248,0.12)">
                         <div style="width:{rev_pct:.0f}%;height:100%;border-radius:5px;
                                     background:linear-gradient(90deg,#34D39988,#34D399);
-                                    box-shadow:0 0 8px rgba(52,211,153,0.6)"></div>
+                                    box-shadow:0 0 10px rgba(52,211,153,0.7)"></div>
                     </div>
                     <div style="font-size:15px;font-weight:700;color:#34D399;
-                                text-shadow:0 0 12px rgba(52,211,153,0.8)">{rev_pct:.0f}%</div>
-                    <div style="font-size:10px;color:#7BA7CC;margin-top:2px">
+                                text-shadow:0 0 14px rgba(52,211,153,0.9)">{rev_pct:.0f}%</div>
+                    <div style="font-size:10px;color:#93C8E8;margin-top:2px;font-weight:600">
                         {rev_rounds}/{max_rounds} rounds
                     </div>
-                    <div style="font-size:10px;color:#38BDF8;margin-top:3px;
-                                text-shadow:0 0 8px rgba(56,189,248,0.6)">
-                        ⏱ {rev_hrs:.1f}h revised
+                    <div style="font-size:10px;color:#38BDF8;margin-top:3px;font-weight:600;
+                                text-shadow:0 0 8px rgba(56,189,248,0.7)">
+                        ⏱ {rev_hrs:.1f}h / {total_req_hrs:.1f}h
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -2945,51 +2997,71 @@ def dashboard():
             # Guard: ensure no zero-sum
             if sum(vals) == 0:
                 vals, labels, colors = [1], ["No Data"], ["#2D3748"]
+            # Primary colour drives glow
+            glow_clr = colors[0] if colors else "#38BDF8"
             fig_d = go.Figure(go.Pie(
                 values=vals, labels=labels,
-                marker_colors=colors,
+                marker=dict(colors=colors, line=dict(color="rgba(0,0,0,0)", width=0)),
                 hole=0.62,
                 textinfo="percent",
-                textfont=dict(size=10),
+                textfont=dict(size=10, color="#FFFFFF"),
                 hovertemplate="%{label}: %{value}<extra></extra>"
             ))
             fig_d.update_layout(
-                paper_bgcolor="rgba(4,10,28,0.95)",
-                plot_bgcolor ="rgba(4,10,28,0.95)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor ="rgba(0,0,0,0)",
                 height=220,
-                margin=dict(t=40, b=10, l=10, r=10),
-                title=dict(text=title,
-                           font=dict(family="DM Mono, monospace", size=11, color="#FFFFFF"), x=0.5),
+                margin=dict(t=44, b=18, l=8, r=8),
+                title=dict(
+                    text=f"<b>{title}</b>",
+                    font=dict(family="DM Mono, monospace", size=11, color="#FFFFFF"),
+                    x=0.5, xanchor="center", y=0.98, yanchor="top"
+                ),
                 showlegend=True,
-                legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.15,
+                legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.12,
                             font=dict(size=9, color="#C8E5F8"), bgcolor="rgba(0,0,0,0)"),
-                annotations=[dict(text=center_text, x=0.5, y=0.5,
-                                  font=dict(size=14, color="#FFFFFF",
+                annotations=[dict(text=f"<b>{center_text}</b>", x=0.5, y=0.5,
+                                  font=dict(size=15, color="#FFFFFF",
                                             family="DM Mono, monospace"),
                                   showarrow=False)]
             )
-            return fig_d
+            return fig_d, glow_clr
 
         with dc1:
             pct_r = f"{int(topics_read/all_topics_count*100)}%" if all_topics_count > 0 else "0%"
-            st.plotly_chart(make_donut(
+            _fig1, _gc1 = make_donut(
                 [topics_read, topics_not_read], ["Read", "Not Read"],
                 ["#38BDF8", "#1E3A5F"], "📖 Topics Read", pct_r
-            ), use_container_width=True)
+            )
+            st.markdown(f"""<div style="border-radius:50%;padding:4px;
+                box-shadow:0 0 28px {_gc1}88, 0 0 56px {_gc1}33;
+                background:radial-gradient(ellipse at center, {_gc1}10 0%, transparent 70%)">
+                </div>""", unsafe_allow_html=True)
+            st.plotly_chart(_fig1, use_container_width=True)
 
         with dc2:
             pct_rv = f"{int(topics_revised/completed_count*100)}%" if completed_count > 0 else "0%"
-            st.plotly_chart(make_donut(
+            _fig2, _gc2 = make_donut(
                 [topics_revised, not_yet_revised], ["Revised", "Not Yet Revised"],
                 ["#34D399", "#0F3A2A"], "🔄 Revised (of Completed)", pct_rv
-            ), use_container_width=True)
+            )
+            st.markdown(f"""<div style="border-radius:50%;padding:4px;
+                box-shadow:0 0 28px {_gc2}88, 0 0 56px {_gc2}33;
+                background:radial-gradient(ellipse at center, {_gc2}10 0%, transparent 70%)">
+                </div>""", unsafe_allow_html=True)
+            st.plotly_chart(_fig2, use_container_width=True)
 
         with dc3:
             pct_ov = f"{int(ov_count/topics_read*100)}%" if topics_read > 0 else "0%"
-            st.plotly_chart(make_donut(
+            _fig3, _gc3 = make_donut(
                 [ov_count, not_overdue], ["Overdue", "On Track"],
                 ["#F87171", "#1A3A1A"], "⚠️ Overdue", pct_ov
-            ), use_container_width=True)
+            )
+            st.markdown(f"""<div style="border-radius:50%;padding:4px;
+                box-shadow:0 0 28px {_gc3}88, 0 0 56px {_gc3}33;
+                background:radial-gradient(ellipse at center, {_gc3}10 0%, transparent 70%)">
+                </div>""", unsafe_allow_html=True)
+            st.plotly_chart(_fig3, use_container_width=True)
 
         # ── Donut charts continue above; agenda moved to Revision tab ──
 
@@ -3058,8 +3130,8 @@ def dashboard():
         st.markdown(f"""
         <style>
         @keyframes bar-ltr-shimmer {{
-            0%   {{ background-position: -200% center; }}
-            100% {{ background-position: 200% center; }}
+            0%   {{ background-position: 200% center; }}
+            100% {{ background-position: -200% center; }}
         }}
         @keyframes bar-fill-ltr {{
             from {{ width: 0%; }}
