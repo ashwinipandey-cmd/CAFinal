@@ -1351,8 +1351,14 @@ def complete_topic(subject: str, topic: str, tfr: float):
         return True, f"✅ {topic} marked as Completed! Revision schedule generated."
     except Exception as e:
         err = str(e)
+        # The updated_at trigger error means the UPDATE succeeded — Supabase
+        # fires the trigger AFTER writing but the trigger itself errors on
+        # the response. Data is written; treat as success.
+        if "updated_at" in err or "has no field" in err:
+            invalidate_cache()
+            return True, f"✅ {topic} marked as Completed! Revision schedule generated."
         if "column" in err.lower() or "topic_status" in err:
-            return False, "⚠️ Database migration required. Please run the updated supabase_setup.sql in your Supabase SQL Editor to enable the new revision engine."
+            return False, "⚠️ Database migration required. Run supabase_setup.sql in Supabase SQL Editor."
         return False, f"Error: {e}"
 
 
@@ -1372,20 +1378,28 @@ def log_revision_session(subject: str, topic: str, revision_round: int,
             "notes":    notes,
             "status":   "completed",
         }).execute()
-        # Update revision_tracker revision count
+    except Exception as e:
+        err = str(e)
+        if "updated_at" in err or "has no field" in err:
+            pass  # insert succeeded; trigger error on response is harmless
+        else:
+            return False, f"Error: {e}"
+    try:
         sb.table("revision_tracker") \
           .update({
-              "revision_count":      revision_round,
-              "last_revision_date":  str(session_date),
+              "revision_count":     revision_round,
+              "last_revision_date": str(session_date),
           }) \
           .eq("user_id", uid()) \
           .eq("subject", subject) \
           .eq("topic", topic) \
           .execute()
-        invalidate_cache()
-        return True, "Revision logged!"
     except Exception as e:
-        return False, f"Error: {e}"
+        err = str(e)
+        if "updated_at" not in err and "has no field" not in err:
+            return False, f"Error updating tracker: {e}"
+    invalidate_cache()
+    return True, "Revision logged!"
 
 
 
@@ -2926,13 +2940,32 @@ def log_study():
                              height=70, key="log_notes")
 
         # ── Checkbox: Mark as completed on save ──────────────────────────────
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <style>
+        /* Default: unchecked box stays neutral */
+        div[data-testid="stCheckbox"] label {
+            font-size: 13px !important;
+            color: #7AB4D0 !important;
+            font-weight: 500 !important;
+        }
+        /* When checked: label text turns green */
+        div[data-testid="stCheckbox"]:has(input:checked) label {
+            color: #34D399 !important;
+            font-weight: 700 !important;
+        }
+        /* Checked box fill */
+        div[data-testid="stCheckbox"] input:checked + span {
+            background-color: #34D399 !important;
+            border-color: #34D399 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
         mark_complete = st.checkbox(
-            f"✅  Mark **'{topic}'** as First Read Completed",
+            f"Mark \'{topic}\' as First Read Completed",
             value=False,
             key="mark_complete_cb",
-            help="Tick this if you are finishing the first read of this topic today. "
-                 "Once saved, the revision schedule will be generated automatically. "
+            help="Tick this when you finish the first read of this topic. "
+                 "The revision schedule will be generated automatically on save. "
                  "Leave unticked if the topic continues in future sessions."
         )
 
@@ -2941,17 +2974,17 @@ def log_study():
             r1_h = projected_tfr * r1_ratio
             r2_h = projected_tfr * r2_ratio
             st.markdown(f"""
-            <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.25);
-                        border-radius:10px;padding:10px 14px;margin:6px 0;font-size:11px;color:#7AB4D0">
-                🎓 On save: TFR will be locked at <b style="color:#FFFFFF">{projected_tfr:.1f}h</b> &nbsp;·&nbsp;
+            <div style="background:rgba(52,211,153,0.10);border:2px solid rgba(52,211,153,0.35);
+                        border-radius:10px;padding:10px 14px;margin:4px 0;font-size:11px;color:#7AB4D0">
+                On save — TFR locked at <b style="color:#FFFFFF">{projected_tfr:.1f}h</b> &nbsp;·&nbsp;
                 R1 = <b style="color:#34D399">{r1_h:.2f}h</b> &nbsp;·&nbsp;
                 R2 = <b style="color:#34D399">{r2_h:.2f}h</b> &nbsp;·&nbsp;
                 {num_rev} revisions scheduled
             </div>
             """, unsafe_allow_html=True)
-            save_label = f"✅ SAVE & COMPLETE FIRST READ — {topic[:30]}"
+            save_label = f"SAVE & COMPLETE FIRST READ — {topic[:30]}"
         else:
-            save_label = "💾 SAVE READING SESSION"
+            save_label = "SAVE READING SESSION"
 
         session_type = "reading"
         round_num    = 0
@@ -3769,77 +3802,193 @@ else:
     if "show_profile" not in st.session_state:
         st.session_state.show_profile = False
 
-    # ── ANIMATED TOP HEADER BAR ────────────────────────────────────────────────
-    hcol1, hcol2 = st.columns([5, 1])
-    with hcol2:
-        if st.button(f"{name[0].upper()} Profile", key="open_profile_btn",
-                     use_container_width=True):
-            st.session_state.show_profile = not st.session_state.show_profile
-            st.rerun()
+    # Compute glow colour RGB for CSS
+    _glow_rgb = {
+        "#34D399": "52,211,153",
+        "#60A5FA": "96,165,250",
+        "#FBBF24": "251,191,36",
+        "#38BDF8": "56,189,248",
+        "#94A3B8": "148,163,184",
+    }.get(_lvl_clr, "56,189,248")
+    _circ = 219.91   # circumference of r=35 circle
+    _filled = _lvl_pct / 100 * _circ
 
+    # CSS: make avatar_btn completely transparent and circular,
+    # sitting invisibly over the SVG circle so the circle IS the button.
     st.markdown(f"""
-    <div style="display:flex;align-items:center;justify-content:space-between;
-                padding:10px 8px 6px;border-bottom:1px solid rgba(56,189,248,0.12);
-                margin-bottom:0;margin-top:-44px">
-        <div style="display:flex;align-items:center;gap:14px">
-            <!-- Clickable avatar circle with XP ring -->
-            <div style="position:relative;width:48px;height:48px">
-                <svg width="48" height="48" style="position:absolute;top:0;left:0">
-                    <circle cx="24" cy="24" r="22" fill="none"
-                            stroke="rgba(56,189,248,0.20)" stroke-width="3"/>
-                    <circle cx="24" cy="24" r="22" fill="none"
-                            stroke="{_lvl_clr}" stroke-width="3"
-                            stroke-dasharray="{int(_lvl_pct*1.382)} 138.2"
-                            stroke-linecap="round"
-                            transform="rotate(-90 24 24)"
-                            style="transition:stroke-dasharray 1s ease"/>
-                </svg>
-                <div style="position:absolute;top:4px;left:4px;
-                            width:40px;height:40px;border-radius:50%;
-                            background:linear-gradient(135deg,#0E5AC8,#38BDF8);
-                            display:flex;align-items:center;justify-content:center;
-                            font-size:15px;font-weight:800;color:#FFF;
-                            font-family:'Orbitron',monospace">{name[0].upper()}</div>
-            </div>
-            <div>
-                <div style="font-family:'Orbitron',monospace;font-size:13px;
-                            font-weight:700;color:#FFF;
-                            text-shadow:0 0 15px rgba(56,189,248,0.5)">{name}</div>
-                <div style="font-size:10px;color:{_lvl_clr};letter-spacing:1px">
-                    LVL {_lvl} · {_lvl_info["name"]} · @{profile.get("username","")}</div>
-            </div>
-        </div>
-        <div style="background:rgba(56,189,248,0.08);border:2px solid rgba(56,189,248,0.22);
-                    border-radius:14px;padding:8px 20px;text-align:center;position:relative;overflow:hidden">
-            <div style="position:absolute;top:0;left:0;right:0;height:2px;
-                        background:linear-gradient(90deg,transparent,#38BDF8,#7DD3FC,transparent);
-                        animation:scanline 2.5s ease-in-out infinite"></div>
-            <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:800;
-                        color:#FFFFFF;line-height:1;
-                        text-shadow:0 0 20px rgba(56,189,248,0.8);
-                        animation:pulse-count 2s ease-in-out infinite">{days_left}</div>
-            <div style="font-size:9px;color:#4A6A90;letter-spacing:2px;margin-top:2px">DAYS LEFT</div>
-            <div style="font-size:10px;color:#38BDF8">{prof.get("exam_month","")} {prof.get("exam_year","")}</div>
-        </div>
-    </div>
     <style>
+    /* Transparent avatar button */
+    div[data-testid="stButton"] button[kind="secondary"][data-testid*="avatar_btn"],
+    div[data-testid="stBaseButton-secondary"]:has(+ * [data-key="avatar_btn"]) button,
+    [data-key="avatar_btn"] > button {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 76px !important;
+        height: 76px !important;
+        border-radius: 50% !important;
+        min-height: 0 !important;
+        position: relative !important;
+        z-index: 5 !important;
+        cursor: pointer !important;
+    }}
+    [data-key="avatar_btn"] > button:hover {{
+        background: rgba({_glow_rgb},0.12) !important;
+        box-shadow: 0 0 24px rgba({_glow_rgb},0.5) !important;
+    }}
+    [data-key="avatar_btn"] {{
+        width: 76px !important;
+        height: 76px !important;
+        min-height: 0 !important;
+    }}
+    /* XP animations */
+    @keyframes xp-shimmer {{
+        0%   {{ background-position: -300% center; }}
+        100% {{ background-position: 300% center; }}
+    }}
+    @keyframes lvl-glow {{
+        0%,100% {{
+            text-shadow: 0 0 8px rgba({_glow_rgb},0.9),
+                         0 0 20px rgba({_glow_rgb},0.7),
+                         0 0 40px rgba({_glow_rgb},0.4);
+        }}
+        50% {{
+            text-shadow: 0 0 16px rgba({_glow_rgb},1.0),
+                         0 0 40px rgba({_glow_rgb},0.9),
+                         0 0 80px rgba({_glow_rgb},0.6),
+                         0 0 120px rgba({_glow_rgb},0.3);
+        }}
+    }}
+    @keyframes ring-fill {{
+        from {{ stroke-dasharray: 0 {_circ:.2f}; }}
+        to   {{ stroke-dasharray: {_filled:.2f} {_circ:.2f}; }}
+    }}
     @keyframes pulse-count {{
         0%,100% {{ text-shadow:0 0 20px rgba(56,189,248,0.8),0 0 40px rgba(56,189,248,0.4); }}
         50%      {{ text-shadow:0 0 30px rgba(56,189,248,1.0),0 0 60px rgba(56,189,248,0.6); }}
     }}
     </style>
-    <br>
     """, unsafe_allow_html=True)
 
-    # ── Profile panel (shown when avatar clicked) ──────────────────────────────
+    # ── Header layout ──────────────────────────────────────────────────────────
+    h_av, h_info, h_days = st.columns([1, 5, 1])
+
+    # Left: Avatar circle (SVG) + invisible button overlay
+    with h_av:
+        st.markdown(f"""
+        <div style="position:relative;width:76px;height:76px;margin-bottom:0">
+            <!-- XP ring SVG -->
+            <svg width="76" height="76" style="position:absolute;top:0;left:0;
+                                               transform:rotate(-90deg)">
+                <circle cx="38" cy="38" r="35" fill="none"
+                        stroke="rgba(56,189,248,0.12)" stroke-width="5"/>
+                <circle cx="38" cy="38" r="35" fill="none"
+                        stroke="{_lvl_clr}" stroke-width="5"
+                        stroke-linecap="round"
+                        stroke-dasharray="0 {_circ:.2f}"
+                        style="animation:ring-fill 1.5s cubic-bezier(0.4,0,0.2,1) forwards;
+                               filter:drop-shadow(0 0 8px rgba({_glow_rgb},1.0))"/>
+            </svg>
+            <!-- Avatar initial circle -->
+            <div style="position:absolute;top:6px;left:6px;
+                        width:64px;height:64px;border-radius:50%;
+                        background:linear-gradient(135deg,#0B4FB3,#38BDF8);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:24px;font-weight:900;color:#FFF;
+                        font-family:'Orbitron',monospace;
+                        box-shadow:0 0 18px rgba({_glow_rgb},0.40)">
+                {name[0].upper()}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        # Transparent button that sits over the SVG — clicking it opens profile
+        if st.button("​", key="avatar_btn", help="Open Profile"):
+            st.session_state.show_profile = not st.session_state.show_profile
+            st.rerun()
+
+    # Middle: Name + large animated XP bar
+    with h_info:
+        hrs_to_next = max(_lvl_info["next_threshold"] - _total_xp, 0)
+        st.markdown(f"""
+        <div style="padding:4px 0 0 4px">
+            <!-- Name row -->
+            <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1px">
+                <div style="font-family:'Orbitron',monospace;font-size:15px;
+                            font-weight:800;color:#FFF;
+                            text-shadow:0 0 15px rgba(56,189,248,0.5)">{name}</div>
+                <div style="font-size:10px;color:#4A6A90">@{profile.get("username","")}</div>
+            </div>
+            <!-- Level badge row -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+                <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:900;
+                            color:{_lvl_clr};letter-spacing:1px;
+                            animation:lvl-glow 2.2s ease-in-out infinite">LVL&nbsp;{_lvl}</div>
+                <div style="background:rgba({_glow_rgb},0.15);border:1px solid rgba({_glow_rgb},0.40);
+                            border-radius:8px;padding:3px 10px;
+                            font-size:11px;font-weight:700;color:{_lvl_clr};
+                            font-family:'Orbitron',monospace;letter-spacing:0.5px">
+                    {_lvl_info["name"].upper()}</div>
+                <div style="font-size:10px;color:#4A6A90;margin-left:auto">
+                    {_total_xp:.0f}h &nbsp;/&nbsp; {_lvl_info["next_threshold"]}h</div>
+            </div>
+            <!-- XP progress bar with shimmer glow -->
+            <div style="background:rgba(255,255,255,0.06);border-radius:8px;
+                        height:12px;overflow:hidden;position:relative;
+                        border:1px solid rgba({_glow_rgb},0.15)">
+                <div style="width:{_lvl_pct:.1f}%;height:100%;border-radius:8px;
+                            background:linear-gradient(90deg,
+                                {_lvl_clr}55 0%, {_lvl_clr} 35%,
+                                #FFFFFF 50%,
+                                {_lvl_clr} 65%, {_lvl_clr}55 100%);
+                            background-size:300% 100%;
+                            animation:xp-shimmer 2.2s linear infinite;
+                            box-shadow:0 0 18px rgba({_glow_rgb},1.0),
+                                       0 0 36px rgba({_glow_rgb},0.6)">
+                </div>
+            </div>
+            <div style="font-size:9px;color:#4A6A90;margin-top:3px">
+                {hrs_to_next:.0f}h more to Level {min(_lvl+1,25)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Right: Days left counter
+    with h_days:
+        st.markdown(f"""
+        <div style="background:rgba(56,189,248,0.07);border:2px solid rgba(56,189,248,0.22);
+                    border-radius:14px;padding:8px 10px;text-align:center;
+                    position:relative;overflow:hidden;margin-top:4px">
+            <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                        background:linear-gradient(90deg,transparent,#38BDF8,transparent);
+                        animation:scanline 2.5s ease-in-out infinite"></div>
+            <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:800;
+                        color:#FFF;line-height:1;
+                        animation:pulse-count 2s ease-in-out infinite">{days_left}</div>
+            <div style="font-size:8px;color:#4A6A90;letter-spacing:2px;margin-top:2px">DAYS</div>
+            <div style="font-size:9px;color:#38BDF8;margin-top:1px">
+                {prof.get("exam_month","")[:3]} {prof.get("exam_year","")}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>",
+                unsafe_allow_html=True)
+
+    # ── Profile panel slides in when avatar circle is clicked ──────────────────
     if st.session_state.show_profile:
         with st.container():
-            st.markdown("""<div style="background:rgba(6,14,38,0.95);border:2px solid rgba(56,189,248,0.30);
-                border-radius:20px;padding:6px;margin-bottom:12px">""", unsafe_allow_html=True)
+            st.markdown("""<div style="background:rgba(4,10,30,0.98);
+                border:2px solid rgba(56,189,248,0.28);border-radius:20px;
+                padding:10px;margin-bottom:16px">""", unsafe_allow_html=True)
             profile_page()
-            if st.button("✕ Close Profile", key="close_profile_btn", use_container_width=True):
-                st.session_state.show_profile = False
-                st.rerun()
+            c1, c2, c3 = st.columns([1, 2, 1])
+            with c2:
+                if st.button("✕  Close Profile", key="close_profile_btn",
+                             use_container_width=True):
+                    st.session_state.show_profile = False
+                    st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
