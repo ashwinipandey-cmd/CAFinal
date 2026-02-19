@@ -102,7 +102,7 @@ TOPICS = {
 # ── WORLD CLASS GLASSY NEON CSS ───────────────────────────────────────────────
 GLASSY_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
 /* ════════════════════════════════════════
    ROOT VARIABLES
@@ -120,9 +120,9 @@ GLASSY_CSS = """
     --border-glow:  rgba(56, 189, 248, 0.28);
     --text-primary: #E0F0FF;
     --text-muted:   #4A6A90;
-    --font-display: 'Orbitron', monospace;
-    --font-ui:      'Helvetica Neue', Helvetica, Arial, sans-serif;
-    --font-body:    'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-display: 'DM Mono', monospace;
+    --font-ui:      'DM Sans', sans-serif;
+    --font-body:    'DM Sans', sans-serif;
 }
 
 /* ════════════════════════════════════════
@@ -283,11 +283,11 @@ div[data-testid="stMetricValue"] {
 
 div[data-testid="stMetricLabel"] {
     font-family: var(--font-ui) !important;
-    font-size: 10px !important;
-    text-transform: uppercase !important;
-    letter-spacing: 2px !important;
+    font-size: 11px !important;
+    text-transform: none !important;
+    letter-spacing: 0.3px !important;
     color: var(--text-muted) !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
 }
 
 div[data-testid="stMetricDelta"] {
@@ -309,11 +309,11 @@ h1 {
 
 h2 {
     font-family: var(--font-display) !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
     color: var(--text-primary) !important;
-    letter-spacing: 0.5px !important;
-    text-transform: uppercase !important;
+    letter-spacing: 0.2px !important;
+    text-transform: none !important;
 }
 
 h3 {
@@ -373,11 +373,11 @@ p, .stMarkdown p {
 .stRadio label,
 .stCheckbox label {
     font-family: var(--font-ui) !important;
-    font-size: 11px !important;
-    text-transform: uppercase !important;
-    letter-spacing: 1.5px !important;
+    font-size: 12px !important;
+    text-transform: none !important;
+    letter-spacing: 0.1px !important;
     color: #7AB4D0 !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
 }
 
 /* Selectbox */
@@ -418,47 +418,44 @@ p, .stMarkdown p {
    BUTTONS
 ════════════════════════════════════════ */
 .stButton button {
-    background: linear-gradient(135deg, rgba(14,100,220,0.85) 0%, rgba(10,60,180,0.95) 50%, rgba(56,189,248,0.75) 100%) !important;
-    border: 1px solid rgba(56,189,248,0.5) !important;
-    border-radius: 10px !important;
-    color: #FFFFFF !important;
+    background: rgba(14, 80, 180, 0.60) !important;
+    border: 1px solid rgba(56,189,248,0.35) !important;
+    border-radius: 8px !important;
+    color: #E0F0FF !important;
     font-family: var(--font-ui) !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
     font-size: 13px !important;
-    letter-spacing: 1.5px !important;
-    text-transform: uppercase !important;
-    padding: 11px 22px !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow:
-        0 4px 20px rgba(56,189,248,0.30),
-        0 0 0 0 rgba(56,189,248,0) !important;
+    letter-spacing: 0.2px !important;
+    text-transform: none !important;
+    padding: 7px 16px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.25) !important;
     position: relative !important;
     overflow: hidden !important;
+    backdrop-filter: blur(8px) !important;
 }
 
 .stButton button::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    background: linear-gradient(135deg, rgba(255,255,255,0.07), transparent);
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.2s;
 }
 
 .stButton button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow:
-        0 8px 30px rgba(56,189,248,0.45),
-        0 0 40px rgba(56,189,248,0.20),
-        0 0 0 1px rgba(56,189,248,0.4) !important;
-    border-color: rgba(14,100,220,0.85) !important;
+    background: rgba(14, 100, 200, 0.75) !important;
+    border-color: rgba(56,189,248,0.60) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 16px rgba(56,189,248,0.20) !important;
 }
 
 .stButton button:hover::before { opacity: 1 !important; }
 
 .stButton button:active {
     transform: translateY(0px) !important;
-    box-shadow: 0 0 15px rgba(56,189,248,0.30) !important;
+    box-shadow: 0 1px 6px rgba(56,189,248,0.15) !important;
 }
 
 /* ════════════════════════════════════════
@@ -527,7 +524,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     backdrop-filter: blur(30px) !important;
     box-shadow: 0 4px 30px rgba(0,0,0,0.5), 0 1px 0 rgba(56,189,248,0.15) !important;
     width: 100% !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
     position: relative !important;
     overflow-x: auto !important;
     scrollbar-width: none !important;
@@ -547,11 +544,11 @@ section[data-testid="stSidebar"] { display: none !important; }
     border-radius: 0 !important;
     color: #4A6A90 !important;
     font-family: var(--font-ui) !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    letter-spacing: 1.5px !important;
-    text-transform: uppercase !important;
-    padding: 16px 22px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.2px !important;
+    text-transform: none !important;
+    padding: 14px 20px !important;
     transition: all 0.25s !important;
     border-bottom: 2px solid transparent !important;
     white-space: nowrap !important;
@@ -1050,8 +1047,8 @@ def get_exam_date():
 PLOTLY_LAYOUT = dict(
     paper_bgcolor="rgba(4,10,28,0.95)",
     plot_bgcolor ="rgba(4,10,28,0.95)",
-    font=dict(family="Rajdhani, sans-serif", color="#B0D4F0", size=12),
-    title_font=dict(family="Orbitron, monospace", size=14, color="#FFFFFF"),
+    font=dict(family="DM Sans, sans-serif", color="#B0D4F0", size=12),
+    title_font=dict(family="DM Mono, monospace", size=14, color="#FFFFFF"),
     legend=dict(
         bgcolor="rgba(6,14,38,0.7)",
         bordercolor="rgba(56,189,248,0.2)",
@@ -1083,18 +1080,19 @@ def apply_theme(fig, title="", height=None, extra_layout=None):
         paper_bgcolor="rgba(4,10,28,0.95)",
         plot_bgcolor ="rgba(4,10,28,0.95)",
         margin       =dict(t=50, b=40, l=40, r=20),
-        font         =dict(family="Rajdhani, sans-serif", color="#B0D4F0", size=12),
+        font         =dict(family="DM Sans, sans-serif", color="#B0D4F0", size=12),
         legend       =dict(
             bgcolor="rgba(6,14,38,0.8)",
             bordercolor="rgba(56,189,248,0.2)",
             borderwidth=1,
             font=dict(size=11, color="#B0D4F0")
         ),
+        transition   =dict(duration=600, easing="cubic-in-out"),
     )
     if title:
         fig.update_layout(
             title=dict(text=title,
-                       font=dict(family="Orbitron, monospace", size=14, color="#FFFFFF"))
+                       font=dict(family="DM Mono, monospace", size=14, color="#FFFFFF"))
         )
     if height:
         fig.update_layout(height=height)
@@ -1909,13 +1907,19 @@ def profile_page():
 
     days_left = max((get_exam_date() - date.today()).days, 0)
 
+    # Pre-build color variants to avoid f-string hex-suffix parsing errors
+    lvl_clr_88 = lvl_clr + "88"
+    lvl_clr_66 = lvl_clr + "66"
+    lvl_clr_44 = lvl_clr + "44"
+    lvl_clr_CC = lvl_clr + "CC"
+
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,rgba(8,18,50,0.95),rgba(14,40,100,0.90));
                 border:2px solid rgba(56,189,248,0.30);border-radius:24px;
                 padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden">
         <!-- Animated top line -->
         <div style="position:absolute;top:0;left:0;right:0;height:2px;
-                    background:linear-gradient(90deg,transparent,{lvl_clr},{lvl_clr}88,transparent);
+                    background:linear-gradient(90deg,transparent,{lvl_clr},{lvl_clr_88},transparent);
                     animation:scanline 2.5s ease-in-out infinite"></div>
 
         <div style="display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap">
@@ -1925,9 +1929,9 @@ def profile_page():
                             background:linear-gradient(135deg,#0E5AC8,#38BDF8);
                             display:flex;align-items:center;justify-content:center;
                             margin:0 auto 10px;font-size:36px;font-weight:800;color:#FFF;
-                            font-family:'Orbitron',monospace;
-                            box-shadow:0 0 0 3px {lvl_clr}66, 0 0 30px {lvl_clr}44">{init}</div>
-                <div style="font-family:'Orbitron',monospace;font-size:10px;
+                            font-family:'DM Mono',monospace;
+                            box-shadow:0 0 0 3px {lvl_clr_66}, 0 0 30px {lvl_clr_44}">{init}</div>
+                <div style="font-family:'DM Mono',monospace;font-size:10px;
                             color:{lvl_clr};font-weight:700;letter-spacing:1px">
                     LVL {lvl}</div>
                 <div style="font-size:10px;color:#7AB4D0;margin-top:2px">{lvl_name}</div>
@@ -1935,7 +1939,7 @@ def profile_page():
 
             <!-- Name + XP bar -->
             <div style="flex:1;min-width:200px">
-                <div style="font-family:'Orbitron',monospace;font-size:20px;
+                <div style="font-family:'DM Mono',monospace;font-size:20px;
                             font-weight:800;color:#FFF;margin-bottom:2px">{name}</div>
                 <div style="font-size:12px;color:#4A6A90;margin-bottom:16px">
                     @{uname} &nbsp;·&nbsp; {prof.get('exam_month','')} {prof.get('exam_year','')}
@@ -1945,7 +1949,7 @@ def profile_page():
                 <!-- XP Bar -->
                 <div style="margin-bottom:6px;display:flex;justify-content:space-between;
                             align-items:center">
-                    <span style="font-size:11px;color:#7AB4D0;font-family:'Orbitron',monospace">
+                    <span style="font-size:11px;color:#7AB4D0;font-family:'DM Mono',monospace">
                         XP PROGRESS</span>
                     <span style="font-size:11px;color:{lvl_clr};font-weight:700">
                         {total_xp_hrs:.0f}h / {nxt_thr}h</span>
@@ -1953,8 +1957,8 @@ def profile_page():
                 <div style="background:rgba(255,255,255,0.07);border-radius:8px;
                             height:12px;overflow:hidden;position:relative">
                     <div style="width:{lvl_pct:.1f}%;height:100%;border-radius:8px;
-                                background:linear-gradient(90deg,{lvl_clr}88,{lvl_clr});
-                                box-shadow:0 0 12px {lvl_clr}88;
+                                background:linear-gradient(90deg,{lvl_clr_88},{lvl_clr});
+                                box-shadow:0 0 12px {lvl_clr_88};
                                 transition:width 1.2s cubic-bezier(0.4,0,0.2,1);
                                 animation:xp-pulse 2s ease-in-out infinite"></div>
                 </div>
@@ -1968,8 +1972,8 @@ def profile_page():
     </div>
     <style>
     @keyframes xp-pulse {{
-        0%,100% {{ box-shadow: 0 0 12px {lvl_clr}88; }}
-        50%       {{ box-shadow: 0 0 22px {lvl_clr}CC, 0 0 40px {lvl_clr}44; }}
+        0%,100% {{ box-shadow: 0 0 12px {lvl_clr_88}; }}
+        50%       {{ box-shadow: 0 0 22px {lvl_clr_CC}, 0 0 40px {lvl_clr_44}; }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -2150,7 +2154,7 @@ def profile_page():
         st.markdown("""
         <div style="text-align:center;padding:60px 30px">
             <div style="font-size:64px;margin-bottom:20px">🚀</div>
-            <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;
+            <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;
                         color:#38BDF8;margin-bottom:12px">COMING SOON</div>
             <div style="font-size:14px;color:#4A6A90;max-width:380px;margin:0 auto;line-height:1.8">
                 The Global Leaderboard is under construction.<br>
@@ -2180,7 +2184,7 @@ def profile_page():
             <div style="background:rgba(8,18,50,0.88);border:2px solid rgba(248,113,113,0.30);
                         border-radius:20px;padding:40px 30px;text-align:center">
                 <div style="font-size:48px;margin-bottom:16px">🚪</div>
-                <div style="font-family:'Orbitron',monospace;font-size:16px;font-weight:700;
+                <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;
                             color:#FFFFFF;margin-bottom:8px">Sign Out</div>
                 <div style="font-size:13px;color:#4A6A90;margin-bottom:24px">
                     You are signed in as <b style="color:#38BDF8">{name}</b>
@@ -2342,7 +2346,7 @@ def dashboard():
             <div style="background:{bg};border:2px solid {clr}33;border-radius:14px;
                         padding:14px 12px;text-align:center;
                         box-shadow:0 0 20px {clr}22">
-                <div style="font-family:'Orbitron',monospace;font-size:14px;
+                <div style="font-family:'DM Mono',monospace;font-size:14px;
                             font-weight:800;color:{clr};
                             text-shadow:0 0 14px {glow};margin-bottom:4px">{s}</div>
                 <div style="font-size:9px;color:#7AB4D0;letter-spacing:0.5px;
@@ -2353,7 +2357,7 @@ def dashboard():
                                 background:linear-gradient(90deg,{clr}99,{clr});
                                 box-shadow:0 0 10px {glow};transition:width 1s ease"></div>
                 </div>
-                <div style="font-family:'Orbitron',monospace;font-size:17px;
+                <div style="font-family:'DM Mono',monospace;font-size:17px;
                             font-weight:700;color:#FFFFFF">{pct:.0f}%</div>
                 <div style="font-size:10px;color:#4A6A90;margin-top:3px">
                     {done:.0f}h / {tgt}h
@@ -2384,7 +2388,7 @@ def dashboard():
                 st.markdown(f"""
                 <div style="background:rgba(52,211,153,0.06);border:2px solid {clr}22;
                             border-radius:12px;padding:12px 10px;text-align:center">
-                    <div style="font-family:'Orbitron',monospace;font-size:12px;
+                    <div style="font-family:'DM Mono',monospace;font-size:12px;
                                 font-weight:800;color:{clr};margin-bottom:4px">{s}</div>
                     <div style="background:rgba(255,255,255,0.06);border-radius:5px;
                                 height:6px;overflow:hidden;margin-bottom:6px">
@@ -2423,16 +2427,13 @@ def dashboard():
                           annotation_font_size=10)
             fig.update_layout(
                 barmode="stack", bargap=0.25,
-                updatemenus=[dict(
-                    type="buttons", showactive=False, y=1.12, x=1.0, xanchor="right",
-                    buttons=[dict(label="▶ Animate", method="animate",
-                                  args=[None, dict(frame=dict(duration=80, redraw=True),
-                                                   fromcurrent=True,
-                                                   transition=dict(duration=60, easing="cubic-in-out"))])]
-                )]
             )
             apply_theme(fig, title="Daily Hours — Last 30 Days")
-            fig.update_layout(hovermode="x unified")
+            fig.update_layout(
+                hovermode="x unified",
+                transition=dict(duration=700, easing="cubic-in-out"),
+            )
+            fig.update_traces(marker_line_width=0)
             fig.update_yaxes(rangemode="tozero")
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -2458,6 +2459,7 @@ def dashboard():
             fig3.add_hline(y=60, line_dash="dot", line_color="#34D399",
                            annotation_text="Target 60%", annotation_font_color="#34D399")
             apply_theme(fig3, title="Score Trends")
+            fig3.update_layout(transition=dict(duration=700, easing="cubic-in-out"))
             fig3.update_yaxes(range=[0, 105])
             st.plotly_chart(fig3, use_container_width=True)
 
@@ -2474,6 +2476,7 @@ def dashboard():
             ))
             fig4.add_hline(y=50, line_dash="dash", line_color="#F87171")
             apply_theme(fig4, title="Avg Score by Subject")
+            fig4.update_layout(transition=dict(duration=700, easing="cubic-in-out"))
             fig4.update_yaxes(range=[0, 110])
             st.plotly_chart(fig4, use_container_width=True)
 
@@ -2506,7 +2509,7 @@ def dashboard():
                 st.markdown(f"""
                 <div style="background:rgba(6,14,38,0.80);border:2px solid {clr}33;
                             border-radius:12px;padding:12px 10px;text-align:center">
-                    <div style="font-family:'Orbitron',monospace;font-size:12px;
+                    <div style="font-family:'DM Mono',monospace;font-size:12px;
                                 font-weight:800;color:{clr}">{s}</div>
                     <div style="font-size:10px;color:#4A6A90;margin:4px 0 8px">{SUBJ_FULL[s]}</div>
                     <div style="display:flex;justify-content:space-around">
@@ -2579,25 +2582,25 @@ def dashboard():
                     <div style="background:rgba(248,113,113,0.12);border:2px solid rgba(248,113,113,0.3);
                                 border-radius:10px;padding:12px;text-align:center">
                         <div style="font-size:26px;font-weight:800;color:#F87171;
-                                    font-family:'Orbitron',monospace">{total_overdue}</div>
+                                    font-family:'DM Mono',monospace">{total_overdue}</div>
                         <div style="font-size:10px;color:#F87171;letter-spacing:1px">OVERDUE</div>
                     </div>
                     <div style="background:rgba(251,191,36,0.10);border:2px solid rgba(251,191,36,0.3);
                                 border-radius:10px;padding:12px;text-align:center">
                         <div style="font-size:26px;font-weight:800;color:#FBBF24;
-                                    font-family:'Orbitron',monospace">{today_count}</div>
+                                    font-family:'DM Mono',monospace">{today_count}</div>
                         <div style="font-size:10px;color:#FBBF24;letter-spacing:1px">DUE TODAY</div>
                     </div>
                     <div style="background:rgba(52,211,153,0.10);border:2px solid rgba(52,211,153,0.3);
                                 border-radius:10px;padding:12px;text-align:center">
                         <div style="font-size:26px;font-weight:800;color:#34D399;
-                                    font-family:'Orbitron',monospace">{total_up}</div>
+                                    font-family:'DM Mono',monospace">{total_up}</div>
                         <div style="font-size:10px;color:#34D399;letter-spacing:1px">UPCOMING</div>
                     </div>
                     <div style="background:rgba(56,189,248,0.08);border:2px solid rgba(56,189,248,0.2);
                                 border-radius:10px;padding:12px;text-align:center">
                         <div style="font-size:26px;font-weight:800;color:#38BDF8;
-                                    font-family:'Orbitron',monospace">{total_topics_studied}</div>
+                                    font-family:'DM Mono',monospace">{total_topics_studied}</div>
                         <div style="font-size:10px;color:#38BDF8;letter-spacing:1px">TOPICS IN LOG</div>
                     </div>
                 </div>
@@ -2647,13 +2650,13 @@ def dashboard():
                 height=220,
                 margin=dict(t=40, b=10, l=10, r=10),
                 title=dict(text=title,
-                           font=dict(family="Orbitron, monospace", size=11, color="#FFFFFF"), x=0.5),
+                           font=dict(family="DM Mono, monospace", size=11, color="#FFFFFF"), x=0.5),
                 showlegend=True,
                 legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.15,
                             font=dict(size=9, color="#B0D4F0"), bgcolor="rgba(0,0,0,0)"),
                 annotations=[dict(text=center_text, x=0.5, y=0.5,
                                   font=dict(size=14, color="#FFFFFF",
-                                            family="Orbitron, monospace"),
+                                            family="DM Mono, monospace"),
                                   showarrow=False)]
             )
             return fig_d
@@ -2701,7 +2704,7 @@ def dashboard():
                     st.markdown("""
                     <div style="background:rgba(248,113,113,0.08);border:2px solid rgba(248,113,113,0.3);
                                 border-radius:14px;padding:14px 18px;margin-bottom:14px">
-                        <div style="font-family:'Orbitron',monospace;font-size:12px;
+                        <div style="font-family:'DM Mono',monospace;font-size:12px;
                                     color:#F87171;letter-spacing:1px;margin-bottom:10px">
                             🔴 MUST DO TODAY — Overdue & Due
                         </div>
@@ -2716,18 +2719,18 @@ def dashboard():
                                     background:rgba(248,113,113,0.06);
                                     border-left:4px solid {badge_clr};
                                     border-radius:8px">
-                            <div style="font-family:'Orbitron',monospace;font-size:13px;
+                            <div style="font-family:'DM Mono',monospace;font-size:13px;
                                         font-weight:800;color:{badge_clr};min-width:24px">
                                 {rank}
                             </div>
                             <div style="flex:1">
-                                <span style="font-family:'Orbitron',monospace;font-size:10px;
+                                <span style="font-family:'DM Mono',monospace;font-size:10px;
                                              color:{subj_clr};font-weight:700">{row['subject']}</span>
                                 <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
                                              font-weight:600">{row['topic']}</span>
                             </div>
                             <div style="text-align:right">
-                                <div style="font-family:'Orbitron',monospace;font-size:11px;
+                                <div style="font-family:'DM Mono',monospace;font-size:11px;
                                             color:{badge_clr};font-weight:700">{row['round_label']}</div>
                                 <div style="font-size:9px;color:#F87171">{badge_txt}</div>
                             </div>
@@ -2739,7 +2742,7 @@ def dashboard():
                     st.markdown("""
                     <div style="background:rgba(251,191,36,0.06);border:2px solid rgba(251,191,36,0.25);
                                 border-radius:14px;padding:14px 18px;margin-bottom:14px">
-                        <div style="font-family:'Orbitron',monospace;font-size:12px;
+                        <div style="font-family:'DM Mono',monospace;font-size:12px;
                                     color:#FBBF24;letter-spacing:1px;margin-bottom:10px">
                             🟡 RECOMMENDED — Due Within 3 Days
                         </div>
@@ -2754,13 +2757,13 @@ def dashboard():
                                     border-left:4px solid #FBBF24;
                                     border-radius:8px">
                             <div style="flex:1">
-                                <span style="font-family:'Orbitron',monospace;font-size:10px;
+                                <span style="font-family:'DM Mono',monospace;font-size:10px;
                                              color:{subj_clr};font-weight:700">{row['subject']}</span>
                                 <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
                                              font-weight:600">{row['topic']}</span>
                             </div>
                             <div style="text-align:right">
-                                <div style="font-family:'Orbitron',monospace;font-size:11px;
+                                <div style="font-family:'DM Mono',monospace;font-size:11px;
                                             color:#FBBF24;font-weight:700">{row['round_label']}</div>
                                 <div style="font-size:9px;color:#FBBF24">in {days_away}d · {row['due_date']}</div>
                             </div>
@@ -2784,6 +2787,120 @@ def dashboard():
                 """, unsafe_allow_html=True)
         else:
             st.success("✅ Start logging study sessions to generate your daily revision agenda!")
+
+    # ── Score Dashboard (moved from Revision tab) ─────────────────────────────
+    rev_for_score = get_revision()
+    log_for_score = get_logs()
+    if not rev_for_score.empty or not log_for_score.empty:
+        st.markdown("---")
+        st.markdown('<div class="neon-header">⭐ Study Confidence Score</div>', unsafe_allow_html=True)
+
+        from collections import defaultdict as _dd
+        _prof         = st.session_state.profile
+        _num_rev      = int(_prof.get("num_revisions", 6))
+        _rev_sess_sc  = get_rev_sessions()
+
+        _completion_info: dict = {}
+        if not rev_for_score.empty:
+            for _, _r in rev_for_score.iterrows():
+                _k = (_r["subject"], _r["topic"])
+                _completion_info[_k] = {
+                    "status":    _r.get("topic_status","not_started") or "not_started",
+                    "comp_date": _r.get("completion_date"),
+                }
+
+        _rev_dates_map: dict = _dd(list)
+        if not log_for_score.empty:
+            for _, _r in log_for_score.iterrows():
+                _stype = _r.get("session_type","reading") if "session_type" in log_for_score.columns else "reading"
+                if _stype == "revision":
+                    _d = _r["date"].date() if hasattr(_r["date"],"date") else date.fromisoformat(str(_r["date"])[:10])
+                    _rev_dates_map[(_r["subject"],_r["topic"])].append(_d)
+        if not _rev_sess_sc.empty:
+            for _, _r in _rev_sess_sc.iterrows():
+                _d = _r["date"] if isinstance(_r["date"],date) else date.fromisoformat(str(_r["date"])[:10])
+                _rev_dates_map[(_r["subject"],_r["topic"])].append(_d)
+
+        _all_topic_count = sum(len(v) for v in TOPICS.values())
+        _completed_count = sum(1 for i in _completion_info.values() if i["status"]=="completed")
+        _reading_count   = sum(1 for i in _completion_info.values() if i["status"]=="reading")
+        _total_rev_done  = sum(len(set(v)) for v in _rev_dates_map.values())
+        _max_revs        = _completed_count * _num_rev
+        _pend_sc         = get_pendencies(rev_for_score, log_for_score)
+        _overdue_count   = len(_pend_sc[_pend_sc["days_overdue"]>0]) if not _pend_sc.empty else 0
+
+        _coverage_pct = _completed_count / _all_topic_count * 100 if _all_topic_count > 0 else 0
+        _depth_pct    = min(_total_rev_done / _max_revs * 100, 100) if _max_revs > 0 else 0
+        _penalty      = min(_overdue_count * 2, 30)
+        _overall      = max(0, round(_coverage_pct*0.35 + _depth_pct*0.50 - _penalty*0.15, 1))
+
+        _grade = (
+            ("🏆 MASTER",       "#34D399") if _overall >= 85 else
+            ("🎯 STRONG",       "#60A5FA") if _overall >= 65 else
+            ("📈 PROGRESSING",  "#FBBF24") if _overall >= 40 else
+            ("🚀 JUST STARTED", "#F87171")
+        )
+        sc1, sc2, sc3, sc4, sc5 = st.columns(5)
+        sc1.metric("📖 Reading",    f"{_reading_count}",       "in progress")
+        sc2.metric("✅ Completed",  f"{_completed_count}/{_all_topic_count}", f"{_coverage_pct:.0f}%")
+        sc3.metric("🔄 Revisions",  f"{_total_rev_done}",      f"of {_max_revs} target")
+        sc4.metric("🔴 Overdue",    f"{_overdue_count}",       "need revision now")
+        sc5.metric("⭐ Confidence", f"{_overall}%",            _grade[0])
+
+        _bar_clr = _grade[1]
+        _bar_clr_88 = _bar_clr + "88"
+        _bar_clr_44 = _bar_clr + "44"
+        st.markdown(f"""
+        <div style="background:rgba(6,14,38,0.80);border:2px solid {_bar_clr_44};
+                    border-radius:16px;padding:20px 24px;margin:14px 0">
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                <span style="font-family:'DM Mono',monospace;font-size:13px;
+                             font-weight:700;color:{_bar_clr}">{_grade[0]}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:20px;
+                             font-weight:700;color:#FFFFFF">{_overall}%</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.07);border-radius:8px;height:14px;overflow:hidden">
+                <div style="width:{_overall}%;height:100%;border-radius:8px;
+                            background:linear-gradient(90deg,{_bar_clr_88},{_bar_clr});
+                            box-shadow:0 0 12px {_bar_clr_88};transition:width 1.2s ease"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#4A6A90">
+                <span>Completion {_coverage_pct:.0f}% × 35%</span>
+                <span>Revision Depth {_depth_pct:.0f}% × 50%</span>
+                <span>Overdue penalty −{_penalty:.0f}% × 15%</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Memory strength chart
+        _ms_labels, _ms_vals, _ms_clrs = [], [], []
+        for _ds in SUBJECTS:
+            for _t in TOPICS.get(_ds, []):
+                _k2 = (_ds, _t)
+                _inf = _completion_info.get(_k2, {})
+                if _inf.get("status") != "completed": continue
+                _rd = len(set(_rev_dates_map.get(_k2, [])))
+                _lr = max(_rev_dates_map[_k2]) if _rev_dates_map.get(_k2) else None
+                _pct_ms, _lbl_ms, _clr_ms = memory_strength(_rd, _lr, _num_rev)
+                _ms_labels.append(f"{_ds} · {_t[:30]}")
+                _ms_vals.append(_pct_ms)
+                _ms_clrs.append(_clr_ms)
+
+        if _ms_labels:
+            st.markdown('<div class="neon-header" style="margin-top:18px">🧠 Memory Strength by Topic</div>', unsafe_allow_html=True)
+            _ms_fig = go.Figure(go.Bar(
+                y=_ms_labels, x=_ms_vals, orientation="h",
+                marker_color=_ms_clrs,
+                text=[f"{v:.0f}%" for v in _ms_vals],
+                textposition="inside", insidetextanchor="start",
+            ))
+            apply_theme(_ms_fig, title="Memory Strength by Topic",
+                        height=max(200, min(len(_ms_labels)*20+80, 600)))
+            _ms_fig.update_layout(margin=dict(t=50, b=40, l=230, r=20),
+                                  transition=dict(duration=700, easing="cubic-in-out"))
+            _ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
+            _ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
+            st.plotly_chart(_ms_fig, use_container_width=True)
 
     elif log.empty and tst.empty:
         st.markdown("""
@@ -2893,7 +3010,7 @@ def log_study():
             st.markdown(f"""
             <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.30);
                         border-radius:12px;padding:14px 18px;margin:8px 0">
-                <div style="font-family:'Orbitron',monospace;font-size:11px;
+                <div style="font-family:'DM Mono',monospace;font-size:11px;
                             color:#34D399;margin-bottom:6px;letter-spacing:1px">
                     🔒 REVISION R{next_round} — AUTO-CALCULATED DURATION
                 </div>
@@ -3205,8 +3322,8 @@ def revision():
     today = date.today()
 
     # ── Summary tabs: Status Table + Pendency ──────────────────────────────────
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📋 Topic Status", "⏰ Pending Revisions", "📖 Session History", "🏆 Score"
+    tab1, tab2, tab3 = st.tabs([
+        "📋 Topic Status", "⏰ Pending Revisions", "📖 Session History"
     ])
 
     # ════════════════════════════════════════════════════════
@@ -3218,7 +3335,7 @@ def revision():
         for ds in display_subjects:
             if subj == "ALL":
                 clr = COLORS[ds]
-                st.markdown(f"<div style='font-family:Orbitron,monospace;font-size:12px;"
+                st.markdown(f"<div style='font-family:'DM Mono',monospace;font-size:12px;"
                             f"color:{clr};letter-spacing:1px;margin:14px 0 6px'>"
                             f"{ds} — {SUBJ_FULL[ds]}</div>", unsafe_allow_html=True)
 
@@ -3261,9 +3378,9 @@ def revision():
                 due_badge = ""
                 if days_ov is not None:
                     if days_ov > 0:
-                        due_badge = f'<span style="background:#F87171;color:#fff;padding:2px 7px;border-radius:6px;font-size:9px;font-family:Orbitron,monospace">+{days_ov}d OVERDUE</span>'
+                        due_badge = f'<span style="background:#F87171;color:#fff;padding:2px 7px;border-radius:6px;font-size:9px;font-family:&quot;DM Mono&quot;,monospace">+{days_ov}d OVERDUE</span>'
                     elif days_ov == 0:
-                        due_badge = f'<span style="background:#FBBF24;color:#000;padding:2px 7px;border-radius:6px;font-size:9px;font-family:Orbitron,monospace">DUE TODAY</span>'
+                        due_badge = f'<span style="background:#FBBF24;color:#000;padding:2px 7px;border-radius:6px;font-size:9px;font-family:&quot;DM Mono&quot;,monospace">DUE TODAY</span>'
                     else:
                         due_badge = f'<span style="background:#34D39944;color:#34D399;padding:2px 7px;border-radius:6px;font-size:9px">in {abs(days_ov)}d</span>'
 
@@ -3336,7 +3453,7 @@ def revision():
                                         background:{row_bg};border:1px solid {row_bdr};
                                         border-left:3px solid {rn_clr};
                                         border-radius:8px;padding:8px 12px;margin:3px 0">
-                                <div style="font-family:Orbitron,monospace;font-size:11px;
+                                <div style="font-family:'DM Mono',monospace;font-size:11px;
                                             font-weight:800;color:{rn_clr};min-width:28px">R{rn}</div>
                                 <div style="flex:1;font-size:11px;color:#B0D4F0">
                                     <b style="color:#FFFFFF">{dur:.2f}h</b>
@@ -3401,15 +3518,15 @@ def revision():
                             border-left:4px solid {clr};border-radius:9px;
                             padding:9px 14px;margin:4px 0">
                     <div style="flex:1">
-                        <span style="font-family:Orbitron,monospace;font-size:10px;
+                        <span style="font-family:'DM Mono',monospace;font-size:10px;
                                      color:{sc};font-weight:700">{row['subject']}</span>
                         <span style="font-size:12px;color:#FFFFFF;margin-left:8px">{row['topic'][:55]}</span>
-                        <span style="font-family:Orbitron,monospace;font-size:9px;
+                        <span style="font-family:'DM Mono',monospace;font-size:9px;
                                      color:#4A6A90;margin-left:8px">{row['round_label']}</span>
                     </div>
                     <div style="text-align:right;white-space:nowrap">
                         <div style="font-size:9px;color:#4A6A90">{dur_str}</div>
-                        <div style="font-family:Orbitron,monospace;font-size:11px;
+                        <div style="font-family:'DM Mono',monospace;font-size:11px;
                                     font-weight:700;color:{clr}">{badge}</div>
                     </div>
                 </div>"""
@@ -3520,7 +3637,7 @@ def revision():
                         <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
                                     background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.15);
                                     border-left:3px solid #34D399;border-radius:8px;margin:3px 0">
-                            <div style="font-family:Orbitron,monospace;font-size:10px;
+                            <div style="font-family:'DM Mono',monospace;font-size:10px;
                                         color:#34D399;font-weight:800;min-width:24px">R{rn}</div>
                             <div style="flex:1;font-size:12px;color:#FFFFFF">{d}</div>
                             <div style="font-size:11px;color:#34D399;font-weight:600">⏱ {hrs:.2f}h ✅</div>
@@ -3528,88 +3645,6 @@ def revision():
                         """, unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════
-    # TAB 4 — Overall Score & Memory Strength
-    # ════════════════════════════════════════════════════════
-    with tab4:
-        all_topic_count = sum(len(v) for v in TOPICS.values())
-        completed_count = sum(1 for info in completion_info.values() if info["status"] == "completed")
-        reading_count   = sum(1 for info in completion_info.values() if info["status"] == "reading")
-        total_rev_done  = sum(len(set(v)) for v in rev_dates_map.values())
-        max_revs        = completed_count * num_rev
-        pend_df         = get_pendencies(rev_df, log_df)
-        overdue_count   = len(pend_df[pend_df["days_overdue"] > 0]) if not pend_df.empty else 0
-
-        coverage_pct = completed_count / all_topic_count * 100 if all_topic_count > 0 else 0
-        depth_pct    = min(total_rev_done / max_revs * 100, 100) if max_revs > 0 else 0
-        penalty      = min(overdue_count * 2, 30)
-        overall      = max(0, round(coverage_pct * 0.35 + depth_pct * 0.50 - penalty * 0.15, 1))
-
-        grade = (
-            ("🏆 MASTER",       "#34D399") if overall >= 85 else
-            ("🎯 STRONG",       "#60A5FA") if overall >= 65 else
-            ("📈 PROGRESSING",  "#FBBF24") if overall >= 40 else
-            ("🚀 JUST STARTED", "#F87171")
-        )
-        oc1, oc2, oc3, oc4, oc5 = st.columns(5)
-        oc1.metric("📖 Reading",    f"{reading_count}",       "in progress")
-        oc2.metric("✅ Completed",  f"{completed_count}/{all_topic_count}", f"{coverage_pct:.0f}%")
-        oc3.metric("🔄 Revisions",  f"{total_rev_done}",      f"of {max_revs} target")
-        oc4.metric("🔴 Overdue",    f"{overdue_count}",       "need revision now")
-        oc5.metric("⭐ Confidence", f"{overall}%",            grade[0])
-
-        bar_clr = grade[1]
-        st.markdown(f"""
-        <div style="background:rgba(6,14,38,0.80);border:2px solid {bar_clr}44;
-                    border-radius:16px;padding:20px 24px;margin:14px 0">
-            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-                <span style="font-family:Orbitron,monospace;font-size:13px;
-                             font-weight:700;color:{bar_clr}">{grade[0]}</span>
-                <span style="font-family:Orbitron,monospace;font-size:20px;
-                             font-weight:800;color:#FFFFFF">{overall}%</span>
-            </div>
-            <div style="background:rgba(255,255,255,0.07);border-radius:8px;height:14px;overflow:hidden">
-                <div style="width:{overall}%;height:100%;border-radius:8px;
-                            background:linear-gradient(90deg,{bar_clr}88,{bar_clr});
-                            box-shadow:0 0 12px {bar_clr}88;transition:width 1s ease"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#4A6A90">
-                <span>Completion {coverage_pct:.0f}% × 35%</span>
-                <span>Revision Depth {depth_pct:.0f}% × 50%</span>
-                <span>Overdue penalty -{penalty:.0f}% × 15%</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Memory strength chart
-        ms_labels, ms_vals, ms_clrs = [], [], []
-        for ds in SUBJECTS:
-            for t in TOPICS.get(ds, []):
-                k = (ds, t)
-                inf = completion_info.get(k, {})
-                if inf.get("status") != "completed": continue
-                rd = len(set(rev_dates_map.get(k, [])))
-                lr = max(rev_dates_map[k]) if rev_dates_map.get(k) else None
-                pct, lbl, clr = memory_strength(rd, lr, num_rev)
-                ms_labels.append(f"{ds} · {t[:30]}")
-                ms_vals.append(pct)
-                ms_clrs.append(clr)
-
-        if ms_labels:
-            st.markdown("---")
-            st.markdown('<div class="neon-header">🧠 Memory Strength Indicators</div>', unsafe_allow_html=True)
-            ms_fig = go.Figure(go.Bar(
-                y=ms_labels, x=ms_vals, orientation="h",
-                marker_color=ms_clrs,
-                text=[f"{v:.0f}%" for v in ms_vals],
-                textposition="inside", insidetextanchor="start",
-            ))
-            apply_theme(ms_fig, title="Memory Strength by Topic",
-                        height=max(200, min(len(ms_labels)*20+80, 600)))
-            ms_fig.update_layout(margin=dict(t=50, b=40, l=230, r=20))
-            ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
-            ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
-            st.plotly_chart(ms_fig, use_container_width=True)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MY DATA
@@ -3719,7 +3754,7 @@ def leaderboard():
         border = "#38BDF8" if is_me else (medal_colors.get(i, "rgba(56,189,248,0.15)"))
         glow   = "rgba(56,189,248,0.2)" if is_me else neon_glow.get(i, "transparent")
         you    = " · <span style='color:#38BDF8;font-size:11px;letter-spacing:1px'>YOU</span>" if is_me else ""
-        rank_style = f"color:{medal_colors.get(i, '#B0BDD8')};font-size:22px" if i < 3 else "color:#4A6A90;font-size:14px;font-family:'Orbitron',monospace"
+        rank_style = f"color:{medal_colors.get(i, '#B0BDD8')};font-size:22px" if i < 3 else "color:#4A6A90;font-size:14px;font-family:'DM Mono',monospace"
 
         st.markdown(f"""
         <div class="lb-card" style="border-left:3px solid {border};box-shadow:0 0 20px {glow}">
@@ -3798,10 +3833,6 @@ else:
     )
     _lvl_pct = _lvl_info["pct"]
 
-    # ── Profile open state ──────────────────────────────────────────────────────
-    if "show_profile" not in st.session_state:
-        st.session_state.show_profile = False
-
     # Compute glow colour RGB for CSS
     _glow_rgb = {
         "#34D399": "52,211,153",
@@ -3813,38 +3844,13 @@ else:
     _circ = 219.91   # circumference of r=35 circle
     _filled = _lvl_pct / 100 * _circ
 
+    # Pre-build color variants to avoid f-string hex-suffix parsing errors
+    _lvl_clr_55 = _lvl_clr + "55"
+
     # CSS: make avatar_btn completely transparent and circular,
     # sitting invisibly over the SVG circle so the circle IS the button.
     st.markdown(f"""
     <style>
-    /* Transparent avatar button */
-    div[data-testid="stButton"] button[kind="secondary"][data-testid*="avatar_btn"],
-    div[data-testid="stBaseButton-secondary"]:has(+ * [data-key="avatar_btn"]) button,
-    [data-key="avatar_btn"] > button {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: transparent !important;
-        font-size: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 76px !important;
-        height: 76px !important;
-        border-radius: 50% !important;
-        min-height: 0 !important;
-        position: relative !important;
-        z-index: 5 !important;
-        cursor: pointer !important;
-    }}
-    [data-key="avatar_btn"] > button:hover {{
-        background: rgba({_glow_rgb},0.12) !important;
-        box-shadow: 0 0 24px rgba({_glow_rgb},0.5) !important;
-    }}
-    [data-key="avatar_btn"] {{
-        width: 76px !important;
-        height: 76px !important;
-        min-height: 0 !important;
-    }}
     /* XP animations */
     @keyframes xp-shimmer {{
         0%   {{ background-position: -300% center; }}
@@ -3899,16 +3905,12 @@ else:
                         background:linear-gradient(135deg,#0B4FB3,#38BDF8);
                         display:flex;align-items:center;justify-content:center;
                         font-size:24px;font-weight:900;color:#FFF;
-                        font-family:'Orbitron',monospace;
+                        font-family:'DM Mono',monospace;
                         box-shadow:0 0 18px rgba({_glow_rgb},0.40)">
                 {name[0].upper()}
             </div>
         </div>
         """, unsafe_allow_html=True)
-        # Transparent button that sits over the SVG — clicking it opens profile
-        if st.button("​", key="avatar_btn", help="Open Profile"):
-            st.session_state.show_profile = not st.session_state.show_profile
-            st.rerun()
 
     # Middle: Name + large animated XP bar
     with h_info:
@@ -3917,20 +3919,20 @@ else:
         <div style="padding:4px 0 0 4px">
             <!-- Name row -->
             <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1px">
-                <div style="font-family:'Orbitron',monospace;font-size:15px;
+                <div style="font-family:'DM Mono',monospace;font-size:15px;
                             font-weight:800;color:#FFF;
                             text-shadow:0 0 15px rgba(56,189,248,0.5)">{name}</div>
                 <div style="font-size:10px;color:#4A6A90">@{profile.get("username","")}</div>
             </div>
             <!-- Level badge row -->
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-                <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:900;
+                <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:900;
                             color:{_lvl_clr};letter-spacing:1px;
                             animation:lvl-glow 2.2s ease-in-out infinite">LVL&nbsp;{_lvl}</div>
                 <div style="background:rgba({_glow_rgb},0.15);border:1px solid rgba({_glow_rgb},0.40);
                             border-radius:8px;padding:3px 10px;
                             font-size:11px;font-weight:700;color:{_lvl_clr};
-                            font-family:'Orbitron',monospace;letter-spacing:0.5px">
+                            font-family:'DM Mono',monospace;letter-spacing:0.5px">
                     {_lvl_info["name"].upper()}</div>
                 <div style="font-size:10px;color:#4A6A90;margin-left:auto">
                     {_total_xp:.0f}h &nbsp;/&nbsp; {_lvl_info["next_threshold"]}h</div>
@@ -3941,9 +3943,9 @@ else:
                         border:1px solid rgba({_glow_rgb},0.15)">
                 <div style="width:{_lvl_pct:.1f}%;height:100%;border-radius:8px;
                             background:linear-gradient(90deg,
-                                {_lvl_clr}55 0%, {_lvl_clr} 35%,
+                                {_lvl_clr_55} 0%, {_lvl_clr} 35%,
                                 #FFFFFF 50%,
-                                {_lvl_clr} 65%, {_lvl_clr}55 100%);
+                                {_lvl_clr} 65%, {_lvl_clr_55} 100%);
                             background-size:300% 100%;
                             animation:xp-shimmer 2.2s linear infinite;
                             box-shadow:0 0 18px rgba({_glow_rgb},1.0),
@@ -3964,7 +3966,7 @@ else:
             <div style="position:absolute;top:0;left:0;right:0;height:2px;
                         background:linear-gradient(90deg,transparent,#38BDF8,transparent);
                         animation:scanline 2.5s ease-in-out infinite"></div>
-            <div style="font-family:'Orbitron',monospace;font-size:22px;font-weight:800;
+            <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;
                         color:#FFF;line-height:1;
                         animation:pulse-count 2s ease-in-out infinite">{days_left}</div>
             <div style="font-size:8px;color:#4A6A90;letter-spacing:2px;margin-top:2px">DAYS</div>
@@ -3976,29 +3978,14 @@ else:
     st.markdown("<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>",
                 unsafe_allow_html=True)
 
-    # ── Profile panel slides in when avatar circle is clicked ──────────────────
-    if st.session_state.show_profile:
-        with st.container():
-            st.markdown("""<div style="background:rgba(4,10,30,0.98);
-                border:2px solid rgba(56,189,248,0.28);border-radius:20px;
-                padding:10px;margin-bottom:16px">""", unsafe_allow_html=True)
-            profile_page()
-            c1, c2, c3 = st.columns([1, 2, 1])
-            with c2:
-                if st.button("✕  Close Profile", key="close_profile_btn",
-                             use_container_width=True):
-                    st.session_state.show_profile = False
-                    st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-        st.stop()
-
-    # ── MAIN NAV TABS (5 tabs — Leaderboard, Profile, Logout moved into Profile) ──
-    tab_dashboard, tab_log, tab_score, tab_revision, tab_data = st.tabs([
+    # ── MAIN NAV TABS (6 tabs — Profile is now a first-class tab) ─────────────
+    tab_dashboard, tab_log, tab_score, tab_revision, tab_data, tab_profile = st.tabs([
         "📊  Dashboard",
         "📝  Log Study",
         "🏆  Add Score",
         "🔄  Revision",
         "📋  My Data",
+        "👤  Profile",
     ])
 
     with tab_dashboard:
@@ -4015,3 +4002,6 @@ else:
 
     with tab_data:
         my_data()
+
+    with tab_profile:
+        profile_page()
