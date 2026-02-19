@@ -1209,7 +1209,7 @@ def _cache_key():
 @st.cache_data(ttl=120, show_spinner=False)
 def _fetch_logs(user_id):
     r  = sb.table("daily_log") \
-           .select("date,subject,topic,hours,pages_done,difficulty,notes") \
+           .select("date,subject,topic,hours,pages_done,difficulty,notes,session_type,topic_status,completion_date") \
            .eq("user_id", user_id) \
            .order("date", desc=True) \
            .execute()
@@ -1217,6 +1217,10 @@ def _fetch_logs(user_id):
     if not df.empty:
         df["date"]  = pd.to_datetime(df["date"])
         df["hours"] = pd.to_numeric(df["hours"])
+        if "session_type" not in df.columns:
+            df["session_type"] = "reading"
+        if "topic_status" not in df.columns:
+            df["topic_status"] = "reading"
     return df
 
 
@@ -1237,10 +1241,32 @@ def _fetch_scores(user_id):
 @st.cache_data(ttl=300, show_spinner=False)
 def _fetch_revision(user_id):
     r = sb.table("revision_tracker") \
-          .select("subject,topic,first_read,first_read_date,revision_count,last_revision_date") \
+          .select("subject,topic,first_read,first_read_date,revision_count,last_revision_date,topic_status,total_first_reading_time,completion_date") \
           .eq("user_id", user_id) \
           .execute()
-    return pd.DataFrame(r.data)
+    df = pd.DataFrame(r.data)
+    if not df.empty:
+        if "topic_status" not in df.columns:
+            df["topic_status"] = "not_started"
+        if "total_first_reading_time" not in df.columns:
+            df["total_first_reading_time"] = 0.0
+        if "completion_date" not in df.columns:
+            df["completion_date"] = None
+    return df
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _fetch_rev_sessions(user_id):
+    """Fetch revision_sessions table — each logged revision round."""
+    try:
+        r = sb.table("revision_sessions") \
+              .select("*") \
+              .eq("user_id", user_id) \
+              .order("date", desc=True) \
+              .execute()
+        return pd.DataFrame(r.data)
+    except:
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -1278,11 +1304,77 @@ def get_leaderboard():
         return pd.DataFrame()
 
 
+def get_rev_sessions():
+    try:
+        return _fetch_rev_sessions(_cache_key())
+    except:
+        return pd.DataFrame()
+
+
 def invalidate_cache():
     """Call this after any write operation to force fresh fetch on next load."""
     _fetch_logs.clear()
     _fetch_scores.clear()
     _fetch_revision.clear()
+    _fetch_rev_sessions.clear()
+
+
+def complete_topic(subject: str, topic: str, tfr: float):
+    """
+    Marks a topic as Completed in revision_tracker.
+    Sets topic_status='completed', total_first_reading_time=TFR, completion_date=today.
+    """
+    try:
+        today_str = str(date.today())
+        sb.table("revision_tracker") \
+          .update({
+              "topic_status":              "completed",
+              "total_first_reading_time":  tfr,
+              "completion_date":           today_str,
+              "first_read":                True,
+              "first_read_date":           today_str,
+          }) \
+          .eq("user_id", uid()) \
+          .eq("subject", subject) \
+          .eq("topic", topic) \
+          .execute()
+        invalidate_cache()
+        return True, f"✅ {topic} marked as Completed! Revision schedule generated."
+    except Exception as e:
+        return False, f"Error: {e}"
+
+
+def log_revision_session(subject: str, topic: str, revision_round: int,
+                         hours: float, session_date: date,
+                         difficulty: int, notes: str = ""):
+    """Log a completed revision session to revision_sessions table."""
+    try:
+        sb.table("revision_sessions").insert({
+            "user_id":  uid(),
+            "subject":  subject,
+            "topic":    topic,
+            "round":    revision_round,
+            "date":     str(session_date),
+            "hours":    hours,
+            "difficulty": difficulty,
+            "notes":    notes,
+            "status":   "completed",
+        }).execute()
+        # Update revision_tracker revision count
+        sb.table("revision_tracker") \
+          .update({
+              "revision_count":      revision_round,
+              "last_revision_date":  str(session_date),
+          }) \
+          .eq("user_id", uid()) \
+          .eq("subject", subject) \
+          .eq("topic", topic) \
+          .execute()
+        invalidate_cache()
+        return True, "Revision logged!"
+    except Exception as e:
+        return False, f"Error: {e}"
+
 
 
 def add_log(data):
@@ -1363,15 +1455,141 @@ def _async_sync_if_needed(subject, topic):
 
 
 
-# ── REVISION PENDENCY ENGINE ──────────────────────────────────────────────────
-# Ideal revision schedule after first read:
-REVISION_SCHEDULE = [3, 7, 15, 30, 90]   # days after previous event
+# ── REVISION ENGINE ───────────────────────────────────────────────────────────
+# Base intervals (days after previous event)
+REVISION_INTERVALS = [3, 7, 15, 30, 45, 60]   # R1→R6
+
+def get_revision_interval(n: int) -> int:
+    """
+    Return gap (days) before revision round n (1-based).
+    n=1 → 3d, n=2 → 7d, n=3 → 15d, n=4 → 30d, n=5 → 45d, n=6 → 60d
+    Beyond R6 → weighted average of previous two intervals.
+    """
+    if n <= len(REVISION_INTERVALS):
+        return REVISION_INTERVALS[n - 1]
+    # Weighted average for n > 6
+    prev2 = get_revision_interval(n - 2)
+    prev1 = get_revision_interval(n - 1)
+    return round((prev1 + prev2) / 2)
+
+
+def get_revision_ratios(r1_ratio: float, r2_ratio: float, num_rev: int) -> list:
+    """
+    Returns list of ratios (as decimals) for R1..RN.
+    R1, R2 set by user. R3+ computed as weighted average of previous two.
+    """
+    if num_rev == 0:
+        return []
+    ratios = [r1_ratio]
+    if num_rev >= 2:
+        ratios.append(r2_ratio)
+    for i in range(2, num_rev):
+        ratios.append(round((ratios[-2] + ratios[-1]) / 2, 4))
+    return ratios
+
+
+def compute_revision_schedule(tfr: float, r1_ratio: float, r2_ratio: float,
+                               num_rev: int, completion_date: date) -> list:
+    """
+    Given TFR (hours), ratios, num revisions, and topic completion date,
+    returns list of dicts:
+      {round: 1, duration_hrs: X, due_date: date, interval_days: N}
+
+    R1 duration = TFR × r1_ratio
+    R2 duration = TFR × r2_ratio   (user said R2 is also TFR-based)
+    R3+ duration = prev_duration × ratio  (each ratio applied to previous)
+    Wait — user confirmed: R2 = TFR × r2_ratio too.
+    So ALL durations = TFR × ratio[i]
+    """
+    ratios    = get_revision_ratios(r1_ratio, r2_ratio, num_rev)
+    schedule  = []
+    prev_date = completion_date
+
+    for i, ratio in enumerate(ratios):
+        rn        = i + 1
+        interval  = get_revision_interval(rn)
+        due       = prev_date + timedelta(days=interval)
+        duration  = round(tfr * ratio, 2)
+        schedule.append({
+            "round":         rn,
+            "label":         f"R{rn}",
+            "duration_hrs":  max(duration, 0.5),   # minimum 30 min
+            "due_date":      due,
+            "interval_days": interval,
+            "ratio":         ratio,
+        })
+        prev_date = due
+
+    return schedule
+
+
+def get_topic_status(subject: str, topic: str, rev_df: pd.DataFrame) -> str:
+    """Returns 'not_started' | 'reading' | 'completed'"""
+    if rev_df.empty:
+        return "not_started"
+    row = rev_df[(rev_df["subject"] == subject) & (rev_df["topic"] == topic)]
+    if row.empty:
+        return "not_started"
+    status = row.iloc[0].get("topic_status", "not_started")
+    return status if status else "not_started"
+
+
+def get_tfr(subject: str, topic: str, log_df: pd.DataFrame) -> float:
+    """Returns Total First Reading hours (sum of all Reading sessions)."""
+    if log_df.empty:
+        return 0.0
+    mask = (
+        (log_df["subject"] == subject) &
+        (log_df["topic"]   == topic) &
+        ((log_df["session_type"] != "revision" if "session_type" in log_df.columns else pd.Series([True]*len(log_df))))
+    )
+    return float(log_df[mask]["hours"].sum())
+
+
+def get_completed_revisions(subject: str, topic: str, rev_sessions_df: pd.DataFrame) -> list:
+    """Returns list of completed revision dicts sorted by round."""
+    if rev_sessions_df.empty:
+        return []
+    rows = rev_sessions_df[
+        (rev_sessions_df["subject"] == subject) &
+        (rev_sessions_df["topic"]   == topic) &
+        (rev_sessions_df["status"]  == "completed")
+    ].sort_values("round")
+    return rows.to_dict("records")
+
+
+def memory_strength(revisions_done: int, last_revision_date, num_rev: int) -> tuple:
+    """
+    Memory Strength Indicator based on recency + depth.
+    Returns (strength_pct, label, color)
+    """
+    if revisions_done == 0 or last_revision_date is None:
+        return (0, "🧠 Unrevised", "#F87171")
+    # Days since last revision
+    if isinstance(last_revision_date, str):
+        last_dt = date.fromisoformat(last_revision_date[:10])
+    else:
+        last_dt = last_revision_date
+    days_ago   = (date.today() - last_dt).days
+    depth_pct  = min(revisions_done / num_rev * 100, 100)
+    # Decay: lose 1% per day since last revision, floored at 20%
+    decay      = max(0, days_ago * 0.8)
+    strength   = max(20.0, depth_pct - decay)
+    if strength >= 80:
+        return (strength, "💚 Strong",    "#34D399")
+    elif strength >= 55:
+        return (strength, "🔵 Moderate",  "#60A5FA")
+    elif strength >= 30:
+        return (strength, "🟡 Fading",    "#FBBF24")
+    else:
+        return (strength, "🔴 Weak",      "#F87171")
+
 
 @st.cache_data(ttl=120, show_spinner=False)
 def compute_revision_pendencies(rev_df_hash, log_df_hash, log_json):
     """
     Cached wrapper — call via get_pendencies(rev_df, log_df) below.
-    Uses JSON-serialised log data as cache key.
+    Only topics with status='completed' are eligible for revision scheduling.
     """
     import json
     rows_data = json.loads(log_json)
@@ -1380,32 +1598,57 @@ def compute_revision_pendencies(rev_df_hash, log_df_hash, log_json):
 
     from collections import defaultdict
     topic_sessions = defaultdict(list)
+    topic_status_map = {}
+    topic_completion_date = {}
+    topic_tfr = defaultdict(float)
+
     for r in rows_data:
         key = (r["subject"], r["topic"])
         d   = date.fromisoformat(str(r["date"])[:10])
-        topic_sessions[key].append(d)
+        st_type = r.get("session_type", "reading")
+        ts      = r.get("topic_status", "reading")
+        topic_status_map[key]  = ts
+        if st_type != "revision":
+            topic_tfr[key] += float(r.get("hours", 0))
+        if ts == "completed" and r.get("completion_date"):
+            topic_completion_date[key] = date.fromisoformat(r["completion_date"][:10])
+        topic_sessions[key].append((d, st_type))
 
-    for key, dates in topic_sessions.items():
-        sessions = sorted(set(dates))
-        n        = len(sessions)
+    for key, session_list in topic_sessions.items():
         subj, topic = key
-        revs_done   = n - 1
-        last_dt     = sessions[-1]
-        sched_idx   = min(revs_done, len(REVISION_SCHEDULE) - 1)
-        gap         = REVISION_SCHEDULE[sched_idx]
-        due_date    = last_dt + timedelta(days=gap)
-        days_diff   = (today - due_date).days
+        status = topic_status_map.get(key, "reading")
+
+        # Only schedule revisions for COMPLETED topics
+        if status != "completed":
+            continue
+
+        comp_date = topic_completion_date.get(key)
+        if not comp_date:
+            # Infer completion date as last reading session date
+            reading_dates = [d for d, st in session_list if st != "revision"]
+            if not reading_dates:
+                continue
+            comp_date = max(reading_dates)
+
+        # Count completed revisions
+        rev_dates = sorted([d for d, st in session_list if st == "revision"])
+        revs_done = len(rev_dates)
+
+        # Next due: apply schedule from completion_date
+        interval  = get_revision_interval(revs_done + 1)
+        base_date = rev_dates[-1] if rev_dates else comp_date
+        due_date  = base_date + timedelta(days=interval)
+        days_diff = (today - due_date).days
 
         rows.append({
             "subject":        subj,
             "topic":          topic,
             "revisions_done": revs_done,
-            "sessions_done":  n,
-            "first_read_date": str(sessions[0]),
-            "last_studied":   last_dt,
+            "completion_date": str(comp_date),
+            "last_studied":   base_date,
             "due_date":       due_date,
             "days_overdue":   days_diff,
-            "gap_days":       gap,
+            "interval_days":  interval,
             "round_label":    f"R{revs_done + 1}",
             "status": (
                 "🔴 OVERDUE"    if days_diff > 0
@@ -1427,13 +1670,13 @@ def get_pendencies(rev_df, log_df):
         return pd.DataFrame()
     try:
         import json
-        log_mini = log_df[["subject", "topic", "date"]].copy()
-        log_mini["date"] = log_mini["date"].dt.strftime("%Y-%m-%d")
+        cols = [c for c in ["subject","topic","date","hours","session_type",
+                             "topic_status","completion_date"] if c in log_df.columns]
+        log_mini = log_df[cols].copy()
+        if "date" in log_mini.columns:
+            log_mini["date"] = log_mini["date"].dt.strftime("%Y-%m-%d")
         log_json = log_mini.to_json(orient="records")
-        # Use len as a lightweight hash proxy (enough for TTL-based cache)
-        return compute_revision_pendencies(
-            len(rev_df), len(log_df), log_json
-        )
+        return compute_revision_pendencies(len(rev_df), len(log_df), log_json)
     except:
         return pd.DataFrame()
 
@@ -1576,23 +1819,47 @@ def profile_page():
                                     key="prof_phone")
 
         st.markdown("---")
-        st.markdown('<div class="neon-header">⚙️ Revision Settings</div>', unsafe_allow_html=True)
-        st.markdown("""<div style='font-size:12px;color:#7AB4D0;margin-bottom:10px'>
-            How many times do you need to revise a topic to feel <b>fully confident / master it</b>?
-            This controls your Confidence % indicator in the Revision Tracker.
+        st.markdown('<div class="neon-header">🔄 Revision Engine Settings</div>', unsafe_allow_html=True)
+        st.markdown("""<div style='font-size:12px;color:#7AB4D0;margin-bottom:12px'>
+            These settings control how your revision schedule is computed.
+            <b>R1 & R2 Ratios</b> are set by you; all later ratios are auto-calculated using
+            weighted average logic.
         </div>""", unsafe_allow_html=True)
-        cur_mastery = int(prof.get("mastery_revisions", 3))
-        new_mastery = st.slider(
-            "Revisions required for mastery",
-            min_value=1, max_value=10,
-            value=cur_mastery, step=1,
-            key="prof_mastery",
-            help="e.g. if set to 5, then 3 revisions = 60% confidence"
-        )
-        mastery_labels = {1:"1 — Quick Learner",2:"2 — Efficient",3:"3 — Standard",
-                          4:"4 — Thorough",5:"5 — Methodical",6:"6 — Careful",
-                          7:"7 — Very Thorough",8:"8 — Meticulous",9:"9 — Near Perfect",10:"10 — Perfectionist"}
-        st.caption(f"Currently set to: **{mastery_labels.get(new_mastery, str(new_mastery))}**")
+
+        re1, re2, re3 = st.columns(3)
+        cur_r1 = float(prof.get("r1_ratio", 0.25))
+        cur_r2 = float(prof.get("r2_ratio", 0.25))
+        cur_nrev = int(prof.get("num_revisions", 6))
+
+        new_r1 = re1.slider("R1 Ratio (% of TFR)", 5, 80, int(cur_r1 * 100), 5,
+                             key="prof_r1",
+                             help="R1 duration = TFR × this ratio") / 100
+        new_r2 = re2.slider("R2 Ratio (% of TFR)", 5, 80, int(cur_r2 * 100), 5,
+                             key="prof_r2",
+                             help="R2 duration = TFR × this ratio") / 100
+        new_nrev = re3.slider("Number of Revisions", 3, 10, cur_nrev, 1,
+                               key="prof_nrev",
+                               help="Minimum 3, Maximum 10. Default 6.")
+
+        # Show auto-generated ratios preview
+        ratios = get_revision_ratios(new_r1, new_r2, new_nrev)
+        ratio_preview = " → ".join([f"R{i+1}:{r*100:.0f}%" for i, r in enumerate(ratios)])
+        st.caption(f"Auto-generated schedule: **{ratio_preview}**")
+
+        st.markdown("---")
+        st.markdown('<div class="neon-header">📚 First Reading Target Hours (per Subject)</div>', unsafe_allow_html=True)
+        st.markdown("""<div style='font-size:12px;color:#7AB4D0;margin-bottom:10px'>
+            Set your target hours for completing the first reading of each subject.
+            These targets are used in Subject Progress tracking.
+        </div>""", unsafe_allow_html=True)
+        th_cols = st.columns(5)
+        new_target_hrs = {}
+        for i, s in enumerate(SUBJECTS):
+            cur_tgt = int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s]))
+            new_target_hrs[s] = th_cols[i].number_input(
+                f"{s}", min_value=50, max_value=500, value=cur_tgt, step=10,
+                key=f"prof_tgt_{s}"
+            )
 
         st.markdown("---")
         st.markdown('<div class="neon-header">📅 Backdated Entry Access</div>', unsafe_allow_html=True)
@@ -1654,7 +1921,10 @@ def profile_page():
                     "phone":             new_phone.strip(),
                     "exam_month":        new_month,
                     "exam_year":         new_year,
-                    "mastery_revisions": new_mastery,
+                    "r1_ratio":          new_r1,
+                    "r2_ratio":          new_r2,
+                    "num_revisions":     new_nrev,
+                    **{f"target_hrs_{s.lower()}": new_target_hrs[s] for s in SUBJECTS},
                 })
                 if ok:
                     st.success(f"✅ {msg}")
@@ -1740,14 +2010,30 @@ def dashboard():
     log  = get_logs()
     tst  = get_scores()
     rev  = get_revision()
+    prof = st.session_state.profile
     days_left = max((get_exam_date() - date.today()).days, 0)
 
-    total_hrs  = float(log["hours"].sum()) if not log.empty else 0.0
-    avg_score  = float(tst["score_pct"].mean()) if not tst.empty else 0.0
-    sh         = log.groupby("subject")["hours"].sum() if not log.empty else pd.Series(dtype=float)
-    need       = max(sum(TARGET_HRS.values()) - total_hrs, 0)
-    dpd        = round(need / days_left, 1) if days_left > 0 else 0
+    # Per-subject target hours from profile (falls back to defaults)
+    prof_targets = {s: int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s])) for s in SUBJECTS}
+
+    # Separate reading hours from revision hours
+    if not log.empty and "session_type" in log.columns:
+        read_log = log[log["session_type"] != "revision"]
+    else:
+        read_log = log
+
+    total_reading_hrs = float(read_log["hours"].sum()) if not read_log.empty else 0.0
+    avg_score   = float(tst["score_pct"].mean()) if not tst.empty else 0.0
+    sh          = read_log.groupby("subject")["hours"].sum() if not read_log.empty else pd.Series(dtype=float)
+    total_target = sum(prof_targets.values())
+    need        = max(total_target - total_reading_hrs, 0)
+    dpd         = round(need / days_left, 1) if days_left > 0 else 0
     days_studied = log["date"].dt.date.nunique() if not log.empty else 0
+
+    # Revision stats from revision_sessions table
+    rev_sess = get_rev_sessions()
+    total_rev_hrs = float(rev_sess["hours"].sum()) if not rev_sess.empty and "hours" in rev_sess.columns else 0.0
+    rev_sh    = rev_sess.groupby("subject")["hours"].sum() if not rev_sess.empty and "subject" in rev_sess.columns else pd.Series(dtype=float)
 
     # ── Header row with refresh ──
     h1, h2 = st.columns([5, 1])
@@ -1761,16 +2047,16 @@ def dashboard():
 
     # KPIs
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("⏳ Days Left",     f"{days_left}",         f"to exam")
-    c2.metric("📚 Hours Studied", f"{total_hrs:.0f}h",    f"{dpd}h/day needed")
-    c3.metric("🎯 Avg Score",     f"{avg_score:.1f}%",    "Target 60%+")
-    c4.metric("📅 Days Active",   f"{days_studied}",      "unique days")
-    c5.metric("📝 Tests Taken",   f"{len(tst)}",          "mock tests")
+    c1.metric("⏳ Days Left",         f"{days_left}",               f"to exam")
+    c2.metric("📖 Reading Hours",     f"{total_reading_hrs:.0f}h",  f"{dpd}h/day needed")
+    c3.metric("🔄 Revision Hours",    f"{total_rev_hrs:.1f}h",      "separate tracking")
+    c4.metric("🎯 Avg Score",         f"{avg_score:.1f}%",          "Target 60%+")
+    c5.metric("📅 Days Active",       f"{days_studied}",            "unique days")
 
     st.markdown("---")
 
-    # Subject Progress
-    st.markdown('<div class="neon-header">📚 Subject Progress</div>', unsafe_allow_html=True)
+    # ── First Reading Progress ───────────────────────────────────────────────────
+    st.markdown('<div class="neon-header">📖 First Reading Progress</div>', unsafe_allow_html=True)
     cols = st.columns(5)
     subj_bg = {
         "FR":  ("rgba(125,211,252,0.12)", "#7DD3FC", "rgba(125,211,252,0.5)"),
@@ -1779,136 +2065,121 @@ def dashboard():
         "DT":  ("rgba(248,113,113,0.12)", "#F87171", "rgba(248,113,113,0.5)"),
         "IDT": ("rgba(96,165,250,0.12)",  "#60A5FA", "rgba(96,165,250,0.5)"),
     }
+    # Completed topics count from rev_df
+    completed_by_subj = {}
+    if not rev.empty and "topic_status" in rev.columns:
+        for s in SUBJECTS:
+            completed_by_subj[s] = int((rev[rev["subject"]==s]["topic_status"]=="completed").sum())
+    else:
+        completed_by_subj = {s:0 for s in SUBJECTS}
+
     for i, s in enumerate(SUBJECTS):
         done = float(sh.get(s, 0))
-        tgt  = TARGET_HRS[s]
+        tgt  = prof_targets[s]
         pct  = min(done / tgt * 100, 100) if tgt > 0 else 0
+        n_topics   = len(TOPICS.get(s, []))
+        n_completed = completed_by_subj.get(s, 0)
         bg, clr, glow = subj_bg[s]
         with cols[i]:
             st.markdown(f"""
             <div style="background:{bg};border:2px solid {clr}33;border-radius:14px;
-                        padding:16px 14px;text-align:center;
-                        box-shadow:0 0 20px {clr}22;transition:all 0.3s">
+                        padding:14px 12px;text-align:center;
+                        box-shadow:0 0 20px {clr}22">
                 <div style="font-family:'Orbitron',monospace;font-size:14px;
                             font-weight:800;color:{clr};
-                            text-shadow:0 0 14px {glow};margin-bottom:6px">{s}</div>
-                <div style="font-size:10px;color:#7AB4D0;letter-spacing:0.5px;
-                            margin-bottom:12px">{SUBJ_FULL[s]}</div>
+                            text-shadow:0 0 14px {glow};margin-bottom:4px">{s}</div>
+                <div style="font-size:9px;color:#7AB4D0;letter-spacing:0.5px;
+                            margin-bottom:10px">{SUBJ_FULL[s]}</div>
                 <div style="background:rgba(255,255,255,0.07);border-radius:6px;
                             height:8px;overflow:hidden;margin-bottom:8px">
                     <div style="width:{pct:.0f}%;height:100%;border-radius:6px;
                                 background:linear-gradient(90deg,{clr}99,{clr});
-                                box-shadow:0 0 10px {glow};
-                                transition:width 1s ease"></div>
+                                box-shadow:0 0 10px {glow};transition:width 1s ease"></div>
                 </div>
-                <div style="font-family:'Orbitron',monospace;font-size:18px;
+                <div style="font-family:'Orbitron',monospace;font-size:17px;
                             font-weight:700;color:#FFFFFF">{pct:.0f}%</div>
-                <div style="font-size:10px;color:#4A6A90;margin-top:2px">
+                <div style="font-size:10px;color:#4A6A90;margin-top:3px">
                     {done:.0f}h / {tgt}h
+                </div>
+                <div style="font-size:10px;color:#34D399;margin-top:4px">
+                    ✅ {n_completed}/{n_topics} completed
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Revision Progress (separate row) ──────────────────────────────────────
+    if not rev_sess.empty or (not rev.empty and "topic_status" in rev.columns):
+        st.markdown('<div class="neon-header">🔄 Revision Progress</div>', unsafe_allow_html=True)
+        rev_cols = st.columns(5)
+        num_rev_prof = int(prof.get("num_revisions", 6))
+        for i, s in enumerate(SUBJECTS):
+            n_completed = completed_by_subj.get(s, 0)
+            rev_done    = int(rev_sh.get(s, 0)) if hasattr(rev_sh, 'get') else 0
+            rev_target  = float(rev_sess[rev_sess["subject"]==s]["hours"].sum()) if not rev_sess.empty and "subject" in rev_sess.columns else 0
+            # Count revision sessions done for this subject
+            rev_rounds  = len(rev_sess[rev_sess["subject"]==s]) if not rev_sess.empty and "subject" in rev_sess.columns else 0
+            max_rounds  = n_completed * num_rev_prof
+            rev_pct     = min(rev_rounds / max_rounds * 100, 100) if max_rounds > 0 else 0
+            clr         = COLORS[s]
+            with rev_cols[i]:
+                st.markdown(f"""
+                <div style="background:rgba(52,211,153,0.06);border:2px solid {clr}22;
+                            border-radius:12px;padding:12px 10px;text-align:center">
+                    <div style="font-family:'Orbitron',monospace;font-size:12px;
+                                font-weight:800;color:{clr};margin-bottom:4px">{s}</div>
+                    <div style="background:rgba(255,255,255,0.06);border-radius:5px;
+                                height:6px;overflow:hidden;margin-bottom:6px">
+                        <div style="width:{rev_pct:.0f}%;height:100%;border-radius:5px;
+                                    background:linear-gradient(90deg,#34D39988,#34D399)"></div>
+                    </div>
+                    <div style="font-size:15px;font-weight:700;color:#34D399">{rev_pct:.0f}%</div>
+                    <div style="font-size:10px;color:#4A6A90;margin-top:2px">
+                        {rev_rounds}/{max_rounds} rounds
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
     st.markdown("---")
 
-    # Charts row 1
+    # Charts row 1 — Daily Hours full width (Hours vs Target removed per user request)
     if not log.empty:
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            start = date.today() - timedelta(days=29)
-            d30   = log[log["date"].dt.date >= start]
-            if not d30.empty:
-                grp = d30.groupby([d30["date"].dt.date, "subject"])["hours"].sum().reset_index()
-                grp.columns = ["Date", "Subject", "Hours"]
-                fig = go.Figure()
-                for s in SUBJECTS:
-                    sub = grp[grp["Subject"] == s].sort_values("Date")
-                    if sub.empty:
-                        continue
-                    fig.add_trace(go.Bar(
-                        x=sub["Date"], y=sub["Hours"],
-                        name=SUBJ_FULL[s],
-                        marker=dict(
-                            color=COLORS[s],
-                            opacity=0.85,
-                            line=dict(width=0)
-                        ),
-                        hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>%{{x}}<br>%{{y:.1f}}h<extra></extra>"
-                    ))
-                fig.add_hline(y=6, line_dash="dash", line_color="#FBBF24",
-                              line_width=1.5,
-                              annotation_text="6h daily target",
-                              annotation_font_color="#FBBF24",
-                              annotation_font_size=10)
-                # Animation via updatemenus play button
-                fig.update_layout(
-                    barmode="stack",
-                    bargap=0.25,
-                    bargroupgap=0.05,
-                    updatemenus=[dict(
-                        type="buttons", showactive=False,
-                        y=1.12, x=1.0, xanchor="right",
-                        buttons=[dict(
-                            label="▶ Animate",
-                            method="animate",
-                            args=[None, dict(
-                                frame=dict(duration=80, redraw=True),
-                                fromcurrent=True,
-                                transition=dict(duration=60, easing="cubic-in-out")
-                            )]
-                        )]
-                    )]
-                )
-                apply_theme(fig, title="Daily Hours — Last 30 Days")
-                fig.update_layout(hovermode="x unified")
-                fig.update_yaxes(rangemode="tozero")
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("No sessions in the last 30 days")
-
-        with c2:
-            fig2 = go.Figure()
+        start = date.today() - timedelta(days=29)
+        d30   = log[log["date"].dt.date >= start]
+        if not d30.empty:
+            grp = d30.groupby([d30["date"].dt.date, "subject"])["hours"].sum().reset_index()
+            grp.columns = ["Date", "Subject", "Hours"]
+            fig = go.Figure()
             for s in SUBJECTS:
-                done = float(sh.get(s, 0))
-                tgt  = TARGET_HRS[s]
-                pct  = min(done / tgt * 100, 100) if tgt > 0 else 0
-                clr  = COLORS[s]
-                # Target bar (background)
-                fig2.add_trace(go.Bar(
-                    x=[tgt], y=[s],
-                    orientation="h",
-                    marker=dict(color="rgba(56,189,248,0.08)", line=dict(width=0)),
-                    showlegend=False,
-                    hoverinfo="skip"
+                sub = grp[grp["Subject"] == s].sort_values("Date")
+                if sub.empty:
+                    continue
+                fig.add_trace(go.Bar(
+                    x=sub["Date"], y=sub["Hours"],
+                    name=SUBJ_FULL[s],
+                    marker=dict(color=COLORS[s], opacity=0.85, line=dict(width=0)),
+                    hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>%{{x}}<br>%{{y:.1f}}h<extra></extra>"
                 ))
-                # Done bar (foreground)
-                fig2.add_trace(go.Bar(
-                    x=[done], y=[s],
-                    orientation="h",
-                    name=s,
-                    marker=dict(
-                        color=clr,
-                        opacity=0.9,
-                        line=dict(width=0)
-                    ),
-                    text=f"  {done:.0f}h / {tgt}h  ({pct:.0f}%)",
-                    textposition="outside",
-                    textfont=dict(size=10, color=clr),
-                    showlegend=False,
-                    hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>{done:.0f}h done of {tgt}h<br>{pct:.0f}% complete<extra></extra>"
-                ))
-            apply_theme(fig2, title="Hours vs Target", height=260)
-            fig2.update_layout(
-                barmode="overlay",
-                bargap=0.35,
-                margin=dict(t=50, b=20, l=50, r=80)
+            fig.add_hline(y=6, line_dash="dash", line_color="#FBBF24", line_width=1.5,
+                          annotation_text="6h daily target", annotation_font_color="#FBBF24",
+                          annotation_font_size=10)
+            fig.update_layout(
+                barmode="stack", bargap=0.25,
+                updatemenus=[dict(
+                    type="buttons", showactive=False, y=1.12, x=1.0, xanchor="right",
+                    buttons=[dict(label="▶ Animate", method="animate",
+                                  args=[None, dict(frame=dict(duration=80, redraw=True),
+                                                   fromcurrent=True,
+                                                   transition=dict(duration=60, easing="cubic-in-out"))])]
+                )]
             )
-            fig2.update_xaxes(range=[0, max(TARGET_HRS.values()) * 1.15], title_text="Hours")
-            fig2.update_yaxes(
-                tickfont=dict(size=11, family="Orbitron, monospace"),
-                autorange="reversed"
-            )
-            st.plotly_chart(fig2, use_container_width=True)
+            apply_theme(fig, title="Daily Hours — Last 30 Days")
+            fig.update_layout(hovermode="x unified")
+            fig.update_yaxes(rangemode="tozero")
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No sessions in the last 30 days")
 
     # Charts row 2
     if not tst.empty:
@@ -2273,107 +2544,211 @@ def dashboard():
 def log_study():
     st.markdown("<h1>📝 Log Study Session</h1>", unsafe_allow_html=True)
 
-    # Fetch once — used for validation preview AND recent sessions display
     existing_log = get_logs()
+    rev_df       = get_revision()
+    prof         = st.session_state.profile
+    r1_ratio     = float(prof.get("r1_ratio",     0.25))
+    r2_ratio     = float(prof.get("r2_ratio",     0.25))
+    num_rev      = int(prof.get("num_revisions",  6))
 
     if "log_subj" not in st.session_state:
         st.session_state.log_subj = SUBJECTS[0]
 
     c1, c2 = st.columns(2)
     with c1:
-        allow_bd = bool(st.session_state.profile.get("allow_backdate", False))
+        allow_bd = bool(prof.get("allow_backdate", False))
         min_date = date(2020, 1, 1) if allow_bd else date.today() - timedelta(days=3)
-        s_date = st.date_input("📅 Date *",
-                               value=date.today(),
-                               min_value=min_date,
-                               max_value=date.today(),
+        s_date = st.date_input("📅 Date *", value=date.today(),
+                               min_value=min_date, max_value=date.today(),
                                key="log_date")
         if allow_bd:
             st.caption("⚠️ Backdated mode ON — go to 👤 Profile to disable")
-        subj   = st.selectbox("📚 Subject *", SUBJECTS,
-                              index=SUBJECTS.index(st.session_state.log_subj),
-                              format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
-                              key="log_subj_sel")
+        subj = st.selectbox("📚 Subject *", SUBJECTS,
+                            index=SUBJECTS.index(st.session_state.log_subj),
+                            format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
+                            key="log_subj_sel")
         if subj != st.session_state.log_subj:
             st.session_state.log_subj = subj
             st.rerun()
-        hours  = st.number_input("⏱️ Hours Studied *", 0.5, 12.0, 2.0, 0.5, key="log_hours")
 
     with c2:
         topic_list = TOPICS.get(st.session_state.log_subj, [])
-        topic  = st.selectbox(f"📖 Topic * ({st.session_state.log_subj})", topic_list,
-                              key=f"log_topic_{st.session_state.log_subj}")
-        pages  = st.number_input("📄 Pages / Questions Done *", 0, 500, 0, key="log_pages")
-        diff   = st.select_slider(
-            "💪 Difficulty *",
-            options=[1, 2, 3, 4, 5],
-            format_func=lambda x: ["", "⭐ Easy", "⭐⭐ Moderate",
-                                    "⭐⭐⭐ Hard", "⭐⭐⭐⭐ Tough",
-                                    "⭐⭐⭐⭐⭐ Brutal"][x],
-            key="log_diff"
-        )
+        topic = st.selectbox(f"📖 Topic * ({st.session_state.log_subj})", topic_list,
+                             key=f"log_topic_{st.session_state.log_subj}")
+        pages = st.number_input("📄 Pages / Questions Done *", 0, 500, 0, key="log_pages")
+        diff  = st.select_slider("💪 Difficulty *", options=[1,2,3,4,5],
+                                 format_func=lambda x: ["","⭐ Easy","⭐⭐ Moderate",
+                                                        "⭐⭐⭐ Hard","⭐⭐⭐⭐ Tough",
+                                                        "⭐⭐⭐⭐⭐ Brutal"][x],
+                                 key="log_diff")
+
+    # ── Determine topic status ──
+    t_status = get_topic_status(subj, topic, rev_df)
+    tfr_so_far = get_tfr(subj, topic, existing_log)
+
+    # ── Status badge ──
+    status_badges = {
+        "not_started": ("⬜ Not Started",  "#94A3B8"),
+        "reading":     ("📖 Reading",       "#38BDF8"),
+        "completed":   ("✅ Completed",     "#34D399"),
+    }
+    badge_txt, badge_clr = status_badges.get(t_status, ("⬜", "#94A3B8"))
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;gap:16px;
+                background:rgba(8,18,50,0.80);border:2px solid {badge_clr}44;
+                border-radius:12px;padding:12px 18px;margin:8px 0">
+        <div style="font-family:'Orbitron',monospace;font-size:11px;
+                    color:{badge_clr};font-weight:700">{badge_txt}</div>
+        <div style="font-size:11px;color:#7AB4D0">
+            TFR so far: <b style="color:#FFFFFF">{tfr_so_far:.1f}h</b>
+        </div>
+        {"<div style='font-size:10px;color:#4A6A90;margin-left:auto'>Revisions start after completion</div>" if t_status == "reading" else ""}
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Hours input — locked for revision sessions ──
+    if t_status == "completed":
+        # Get next revision round and compute locked duration
+        rev_sessions = get_rev_sessions()
+        comp_revs = 0
+        if not rev_sessions.empty:
+            done = rev_sessions[
+                (rev_sessions["subject"] == subj) &
+                (rev_sessions["topic"]   == topic) &
+                (rev_sessions["status"]  == "completed")
+            ]
+            comp_revs = len(done)
+
+        next_round  = comp_revs + 1
+        tfr_stored  = float(rev_df[(rev_df["subject"] == subj) &
+                                    (rev_df["topic"] == topic)
+                                   ]["total_first_reading_time"].values[0]) \
+                      if not rev_df.empty and len(rev_df[(rev_df["subject"]==subj) &
+                                                          (rev_df["topic"]==topic)]) > 0 else tfr_so_far
+
+        if next_round <= num_rev:
+            schedule = compute_revision_schedule(tfr_stored, r1_ratio, r2_ratio,
+                                                  num_rev, date.today())
+            locked_hrs = schedule[min(next_round-1, len(schedule)-1)]["duration_hrs"]
+            st.markdown(f"""
+            <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.3);
+                        border-radius:10px;padding:12px 16px;margin:6px 0">
+                <div style="font-family:'Orbitron',monospace;font-size:11px;
+                            color:#34D399;margin-bottom:4px">
+                    🔒 R{next_round} — Duration Auto-Calculated
+                </div>
+                <div style="font-size:13px;color:#FFFFFF;font-weight:700">
+                    {locked_hrs:.2f} hours
+                </div>
+                <div style="font-size:10px;color:#4A6A90;margin-top:2px">
+                    TFR {tfr_stored:.1f}h × {r1_ratio*100:.0f}%
+                    {'→ weighted' if next_round > 2 else ''}
+                    = {locked_hrs:.2f}h
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            hours = locked_hrs
+            session_type = "revision"
+            round_num    = next_round
+        else:
+            st.success(f"🏆 All {num_rev} revisions completed for this topic!")
+            hours = 0.0
+            session_type = "revision"
+            round_num    = num_rev
+    else:
+        # Reading session — user enters hours
+        hours        = st.number_input("⏱️ Hours Studied *", 0.5, 12.0, 2.0, 0.5, key="log_hours")
+        session_type = "reading"
+        round_num    = 0
 
     notes = st.text_area("📝 Notes & Key Points (optional)",
-                         placeholder="What did you study? Any doubts or key takeaways?", height=90,
-                         key="log_notes")
+                         placeholder="Key takeaways, doubts, formulas...",
+                         height=80, key="log_notes")
 
+    # ── Complete Topic Button (only shown for Reading topics) ──
+    if t_status in ("not_started", "reading") and tfr_so_far > 0:
+        st.markdown("<br>", unsafe_allow_html=True)
+        ct_col1, ct_col2 = st.columns([1, 2])
+        with ct_col1:
+            st.markdown(f"""
+            <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.3);
+                        border-radius:10px;padding:10px 14px;font-size:11px;color:#7AB4D0">
+                TFR = <b style="color:#FFFFFF">{tfr_so_far:.1f}h</b><br>
+                R1 will be <b style="color:#34D399">{tfr_so_far * r1_ratio:.2f}h</b>,
+                R2: <b style="color:#34D399">{tfr_so_far * r2_ratio:.2f}h</b>
+            </div>
+            """, unsafe_allow_html=True)
+        with ct_col2:
+            if st.button(f"✅ Mark '{topic}' as COMPLETED", use_container_width=True,
+                         key="complete_topic_btn",
+                         help="This locks TFR and starts the revision schedule"):
+                ok, msg = complete_topic(subj, topic, tfr_so_far)
+                if ok:
+                    st.success(msg)
+                    st.balloons()
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+    # ── Save Session button ──
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("✅ SAVE SESSION", use_container_width=True, key="log_save"):
+    save_label = f"✅ SAVE {'REVISION R'+str(round_num) if session_type == 'revision' else 'READING SESSION'}"
+    if st.button(save_label, use_container_width=True, key="log_save",
+                 disabled=(t_status == "completed" and round_num > num_rev)):
         errors = []
         if not topic:
             errors.append("Topic is required")
-        if pages == 0:
+        if session_type == "reading" and pages == 0:
             errors.append("Pages / Questions must be greater than 0")
+        if session_type == "reading" and hours <= 0:
+            errors.append("Hours must be greater than 0")
 
-        # Date chronology validation — use already-fetched log
-        if not existing_log.empty and topic:
-            topic_sessions = existing_log[
-                (existing_log["subject"] == subj) &
-                (existing_log["topic"]   == topic)
+        # Chronology check for reading sessions
+        if session_type == "reading" and not existing_log.empty and topic:
+            topic_prev = existing_log[
+                (existing_log["subject"]      == subj) &
+                (existing_log["topic"]        == topic) &
+                (existing_log["session_type"] != "revision")
             ].copy()
-            if not topic_sessions.empty:
-                topic_sessions["date_only"] = topic_sessions["date"].dt.date
-                earliest = topic_sessions["date_only"].min()
+            if not topic_prev.empty:
+                topic_prev["date_only"] = topic_prev["date"].dt.date
+                earliest = topic_prev["date_only"].min()
                 if s_date < earliest:
-                    errors.append(
-                        f"Date cannot be earlier than your first session for this topic ({earliest.strftime('%d %b %Y')}). "
-                        f"Sessions must be in chronological order."
-                    )
-                n_prev = len(topic_sessions)
-                # Show what this session will count as
-                if n_prev == 0:
-                    session_label = "First Read"
-                else:
-                    session_label = f"Revision {n_prev}"
-                st.info(f"ℹ️ This will be counted as: **{session_label}** for *{topic}*")
+                    errors.append(f"Date cannot be earlier than your first session ({earliest.strftime('%d %b %Y')})")
 
         if errors:
             for e in errors:
                 st.warning(f"⚠️ {e}")
         else:
-            ok, msg = add_log({
-                "date": str(s_date), "subject": subj,
-                "topic": topic, "hours": hours,
-                "pages_done": pages, "difficulty": diff, "notes": notes
-            })
+            if session_type == "revision":
+                ok, msg = log_revision_session(subj, topic, round_num, hours, s_date, diff, notes)
+            else:
+                ok, msg = add_log({
+                    "date": str(s_date), "subject": subj, "topic": topic,
+                    "hours": hours, "pages_done": pages, "difficulty": diff,
+                    "notes": notes, "session_type": "reading",
+                    "topic_status": t_status,
+                })
             if ok:
                 st.success(f"✅ {msg}")
                 st.balloons()
             else:
                 st.error(msg)
 
-    # Recent sessions — reuse the fetch from top of function
-    log = existing_log
-    if not log.empty:
+    # ── Recent Sessions ──
+    if not existing_log.empty:
         st.markdown("---")
         st.markdown('<div class="neon-header">📋 Recent Sessions</div>', unsafe_allow_html=True)
-        r = log.head(10).copy()
+        r = existing_log.head(10).copy()
         r["date"] = r["date"].dt.strftime("%d %b %Y")
-        st.dataframe(
-            r[["date", "subject", "topic", "hours", "pages_done", "difficulty"]],
-            use_container_width=True
-        )
-        st.caption(f"{len(log)} total sessions · {log['hours'].sum():.1f}h total")
+        show_cols = [c for c in ["date","subject","topic","session_type","hours","pages_done","difficulty"]
+                     if c in r.columns]
+        st.dataframe(r[show_cols], use_container_width=True)
+        reading_hrs = existing_log[(existing_log["session_type"] != "revision" if "session_type" in existing_log.columns else pd.Series([True]*len(existing_log)))]["hours"].sum() \
+                      if "session_type" in existing_log.columns else existing_log["hours"].sum()
+        st.caption(f"{len(existing_log)} total sessions · {reading_hrs:.1f}h first reading")
+
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2455,320 +2830,479 @@ def add_test_score():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# REVISION
+# REVISION TRACKER
+# ══════════════════════════════════════════════════════════════════════════════
 def revision():
     st.markdown("<h1>🔄 Revision Tracker</h1>", unsafe_allow_html=True)
 
-    prof           = st.session_state.profile
-    mastery_target = int(prof.get("mastery_revisions", 3))
-    rev_df         = get_revision()
-    log_df         = get_logs()
+    prof        = st.session_state.profile
+    r1_ratio    = float(prof.get("r1_ratio",    0.25))
+    r2_ratio    = float(prof.get("r2_ratio",    0.25))
+    num_rev     = int(prof.get("num_revisions", 6))
+    rev_df      = get_revision()
+    log_df      = get_logs()
+    rev_sess_df = get_rev_sessions()
 
     if "rev_subj" not in st.session_state:
         st.session_state.rev_subj = "ALL"
 
-    # ── Subject selector with ALL option ──
-    subj_opts_display = ["ALL"] + SUBJECTS
-    btn_cols = st.columns(len(subj_opts_display))
-    for i, s in enumerate(subj_opts_display):
-        active = st.session_state.rev_subj == s
-        clr    = "#38BDF8" if s == "ALL" else COLORS[s]
+    # ── Subject selector ──────────────────────────────────────────────────────
+    subj_opts = ["ALL"] + SUBJECTS
+    btn_cols  = st.columns(len(subj_opts))
+    for i, s in enumerate(subj_opts):
+        clr = "#38BDF8" if s == "ALL" else COLORS[s]
         with btn_cols[i]:
-            label = "🌐 ALL" if s == "ALL" else s
-            if st.button(label, key=f"rev_subj_btn_{s}", use_container_width=True):
+            if st.button("🌐 ALL" if s == "ALL" else s,
+                         key=f"rev_subj_btn_{s}", use_container_width=True):
                 st.session_state.rev_subj = s
                 st.rerun()
 
-    subj = st.session_state.rev_subj
+    subj             = st.session_state.rev_subj
+    display_subjects = SUBJECTS if subj == "ALL" else [subj]
     st.markdown("---")
 
-    # ── Build topic timeline from daily_log ──
+    # ── Build lookup maps from log ────────────────────────────────────────────
     from collections import defaultdict
-    topic_sessions_all = defaultdict(list)   # key = (subj, topic)
+    reading_hrs   = defaultdict(float)   # (subj,topic) -> total reading hours
+    reading_dates = defaultdict(list)    # (subj,topic) -> list of reading dates
+    rev_dates_map = defaultdict(list)    # (subj,topic) -> list of revision dates
+
     if not log_df.empty:
         for _, r in log_df.iterrows():
-            d = r["date"].date() if hasattr(r["date"], "date") else date.fromisoformat(str(r["date"]))
-            topic_sessions_all[(r["subject"], r["topic"])].append(d)
-    for k in topic_sessions_all:
-        topic_sessions_all[k] = sorted(set(topic_sessions_all[k]))
+            key  = (r["subject"], r["topic"])
+            stype = r.get("session_type", "reading") if "session_type" in log_df.columns else "reading"
+            d    = r["date"].date() if hasattr(r["date"], "date") else date.fromisoformat(str(r["date"])[:10])
+            if stype == "revision":
+                rev_dates_map[key].append(d)
+            else:
+                reading_hrs[key]   += float(r.get("hours", 0))
+                reading_dates[key].append(d)
+
+    # Also pull revision session data from rev_sessions table
+    if not rev_sess_df.empty:
+        for _, r in rev_sess_df.iterrows():
+            key = (r["subject"], r["topic"])
+            d   = r["date"] if isinstance(r["date"], date) else date.fromisoformat(str(r["date"])[:10])
+            rev_dates_map[key].append(d)
+
+    # Get completion info from rev_df
+    completion_info = {}   # (subj,topic) -> {status, tfr, comp_date}
+    if not rev_df.empty:
+        for _, r in rev_df.iterrows():
+            key = (r["subject"], r["topic"])
+            completion_info[key] = {
+                "status":   r.get("topic_status", "not_started") or "not_started",
+                "tfr":      float(r.get("total_first_reading_time", 0) or 0),
+                "comp_date": r.get("completion_date"),
+            }
 
     today = date.today()
 
-    # Build display list of subjects
-    display_subjects = SUBJECTS if subj == "ALL" else [subj]
+    # ── Summary tabs: Status Table + Pendency ──────────────────────────────────
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📋 Topic Status", "⏰ Pending Revisions", "📖 Session History", "🏆 Score"
+    ])
 
-    # ── Per-topic status table ──
-    header_txt = "All Subjects" if subj == "ALL" else f"{subj} — {SUBJ_FULL[subj]}"
-    st.markdown(f'<div class="neon-header">📋 {header_txt} · Topic Status</div>',
-                unsafe_allow_html=True)
+    # ════════════════════════════════════════════════════════
+    # TAB 1 — Topic Status + Summary cards
+    # ════════════════════════════════════════════════════════
+    with tab1:
+        st.markdown('<div class="neon-header">📋 Topic Status Overview</div>', unsafe_allow_html=True)
 
-    topic_rows = []
-    for ds in display_subjects:
-        for topic in TOPICS.get(ds, []):
-            sessions = topic_sessions_all.get((ds, topic), [])
-            n        = len(sessions)
-            if n == 0:
-                status_icon = "⬜"; status_txt = "Not Started"
-                last_date = "—"; revs_done = 0; next_due = "—"; conf_pct = 0
-            else:
-                revs_done   = n - 1
-                last_dt     = sessions[-1]
-                last_date   = last_dt.strftime("%d %b %Y")
-                sched_idx   = min(revs_done, len(REVISION_SCHEDULE) - 1)
-                gap         = REVISION_SCHEDULE[sched_idx]
-                due         = last_dt + timedelta(days=gap)
-                days_diff   = (today - due).days
-                next_due    = due.strftime("%d %b %Y")
-                if days_diff > 0:
-                    status_icon = "🔴"; status_txt = f"Overdue {days_diff}d"
-                elif days_diff == 0:
-                    status_icon = "🟡"; status_txt = "Due Today"
+        for ds in display_subjects:
+            if subj == "ALL":
+                clr = COLORS[ds]
+                st.markdown(f"<div style='font-family:Orbitron,monospace;font-size:12px;"
+                            f"color:{clr};letter-spacing:1px;margin:14px 0 6px'>"
+                            f"{ds} — {SUBJ_FULL[ds]}</div>", unsafe_allow_html=True)
+
+            for topic in TOPICS.get(ds, []):
+                key     = (ds, topic)
+                info    = completion_info.get(key, {"status":"not_started","tfr":0,"comp_date":None})
+                t_stat  = info["status"]
+                tfr     = info["tfr"] or reading_hrs.get(key, 0)
+                comp_d  = info["comp_date"]
+
+                # Compute revisions done
+                revs_done     = len(set(rev_dates_map.get(key, [])))
+                last_rev_date = max(rev_dates_map[key]) if rev_dates_map.get(key) else None
+
+                # Status colours
+                stat_map = {
+                    "not_started": ("⬜", "#94A3B8"),
+                    "reading":     ("📖", "#38BDF8"),
+                    "completed":   ("✅", "#34D399"),
+                }
+                s_icon, s_clr = stat_map.get(t_stat, ("⬜", "#94A3B8"))
+                subj_clr = COLORS.get(ds, "#38BDF8")
+
+                # Next due from pendency
+                next_due_str = "—"
+                days_ov      = None
+                if t_stat == "completed":
+                    pend_row = get_pendencies(rev_df, log_df)
+                    if not pend_row.empty:
+                        pr = pend_row[(pend_row["subject"]==ds) & (pend_row["topic"]==topic)]
+                        if not pr.empty:
+                            r0 = pr.iloc[0]
+                            next_due_str = str(r0["due_date"])
+                            days_ov      = int(r0["days_overdue"])
+
+                # Memory strength
+                ms_pct, ms_lbl, ms_clr = memory_strength(revs_done, last_rev_date, num_rev)
+
+                # ── Summary card ──
+                due_badge = ""
+                if days_ov is not None:
+                    if days_ov > 0:
+                        due_badge = f'<span style="background:#F87171;color:#fff;padding:2px 7px;border-radius:6px;font-size:9px;font-family:Orbitron,monospace">+{days_ov}d OVERDUE</span>'
+                    elif days_ov == 0:
+                        due_badge = f'<span style="background:#FBBF24;color:#000;padding:2px 7px;border-radius:6px;font-size:9px;font-family:Orbitron,monospace">DUE TODAY</span>'
+                    else:
+                        due_badge = f'<span style="background:#34D39944;color:#34D399;padding:2px 7px;border-radius:6px;font-size:9px">in {abs(days_ov)}d</span>'
+
+                with st.expander(
+                    f"{s_icon} {ds} · {topic[:60]}{'…' if len(topic)>60 else ''}  "
+                    f"   TFR:{tfr:.1f}h  R:{revs_done}/{num_rev}",
+                    expanded=False
+                ):
+                    # ── Full schedule R1→RN ──
+                    if t_stat == "completed" and comp_d:
+                        comp_date_obj = date.fromisoformat(str(comp_d)[:10]) if isinstance(comp_d, str) else comp_d
+                        schedule = compute_revision_schedule(tfr, r1_ratio, r2_ratio, num_rev, comp_date_obj)
+
+                        # Header row
+                        st.markdown(f"""
+                        <div style="display:flex;gap:16px;align-items:center;margin-bottom:8px">
+                            <div>
+                                <span style="font-size:11px;color:#7AB4D0">TFR: </span>
+                                <b style="color:#FFFFFF">{tfr:.1f}h</b>
+                            </div>
+                            <div>
+                                <span style="font-size:11px;color:#7AB4D0">Completed: </span>
+                                <b style="color:#FFFFFF">{str(comp_d)[:10]}</b>
+                            </div>
+                            <div>
+                                <span style="font-size:11px;color:#7AB4D0">Memory: </span>
+                                <b style="color:{ms_clr}">{ms_lbl} ({ms_pct:.0f}%)</b>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        # Schedule table
+                        rev_done_set = set(rev_dates_map.get(key, []))
+                        for rnd in schedule:
+                            rn        = rnd["round"]
+                            is_done   = rn <= revs_done
+                            is_next   = rn == revs_done + 1
+                            due_d     = rnd["due_date"]
+                            diff      = (today - due_d).days
+                            dur       = rnd["duration_hrs"]
+
+                            if is_done:
+                                row_bg  = "rgba(52,211,153,0.08)"
+                                row_bdr = "rgba(52,211,153,0.30)"
+                                status_badge = '✅ Done'
+                                rn_clr  = "#34D399"
+                            elif is_next and diff > 0:
+                                row_bg  = "rgba(248,113,113,0.08)"
+                                row_bdr = "rgba(248,113,113,0.40)"
+                                status_badge = f'⚠️ +{diff}d overdue'
+                                rn_clr  = "#F87171"
+                            elif is_next and diff == 0:
+                                row_bg  = "rgba(251,191,36,0.08)"
+                                row_bdr = "rgba(251,191,36,0.40)"
+                                status_badge = '🟡 Due Today'
+                                rn_clr  = "#FBBF24"
+                            elif is_next:
+                                row_bg  = "rgba(56,189,248,0.06)"
+                                row_bdr = "rgba(56,189,248,0.25)"
+                                status_badge = f'⏳ in {abs(diff)}d'
+                                rn_clr  = "#38BDF8"
+                            else:
+                                row_bg  = "rgba(6,14,38,0.50)"
+                                row_bdr = "rgba(56,189,248,0.10)"
+                                status_badge = f'📅 {due_d}'
+                                rn_clr  = "#4A6A90"
+
+                            st.markdown(f"""
+                            <div style="display:flex;align-items:center;gap:10px;
+                                        background:{row_bg};border:1px solid {row_bdr};
+                                        border-left:3px solid {rn_clr};
+                                        border-radius:8px;padding:8px 12px;margin:3px 0">
+                                <div style="font-family:Orbitron,monospace;font-size:11px;
+                                            font-weight:800;color:{rn_clr};min-width:28px">R{rn}</div>
+                                <div style="flex:1;font-size:11px;color:#B0D4F0">
+                                    <b style="color:#FFFFFF">{dur:.2f}h</b>
+                                    <span style="color:#4A6A90;margin-left:6px">
+                                        ({rnd['ratio']*100:.0f}% of TFR · after {rnd['interval_days']}d)
+                                    </span>
+                                </div>
+                                <div style="font-size:10px;color:{rn_clr};font-weight:600">{status_badge}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                    elif t_stat == "reading":
+                        read_h = reading_hrs.get(key, 0)
+                        ratios = get_revision_ratios(r1_ratio, r2_ratio, num_rev)
+                        st.markdown(f"""
+                        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.20);
+                                    border-radius:8px;padding:10px 14px">
+                            <div style="font-size:11px;color:#7AB4D0;margin-bottom:6px">
+                                📖 In Progress — TFR so far: <b style="color:#FFFFFF">{read_h:.1f}h</b>
+                            </div>
+                            <div style="font-size:10px;color:#4A6A90">
+                                When completed → R1 will be <b style="color:#38BDF8">{read_h*r1_ratio:.2f}h</b>,
+                                R2: <b style="color:#38BDF8">{read_h*r2_ratio:.2f}h</b>
+                                (mark as Complete in Study Log)
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.caption("Not started yet.")
+
+    # ════════════════════════════════════════════════════════
+    # TAB 2 — Pending Revisions by class
+    # ════════════════════════════════════════════════════════
+    with tab2:
+        pend_all = get_pendencies(rev_df, log_df)
+        pend_show = pend_all if (pend_all.empty or subj == "ALL") else pend_all[pend_all["subject"] == subj]
+
+        if not pend_show.empty:
+            overdue_df  = pend_show[pend_show["days_overdue"] > 0].sort_values("days_overdue", ascending=False)
+            due_today_df= pend_show[pend_show["days_overdue"] == 0]
+            upcoming_df = pend_show[pend_show["days_overdue"] < 0].copy()
+            upcoming_df["days_away"] = upcoming_df["days_overdue"].abs()
+
+            def _pend_row_html(row, clr, badge):
+                sc = COLORS.get(row["subject"], "#38BDF8")
+                # Get duration from schedule if possible
+                info = completion_info.get((row["subject"], row["topic"]), {})
+                tfr_v = float(info.get("tfr") or 0)
+                rn    = row.get("revisions_done", 0) + 1
+                if tfr_v > 0:
+                    schedule = compute_revision_schedule(tfr_v, r1_ratio, r2_ratio, num_rev,
+                                                          date.fromisoformat(str(row["completion_date"])[:10])
+                                                          if row.get("completion_date") else today)
+                    dur_h = schedule[min(rn-1, len(schedule)-1)]["duration_hrs"] if schedule else 0
+                    dur_str = f"⏱ {dur_h:.2f}h"
                 else:
-                    status_icon = "🟢"; status_txt = f"In {abs(days_diff)}d"
-                conf_pct = min(int(revs_done / mastery_target * 100), 100)
-            topic_rows.append({
-                "Subj": ds, "Topic": topic,
-                "Status": f"{status_icon} {status_txt}",
-                "Total Reads": n, "Revisions": revs_done,
-                "Last Studied": last_date, "Next Due": next_due,
-                "Confidence": f"{conf_pct}%",
-            })
+                    dur_str = ""
 
-    t_df = pd.DataFrame(topic_rows)
-    st.dataframe(t_df, use_container_width=True, height=320)
-
-    st.markdown("---")
-
-    # ── Pendency grouped by revision class ──
-    st.markdown('<div class="neon-header">⏰ Pending Revisions by Class</div>', unsafe_allow_html=True)
-
-    pend_all = get_pendencies(rev_df, log_df)
-    if not pend_all.empty:
-        pend_show = pend_all if subj == "ALL" else pend_all[pend_all["subject"] == subj]
-
-        # Overdue section
-        overdue_df = pend_show[pend_show["days_overdue"] > 0].sort_values("days_overdue", ascending=False)
-        if not overdue_df.empty:
-            st.markdown("#### 🔴 Overdue")
-            for _, row in overdue_df.iterrows():
-                urgency_clr = "#F87171" if row["days_overdue"] > 7 else "#FBBF24"
-                st.markdown(f"""
-                <div style="background:rgba(248,113,113,0.07);border:2px solid {urgency_clr}44;
-                            border-left:4px solid {urgency_clr};border-radius:10px;
-                            padding:9px 14px;margin:4px 0;
-                            display:flex;justify-content:space-between;align-items:center">
-                    <div>
-                        <span style="font-family:'Orbitron',monospace;font-size:10px;
-                                     color:{COLORS.get(row['subject'],'#38BDF8')}">{row['subject']}</span>
+                return f"""
+                <div style="display:flex;align-items:center;gap:10px;
+                            background:rgba(6,14,38,0.7);border:1px solid {clr}33;
+                            border-left:4px solid {clr};border-radius:9px;
+                            padding:9px 14px;margin:4px 0">
+                    <div style="flex:1">
+                        <span style="font-family:Orbitron,monospace;font-size:10px;
+                                     color:{sc};font-weight:700">{row['subject']}</span>
                         <span style="font-size:12px;color:#FFFFFF;margin-left:8px">{row['topic'][:55]}</span>
-                        <span style="font-size:10px;color:#4A6A90;margin-left:8px">{row['round_label']}</span>
+                        <span style="font-family:Orbitron,monospace;font-size:9px;
+                                     color:#4A6A90;margin-left:8px">{row['round_label']}</span>
                     </div>
-                    <div style="text-align:right;min-width:90px">
-                        <div style="font-family:'Orbitron',monospace;font-size:13px;
-                                    font-weight:700;color:{urgency_clr}">+{row['days_overdue']}d</div>
-                        <div style="font-size:9px;color:#4A6A90">due {row['due_date']}</div>
+                    <div style="text-align:right;white-space:nowrap">
+                        <div style="font-size:9px;color:#4A6A90">{dur_str}</div>
+                        <div style="font-family:Orbitron,monospace;font-size:11px;
+                                    font-weight:700;color:{clr}">{badge}</div>
                     </div>
-                </div>""", unsafe_allow_html=True)
+                </div>"""
 
-        # Upcoming grouped by schedule class
-        upcoming_df = pend_show[pend_show["days_overdue"] < 0].copy()
-        upcoming_df["days_away"] = upcoming_df["days_overdue"].abs()
-        schedule_classes = [
-            (0,  3,  "🟡 Due within 3 days",  "#FBBF24"),
-            (3,  7,  "🟠 Due in 3–7 days",    "#FB923C"),
-            (7,  15, "🔵 Due in 7–15 days",   "#60A5FA"),
-            (15, 30, "🟢 Due in 15–30 days",  "#34D399"),
-            (30, 91, "⚪ Due in 30–90 days",  "#94A3B8"),
-        ]
-        for lo, hi, label, clr in schedule_classes:
-            bucket = upcoming_df[(upcoming_df["days_away"] > lo) & (upcoming_df["days_away"] <= hi)]
-            if bucket.empty:
-                continue
-            st.markdown(f"#### {label}")
-            for _, row in bucket.sort_values("days_away").iterrows():
-                st.markdown(f"""
-                <div style="background:rgba(56,189,248,0.05);border:2px solid {clr}33;
-                            border-left:4px solid {clr};border-radius:10px;
-                            padding:9px 14px;margin:4px 0;
-                            display:flex;justify-content:space-between;align-items:center">
-                    <div>
-                        <span style="font-family:'Orbitron',monospace;font-size:10px;
-                                     color:{COLORS.get(row['subject'],'#38BDF8')}">{row['subject']}</span>
-                        <span style="font-size:12px;color:#FFFFFF;margin-left:8px">{row['topic'][:55]}</span>
-                        <span style="font-size:10px;color:#4A6A90;margin-left:8px">{row['round_label']}</span>
-                    </div>
-                    <div style="text-align:right;min-width:90px">
-                        <div style="font-family:'Orbitron',monospace;font-size:13px;
-                                    font-weight:700;color:{clr}">in {int(row['days_away'])}d</div>
-                        <div style="font-size:9px;color:#4A6A90">due {row['due_date']}</div>
-                    </div>
-                </div>""", unsafe_allow_html=True)
-    else:
-        st.success("✅ No pending revisions yet. Keep studying!")
+            if not overdue_df.empty:
+                st.markdown("#### 🔴 Overdue")
+                for _, row in overdue_df.iterrows():
+                    clr = "#F87171" if row["days_overdue"] > 7 else "#FBBF24"
+                    st.markdown(_pend_row_html(row, clr, f"+{row['days_overdue']}d"), unsafe_allow_html=True)
 
-    st.markdown("---")
+            if not due_today_df.empty:
+                st.markdown("#### 🟡 Due Today")
+                for _, row in due_today_df.iterrows():
+                    st.markdown(_pend_row_html(row, "#FBBF24", "TODAY"), unsafe_allow_html=True)
 
-    # ── Topic Reading History (Fix 3) ──
-    st.markdown('<div class="neon-header">📖 Topic Reading History</div>', unsafe_allow_html=True)
-
-    h_subj_opts = SUBJECTS if subj == "ALL" else [subj]
-    hc1, hc2 = st.columns(2)
-    with hc1:
-        h_subj = st.selectbox("Subject", h_subj_opts,
-                               format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
-                               key="hist_subj")
-    with hc2:
-        h_topic_list = TOPICS.get(h_subj, [])
-        studied_topics = [t for t in h_topic_list if topic_sessions_all.get((h_subj, t))]
-        if studied_topics:
-            h_topic = st.selectbox("Topic", studied_topics, key="hist_topic")
+            schedule_classes = [
+                (0,  3,  "🟡 Due in 1–3 days",   "#FBBF24"),
+                (3,  7,  "🟠 Due in 3–7 days",   "#FB923C"),
+                (7,  15, "🔵 Due in 7–15 days",  "#60A5FA"),
+                (15, 30, "🟢 Due in 15–30 days", "#34D399"),
+                (30, 999,"⚪ Due in 30+ days",   "#94A3B8"),
+            ]
+            for lo, hi, label, clr in schedule_classes:
+                bucket = upcoming_df[(upcoming_df["days_away"] > lo) & (upcoming_df["days_away"] <= hi)]
+                if bucket.empty: continue
+                st.markdown(f"#### {label}")
+                for _, row in bucket.sort_values("days_away").iterrows():
+                    st.markdown(_pend_row_html(row, clr, f"in {int(row['days_away'])}d"), unsafe_allow_html=True)
         else:
-            st.info("No sessions logged for this subject yet.")
-            h_topic = None
+            st.success("✅ No pending revisions yet — mark topics as Completed in Study Log to start scheduling.")
 
-    if h_topic:
-        sessions = topic_sessions_all.get((h_subj, h_topic), [])
-        if not log_df.empty:
-            topic_log = log_df[
-                (log_df["subject"] == h_subj) &
-                (log_df["topic"]   == h_topic)
-            ].sort_values("date", ascending=False).copy()
-        else:
-            topic_log = pd.DataFrame()
+    # ════════════════════════════════════════════════════════
+    # TAB 3 — Session History per topic
+    # ════════════════════════════════════════════════════════
+    with tab3:
+        st.markdown('<div class="neon-header">📖 Topic Session History</div>', unsafe_allow_html=True)
+        h_subj_opts = SUBJECTS if subj == "ALL" else [subj]
+        hc1, hc2 = st.columns(2)
+        with hc1:
+            h_subj = st.selectbox("Subject", h_subj_opts,
+                                   format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
+                                   key="hist_subj_v2")
+        with hc2:
+            all_studied = [t for t in TOPICS.get(h_subj, [])
+                           if reading_hrs.get((h_subj, t)) or rev_dates_map.get((h_subj, t))]
+            if all_studied:
+                h_topic = st.selectbox("Topic", all_studied, key="hist_topic_v2")
+            else:
+                st.info("No sessions logged for this subject yet.")
+                h_topic = None
 
+        if h_topic:
+            key       = (h_subj, h_topic)
+            info      = completion_info.get(key, {"status":"not_started","tfr":0,"comp_date":None})
+            tfr_val   = info["tfr"] or reading_hrs.get(key, 0)
+            status    = info["status"]
+            comp_date = info["comp_date"]
+            stat_lbl  = {"not_started":"⬜ Not Started","reading":"📖 Reading","completed":"✅ Completed"}.get(status, "⬜")
+
+            st.markdown(f"""
+            <div style="background:rgba(8,18,50,0.80);border:2px solid rgba(56,189,248,0.25);
+                        border-radius:12px;padding:14px 18px;margin-bottom:12px;
+                        display:flex;gap:24px;flex-wrap:wrap">
+                <div><span style="font-size:10px;color:#4A6A90">Status</span>
+                     <div style="font-size:13px;color:#FFFFFF;font-weight:700">{stat_lbl}</div></div>
+                <div><span style="font-size:10px;color:#4A6A90">TFR</span>
+                     <div style="font-size:13px;color:#FFFFFF;font-weight:700">{tfr_val:.1f}h</div></div>
+                <div><span style="font-size:10px;color:#4A6A90">Completed On</span>
+                     <div style="font-size:13px;color:#FFFFFF;font-weight:700">{str(comp_date)[:10] if comp_date else "—"}</div></div>
+                <div><span style="font-size:10px;color:#4A6A90">Revisions Done</span>
+                     <div style="font-size:13px;color:#FFFFFF;font-weight:700">{len(set(rev_dates_map.get(key,[])))}/{num_rev}</div></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Reading sessions
+            if not log_df.empty:
+                read_log = log_df[
+                    (log_df["subject"] == h_subj) & (log_df["topic"] == h_topic) &
+                    ((log_df["session_type"] != "revision" if "session_type" in log_df.columns else pd.Series([True]*len(log_df))))
+                ].sort_values("date").copy()
+                if not read_log.empty:
+                    st.markdown("**📖 First Reading Sessions**")
+                    for _, row in read_log.iterrows():
+                        d   = row["date"].strftime("%d %b %Y") if hasattr(row["date"],"strftime") else str(row["date"])
+                        hrs = float(row.get("hours", 0))
+                        st.markdown(f"""
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                                    background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.15);
+                                    border-left:3px solid #38BDF8;border-radius:8px;margin:3px 0">
+                            <div style="font-size:16px">📖</div>
+                            <div style="flex:1;font-size:12px;color:#FFFFFF">{d}</div>
+                            <div style="font-size:11px;color:#38BDF8;font-weight:600">⏱ {hrs:.1f}h</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+            # Revision sessions
+            if not rev_sess_df.empty:
+                rev_log = rev_sess_df[
+                    (rev_sess_df["subject"] == h_subj) & (rev_sess_df["topic"] == h_topic)
+                ].sort_values("round").copy() if "subject" in rev_sess_df.columns else pd.DataFrame()
+                if not rev_log.empty:
+                    st.markdown("**🔄 Revision Sessions**")
+                    for _, row in rev_log.iterrows():
+                        d   = str(row.get("date",""))[:10]
+                        hrs = float(row.get("hours", 0))
+                        rn  = int(row.get("round", 0))
+                        st.markdown(f"""
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                                    background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.15);
+                                    border-left:3px solid #34D399;border-radius:8px;margin:3px 0">
+                            <div style="font-family:Orbitron,monospace;font-size:10px;
+                                        color:#34D399;font-weight:800;min-width:24px">R{rn}</div>
+                            <div style="flex:1;font-size:12px;color:#FFFFFF">{d}</div>
+                            <div style="font-size:11px;color:#34D399;font-weight:600">⏱ {hrs:.2f}h ✅</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════
+    # TAB 4 — Overall Score & Memory Strength
+    # ════════════════════════════════════════════════════════
+    with tab4:
+        all_topic_count = sum(len(v) for v in TOPICS.values())
+        completed_count = sum(1 for info in completion_info.values() if info["status"] == "completed")
+        reading_count   = sum(1 for info in completion_info.values() if info["status"] == "reading")
+        total_rev_done  = sum(len(set(v)) for v in rev_dates_map.values())
+        max_revs        = completed_count * num_rev
+        pend_df         = get_pendencies(rev_df, log_df)
+        overdue_count   = len(pend_df[pend_df["days_overdue"] > 0]) if not pend_df.empty else 0
+
+        coverage_pct = completed_count / all_topic_count * 100 if all_topic_count > 0 else 0
+        depth_pct    = min(total_rev_done / max_revs * 100, 100) if max_revs > 0 else 0
+        penalty      = min(overdue_count * 2, 30)
+        overall      = max(0, round(coverage_pct * 0.35 + depth_pct * 0.50 - penalty * 0.15, 1))
+
+        grade = (
+            ("🏆 MASTER",       "#34D399") if overall >= 85 else
+            ("🎯 STRONG",       "#60A5FA") if overall >= 65 else
+            ("📈 PROGRESSING",  "#FBBF24") if overall >= 40 else
+            ("🚀 JUST STARTED", "#F87171")
+        )
+        oc1, oc2, oc3, oc4, oc5 = st.columns(5)
+        oc1.metric("📖 Reading",    f"{reading_count}",       "in progress")
+        oc2.metric("✅ Completed",  f"{completed_count}/{all_topic_count}", f"{coverage_pct:.0f}%")
+        oc3.metric("🔄 Revisions",  f"{total_rev_done}",      f"of {max_revs} target")
+        oc4.metric("🔴 Overdue",    f"{overdue_count}",       "need revision now")
+        oc5.metric("⭐ Confidence", f"{overall}%",            grade[0])
+
+        bar_clr = grade[1]
         st.markdown(f"""
-        <div style="background:rgba(8,18,50,0.80);border:2px solid rgba(56,189,248,0.25);
-                    border-radius:14px;padding:16px 20px;margin-bottom:12px">
-            <div style="font-family:'Orbitron',monospace;font-size:12px;color:#38BDF8;
-                        letter-spacing:1px;margin-bottom:10px">
-                {h_subj} · {h_topic} · {len(sessions)} session(s)
+        <div style="background:rgba(6,14,38,0.80);border:2px solid {bar_clr}44;
+                    border-radius:16px;padding:20px 24px;margin:14px 0">
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                <span style="font-family:Orbitron,monospace;font-size:13px;
+                             font-weight:700;color:{bar_clr}">{grade[0]}</span>
+                <span style="font-family:Orbitron,monospace;font-size:20px;
+                             font-weight:800;color:#FFFFFF">{overall}%</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.07);border-radius:8px;height:14px;overflow:hidden">
+                <div style="width:{overall}%;height:100%;border-radius:8px;
+                            background:linear-gradient(90deg,{bar_clr}88,{bar_clr});
+                            box-shadow:0 0 12px {bar_clr}88;transition:width 1s ease"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#4A6A90">
+                <span>Completion {coverage_pct:.0f}% × 35%</span>
+                <span>Revision Depth {depth_pct:.0f}% × 50%</span>
+                <span>Overdue penalty -{penalty:.0f}% × 15%</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        for i, (_, row) in enumerate(topic_log.iterrows()):
-            d = row["date"].strftime("%d %b %Y") if hasattr(row["date"], "strftime") else str(row["date"])
-            hrs = float(row.get("hours", 0))
-            label = "📖 First Read" if i == len(topic_log) - 1 else f"🔄 Revision {len(topic_log) - 1 - i}"
-            label_clr = "#38BDF8" if i == len(topic_log) - 1 else "#34D399"
-            st.markdown(f"""
-            <div style="display:flex;align-items:center;gap:12px;
-                        padding:10px 14px;margin:4px 0;
-                        background:rgba(56,189,248,0.05);
-                        border:2px solid rgba(56,189,248,0.12);border-radius:10px">
-                <div style="font-size:18px">✅</div>
-                <div style="flex:1">
-                    <span style="font-family:'Orbitron',monospace;font-size:10px;
-                                 color:{label_clr};font-weight:700">{label}</span>
-                    <span style="font-size:12px;color:#FFFFFF;margin-left:10px">{d}</span>
-                </div>
-                <div style="font-size:11px;color:#4A6A90;font-weight:600">⏱ {hrs:.1f}h</div>
-            </div>
-            """, unsafe_allow_html=True)
+        # Memory strength chart
+        ms_labels, ms_vals, ms_clrs = [], [], []
+        for ds in SUBJECTS:
+            for t in TOPICS.get(ds, []):
+                k = (ds, t)
+                inf = completion_info.get(k, {})
+                if inf.get("status") != "completed": continue
+                rd = len(set(rev_dates_map.get(k, [])))
+                lr = max(rev_dates_map[k]) if rev_dates_map.get(k) else None
+                pct, lbl, clr = memory_strength(rd, lr, num_rev)
+                ms_labels.append(f"{ds} · {t[:30]}")
+                ms_vals.append(pct)
+                ms_clrs.append(clr)
 
-    st.markdown("---")
-
-    # ── Confidence indicators ──
-    st.markdown('<div class="neon-header">⭐ Confidence Indicators</div>', unsafe_allow_html=True)
-    st.caption(f"Mastery target: **{mastery_target} revisions** = 100% · Change in 👤 Profile → Settings")
-
-    conf_topics = []
-    for ds in display_subjects:
-        for t in TOPICS.get(ds, []):
-            s = topic_sessions_all.get((ds, t), [])
-            if s:
-                conf_topics.append((f"{ds} · {t}", s))
-
-    if conf_topics:
-        conf_fig = go.Figure()
-        labels, values, colors_bar, hover_texts = [], [], [], []
-        for lbl, sessions in sorted(conf_topics, key=lambda x: len(x[1]), reverse=True):
-            revs = len(sessions) - 1
-            conf = min(revs / mastery_target * 100, 100)
-            labels.append(lbl[:40] + ("…" if len(lbl) > 40 else ""))
-            values.append(conf)
-            colors_bar.append(
-                "#34D399" if conf >= 100 else
-                "#60A5FA" if conf >= 66  else
-                "#FBBF24" if conf >= 33  else "#F87171"
-            )
-            hover_texts.append(f"{lbl}<br>Revisions: {revs}/{mastery_target}<br>Confidence: {conf:.0f}%")
-
-        conf_fig.add_trace(go.Bar(
-            y=labels, x=values, orientation="h",
-            marker_color=colors_bar,
-            text=[f"{v:.0f}%" for v in values],
-            textposition="inside", insidetextanchor="start",
-            hovertext=hover_texts,
-            hovertemplate="%{hovertext}<extra></extra>"
-        ))
-        apply_theme(conf_fig,
-                    title=f"Topic Confidence ({mastery_target} revisions = mastery)",
-                    height=max(200, min(len(labels) * 20 + 80, 600)))
-        conf_fig.update_layout(
-            margin=dict(t=50, b=40, l=220, r=20),
-            shapes=[dict(type="line", x0=100, x1=100,
-                         y0=-0.5, y1=len(labels) - 0.5,
-                         line=dict(color="#34D399", width=1.5, dash="dot"))]
-        )
-        conf_fig.update_xaxes(range=[0, 105], title_text="Confidence %")
-        conf_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
-        st.plotly_chart(conf_fig, use_container_width=True)
-    else:
-        st.info("No topics studied yet.")
-
-    st.markdown("---")
-
-    # ── Overall Confidence Score ──
-    st.markdown('<div class="neon-header">🏆 Overall Confidence Score</div>', unsafe_allow_html=True)
-
-    all_topic_count  = sum(len(v) for v in TOPICS.values())
-    read_count       = len([k for k in topic_sessions_all if topic_sessions_all[k]])
-    total_rev_done   = sum(max(len(s) - 1, 0) for s in topic_sessions_all.values())
-    max_possible_rev = all_topic_count * mastery_target
-    pend_df = get_pendencies(rev_df, log_df)
-    overdue_count    = len(pend_df[pend_df["days_overdue"] > 0]) if not pend_df.empty else 0
-
-    coverage_pct = read_count / all_topic_count * 100 if all_topic_count > 0 else 0
-    depth_pct    = min(total_rev_done / max_possible_rev * 100, 100) if max_possible_rev > 0 else 0
-    penalty      = min(overdue_count * 2, 30)
-    overall      = max(0, round(coverage_pct * 0.35 + depth_pct * 0.50 - penalty * 0.15, 1))
-
-    grade = (
-        ("🏆 MASTER",      "#34D399") if overall >= 85 else
-        ("🎯 STRONG",      "#60A5FA") if overall >= 65 else
-        ("📈 PROGRESSING", "#FBBF24") if overall >= 40 else
-        ("🚀 JUST STARTED","#F87171")
-    )
-    oc1, oc2, oc3, oc4 = st.columns(4)
-    oc1.metric("📖 Topics Read",       f"{read_count}/{all_topic_count}", f"{coverage_pct:.0f}%")
-    oc2.metric("🔄 Total Revisions",   f"{total_rev_done}",              f"of {max_possible_rev} target")
-    oc3.metric("🔴 Overdue Topics",    f"{overdue_count}",               "need revision now")
-    oc4.metric("⭐ Overall Confidence", f"{overall}%",                   grade[0])
-
-    bar_clr = grade[1]
-    st.markdown(f"""
-    <div style="background:rgba(6,14,38,0.80);border:2px solid {bar_clr}44;
-                border-radius:16px;padding:20px 24px;margin-top:10px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-            <span style="font-family:'Orbitron',monospace;font-size:13px;
-                         font-weight:700;color:{bar_clr}">{grade[0]}</span>
-            <span style="font-family:'Orbitron',monospace;font-size:20px;
-                         font-weight:800;color:#FFFFFF">{overall}%</span>
-        </div>
-        <div style="background:rgba(255,255,255,0.07);border-radius:8px;height:14px;overflow:hidden">
-            <div style="width:{overall}%;height:100%;border-radius:8px;
-                        background:linear-gradient(90deg,{bar_clr}88,{bar_clr});
-                        box-shadow:0 0 12px {bar_clr}88;transition:width 1s ease"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:10px;
-                    font-size:11px;color:#4A6A90">
-            <span>Coverage {coverage_pct:.0f}% × 35%</span>
-            <span>Depth {depth_pct:.0f}% × 50%</span>
-            <span>Overdue penalty -{penalty:.0f}% × 15%</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        if ms_labels:
+            st.markdown("---")
+            st.markdown('<div class="neon-header">🧠 Memory Strength Indicators</div>', unsafe_allow_html=True)
+            ms_fig = go.Figure(go.Bar(
+                y=ms_labels, x=ms_vals, orientation="h",
+                marker_color=ms_clrs,
+                text=[f"{v:.0f}%" for v in ms_vals],
+                textposition="inside", insidetextanchor="start",
+            ))
+            apply_theme(ms_fig, title="Memory Strength by Topic",
+                        height=max(200, min(len(ms_labels)*20+80, 600)))
+            ms_fig.update_layout(margin=dict(t=50, b=40, l=230, r=20))
+            ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
+            ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
+            st.plotly_chart(ms_fig, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
