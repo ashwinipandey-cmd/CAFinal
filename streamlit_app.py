@@ -458,6 +458,13 @@ p, .stMarkdown p {
     box-shadow: 0 1px 6px rgba(56,189,248,0.15) !important;
 }
 
+/* Hide "Press Enter to submit form" hint */
+.stForm small, .stForm [data-testid="InputInstructions"],
+div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 /* ════════════════════════════════════════
    FORMS (containers)
 ════════════════════════════════════════ */
@@ -1415,12 +1422,20 @@ def add_log(data):
 
 def add_score(data):
     try:
-        data["user_id"] = uid()
-        sb.table("test_scores").insert(data).execute()
+        data["user_id"]  = uid()
+        # Always recompute score_pct to ensure it's correct
+        marks     = int(data.get("marks", 0))
+        max_marks = int(data.get("max_marks", 1))
+        data["score_pct"] = round(marks / max_marks * 100, 2) if max_marks > 0 else 0.0
+        # Only insert columns that exist in test_scores
+        allowed = {"user_id","date","subject","test_name","marks","max_marks",
+                   "score_pct","weak_areas","strong_areas","action_plan"}
+        clean = {k: v for k, v in data.items() if k in allowed}
+        sb.table("test_scores").insert(clean).execute()
         invalidate_cache()
         return True, "Score saved!"
     except Exception as e:
-        return False, f"Error: {e}"
+        return False, f"Error saving score: {e}"
 
 
 def update_rev(subject, topic, field, value):
@@ -2235,9 +2250,12 @@ def dashboard():
     h1, h2 = st.columns([5, 1])
     with h1:
         st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
+        _uname = prof.get("full_name", "")
+        if _uname:
+            st.markdown(f'<div class="brand-title" style="font-size:22px;margin:0 0 4px 2px;letter-spacing:-0.3px">{_uname}</div>', unsafe_allow_html=True)
     with h2:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🔄 Refresh", use_container_width=True, key="dash_refresh"):
+        if st.button("🔄", use_container_width=True, key="dash_refresh", help="Refresh dashboard"):
             st.cache_data.clear()
             st.rerun()
 
@@ -2560,8 +2578,26 @@ def dashboard():
         # Count from log (source of truth)
         topics_read     = log_f["topic"].nunique() if not log_f.empty else 0
         topics_not_read = max(all_topics_count - topics_read, 0)
-        topics_revised  = int((pend_f["revisions_done"] > 0).sum()) if not pend_f.empty else 0
-        read_not_rev    = max(topics_read - topics_revised, 0)
+
+        # Revised donut: of completed topics, how many have been revised at least once
+        # Use rev_df (revision_tracker) as source of truth for completion + revision_count
+        if not rev.empty and "topic_status" in rev.columns:
+            rev_f = rev if donut_filter == "All" else rev[rev["subject"] == donut_filter]
+            completed_topics = rev_f[rev_f["topic_status"] == "completed"]
+            # A topic is "revised" if revision_count > 0 OR last_revision_date is set
+            if "revision_count" in completed_topics.columns:
+                topics_revised   = int((pd.to_numeric(completed_topics["revision_count"], errors="coerce").fillna(0) > 0).sum())
+            elif not pend_f.empty and "revisions_done" in pend_f.columns:
+                topics_revised   = int((pend_f["revisions_done"] > 0).sum())
+            else:
+                topics_revised   = 0
+            completed_count  = len(completed_topics)
+            not_yet_revised  = max(completed_count - topics_revised, 0)
+        else:
+            topics_revised  = int((pend_f["revisions_done"] > 0).sum()) if not pend_f.empty and "revisions_done" in pend_f.columns else 0
+            completed_count = topics_read
+            not_yet_revised = max(completed_count - topics_revised, 0)
+
         ov_count        = len(pend_f[pend_f["days_overdue"] > 0]) if not pend_f.empty else 0
         not_overdue     = max(topics_read - ov_count, 0)
 
@@ -2604,10 +2640,10 @@ def dashboard():
             ), use_container_width=True)
 
         with dc2:
-            pct_rv = f"{int(topics_revised/topics_read*100)}%" if topics_read > 0 else "0%"
+            pct_rv = f"{int(topics_revised/completed_count*100)}%" if completed_count > 0 else "0%"
             st.plotly_chart(make_donut(
-                [topics_revised, read_not_rev], ["Revised", "Read Only"],
-                ["#34D399", "#0F3A2A"], "🔄 Revised", pct_rv
+                [topics_revised, not_yet_revised], ["Revised", "Not Yet Revised"],
+                ["#34D399", "#0F3A2A"], "🔄 Revised (of Completed)", pct_rv
             ), use_container_width=True)
 
         with dc3:
@@ -3152,26 +3188,29 @@ def add_test_score():
     action = st.text_area("📌 Action Plan", placeholder="What will you do differently?", key="score_action")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("✅ SAVE SCORE", use_container_width=True, key="score_save"):
+    if st.button("✅ Save Score", use_container_width=True, key="score_save"):
         errors = []
         if not test_name.strip():
             errors.append("Test Name is required")
-        if marks == 0 and max_marks > 0:
-            errors.append("Marks Obtained cannot be 0 — did you mean to enter something?")
+        if max_marks <= 0:
+            errors.append("Maximum Marks must be greater than 0")
         if errors:
             for e in errors:
                 st.warning(f"⚠️ {e}")
         else:
             ok, msg = add_score({
                 "date": str(t_date), "subject": subj,
-                "test_name": test_name, "marks": marks,
-                "max_marks": max_marks, "score_pct": pct,
-                "weak_areas": weak, "strong_areas": strong,
-                "action_plan": action
+                "test_name": test_name.strip(), "marks": int(marks),
+                "max_marks": int(max_marks), "score_pct": pct,
+                "weak_areas": weak.strip() if weak else "",
+                "strong_areas": strong.strip() if strong else "",
+                "action_plan": action.strip() if action else ""
             })
             if ok:
                 st.success(f"✅ {msg}")
                 st.balloons()
+                st.cache_data.clear()
+                st.rerun()
             else:
                 st.error(msg)
 
@@ -3788,8 +3827,8 @@ else:
     <style>
     /* XP animations */
     @keyframes xp-shimmer {{
-        0%   {{ background-position: -300% center; }}
-        100% {{ background-position: 300% center; }}
+        0%   {{ background-position: 300% center; }}
+        100% {{ background-position: -300% center; }}
     }}
     @keyframes lvl-glow {{
         0%,100% {{
@@ -3873,13 +3912,14 @@ else:
                         border:1px solid rgba({_glow_rgb},0.15)">
                 <div style="width:{_lvl_pct:.1f}%;height:100%;border-radius:8px;
                             background:linear-gradient(90deg,
-                                {_lvl_clr_55} 0%, {_lvl_clr} 35%,
+                                #0EA5E9 0%, #38BDF8 30%,
                                 #FFFFFF 50%,
-                                {_lvl_clr} 65%, {_lvl_clr_55} 100%);
+                                #38BDF8 70%, #7DD3FC 100%);
                             background-size:300% 100%;
                             animation:xp-shimmer 2.2s linear infinite;
-                            box-shadow:0 0 18px rgba({_glow_rgb},1.0),
-                                       0 0 36px rgba({_glow_rgb},0.6)">
+                            box-shadow:0 0 18px rgba(56,189,248,1.0),
+                                       0 0 36px rgba(56,189,248,0.7),
+                                       0 0 60px rgba(14,165,233,0.4)">
                 </div>
             </div>
             <div style="font-size:9px;color:#4A6A90;margin-top:3px">
