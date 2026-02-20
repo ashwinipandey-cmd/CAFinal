@@ -3375,7 +3375,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
             st.cache_data.clear()
             st.rerun()
     with h3:
-        if st.button("🖨️", key="dash_pdf", help="Export Dashboard as PDF"):
+        if st.button("🖨️", key="dash_pdf"):
             try:
                 pdf_bytes = generate_dashboard_pdf(
                     log, tst, rev, rev_sess, pend,
