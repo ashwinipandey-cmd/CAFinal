@@ -2702,7 +2702,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
             )
             fig.update_traces(marker_line_width=0)
             fig.update_yaxes(rangemode="tozero")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         else:
             st.info("No sessions in the last 30 days")
 
@@ -2867,7 +2867,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 box-shadow:0 0 28px {_gc1}88, 0 0 56px {_gc1}33;
                 background:radial-gradient(ellipse at center, {_gc1}10 0%, transparent 70%)">
                 </div>""", unsafe_allow_html=True)
-            st.plotly_chart(_fig1, use_container_width=True)
+            st.plotly_chart(_fig1, width='stretch')
 
         with dc2:
             pct_rv = f"{int(topics_revised/completed_count*100)}%" if completed_count > 0 else "0%"
@@ -2879,7 +2879,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 box-shadow:0 0 28px {_gc2}88, 0 0 56px {_gc2}33;
                 background:radial-gradient(ellipse at center, {_gc2}10 0%, transparent 70%)">
                 </div>""", unsafe_allow_html=True)
-            st.plotly_chart(_fig2, use_container_width=True)
+            st.plotly_chart(_fig2, width='stretch')
 
         with dc3:
             pct_ov = f"{int(ov_count/topics_read*100)}%" if topics_read > 0 else "0%"
@@ -2891,7 +2891,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 box-shadow:0 0 28px {_gc3}88, 0 0 56px {_gc3}33;
                 background:radial-gradient(ellipse at center, {_gc3}10 0%, transparent 70%)">
                 </div>""", unsafe_allow_html=True)
-            st.plotly_chart(_fig3, use_container_width=True)
+            st.plotly_chart(_fig3, width='stretch')
 
         # ── Donut charts continue above; agenda moved to Revision tab ──
 
@@ -3360,7 +3360,7 @@ def add_test_score(tst):
             apply_theme(fig3, title="Score Trends")
             fig3.update_layout(transition=dict(duration=0))
             fig3.update_yaxes(range=[0, 105])
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig3, width='stretch')
 
         with c4:
             st.markdown('<div class="neon-header">📊 Avg Score by Subject</div>', unsafe_allow_html=True)
@@ -3378,7 +3378,7 @@ def add_test_score(tst):
             apply_theme(fig4, title="Avg Score by Subject")
             fig4.update_layout(transition=dict(duration=0))
             fig4.update_yaxes(range=[0, 110])
-            st.plotly_chart(fig4, use_container_width=True)
+            st.plotly_chart(fig4, width='stretch')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3925,7 +3925,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                               transition=dict(duration=0))
         _ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
         _ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
-        st.plotly_chart(_ms_fig, use_container_width=True)
+        st.plotly_chart(_ms_fig, width='stretch')
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MY DATA
@@ -4059,7 +4059,7 @@ def leaderboard():
     fig.update_traces(texttemplate="%{text:.0f}h", textposition="outside", marker_line_width=0)
     fig.update_layout(showlegend=False, coloraxis_showscale=False)
     apply_theme(fig, title="Top 10 — Study Hours")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
