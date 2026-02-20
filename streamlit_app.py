@@ -539,84 +539,131 @@ div[data-testid="stMetricDelta"] {
 
 
 /* ═══════════════════════════════════════════════════════════
-   FORM INPUTS — precision fields
+   FORM INPUTS — full theme, always visible text
 ═══════════════════════════════════════════════════════════ */
 .stTextInput input,
 .stNumberInput input,
 .stTextArea textarea,
 .stDateInput input {
-    background: var(--bg-input) !important;
-    border: 1.5px solid var(--border) !important;
+    background: rgba(4,16,48,0.92) !important;
+    border: 1.5px solid rgba(56,189,248,0.35) !important;
     border-radius: 9px !important;
-    color: var(--text-primary) !important;
+    color: #E8F4FF !important;
     font-family: var(--font-body) !important;
     font-size: 14px !important;
     padding: 10px 14px !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06) !important;
+    caret-color: #38BDF8 !important;
 }
 .stTextInput input::placeholder,
 .stTextArea textarea::placeholder {
-    color: var(--text-dim) !important;
+    color: rgba(123,167,204,0.55) !important;
     opacity: 1 !important;
 }
 .stTextInput input:focus,
 .stTextArea textarea:focus,
-.stNumberInput input:focus {
-    border-color: var(--cyan) !important;
-    background: rgba(6,18,48,0.90) !important;
+.stNumberInput input:focus,
+.stDateInput input:focus {
+    border-color: #38BDF8 !important;
+    background: rgba(6,22,60,0.96) !important;
+    color: #FFFFFF !important;
     box-shadow:
-        0 0 0 3px rgba(56,189,248,0.14),
-        0 0 20px rgba(56,189,248,0.12),
-        inset 0 1px 0 rgba(255,255,255,0.07) !important;
+        0 0 0 3px rgba(56,189,248,0.18),
+        0 0 18px rgba(56,189,248,0.14),
+        inset 0 1px 0 rgba(255,255,255,0.08) !important;
     outline: none !important;
+}
+/* Ensure typed text is always white */
+.stTextInput input, .stNumberInput input,
+.stTextArea textarea, .stDateInput input {
+    -webkit-text-fill-color: #E8F4FF !important;
+}
+.stTextInput input:focus, .stNumberInput input:focus,
+.stTextArea textarea:focus, .stDateInput input:focus {
+    -webkit-text-fill-color: #FFFFFF !important;
 }
 .stTextInput label, .stSelectbox label, .stNumberInput label,
 .stTextArea label, .stDateInput label, .stSlider label,
-.stSelectSlider label, .stRadio label, .stCheckbox label {
+.stSelectSlider label, .stRadio label, .stCheckbox label,
+.stMultiSelect label {
     font-family: var(--font-ui) !important;
     font-size: 11px !important;
     letter-spacing: 0.4px !important;
-    color: var(--text-muted) !important;
-    font-weight: 600 !important;
+    color: #7DD3FC !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
 }
 
-/* Selectbox */
-.stSelectbox > div > div {
-    background: var(--bg-input) !important;
-    border: 1.5px solid var(--border) !important;
+/* Selectbox & Multiselect — always themed, never gray */
+.stSelectbox > div > div,
+.stMultiSelect > div > div {
+    background: rgba(4,16,48,0.92) !important;
+    border: 1.5px solid rgba(56,189,248,0.35) !important;
     border-radius: 9px !important;
-    color: var(--text-primary) !important;
+    color: #E8F4FF !important;
     font-family: var(--font-body) !important;
     font-size: 14px !important;
     backdrop-filter: blur(16px) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05) !important;
 }
-.stSelectbox > div > div > div { color: var(--text-primary) !important; }
-.stSelectbox > div > div:hover {
-    border-color: var(--border-mid) !important;
-    box-shadow: 0 0 14px rgba(56,189,248,0.14) !important;
+/* Selected value text */
+.stSelectbox > div > div > div,
+.stSelectbox [data-baseweb="select"] span,
+[data-baseweb="select"] > div > div { color: #E8F4FF !important; }
+
+.stSelectbox > div > div:hover,
+.stMultiSelect > div > div:hover {
+    border-color: rgba(56,189,248,0.65) !important;
+    box-shadow: 0 0 14px rgba(56,189,248,0.18) !important;
 }
-[data-baseweb="select"] [role="listbox"] {
-    background: rgba(3,10,28,0.98) !important;
-    border: 1.5px solid var(--border-mid) !important;
+/* Dropdown panel */
+[data-baseweb="select"] [role="listbox"],
+[data-baseweb="popover"] ul {
+    background: rgba(2,10,32,0.99) !important;
+    border: 1.5px solid rgba(56,189,248,0.38) !important;
     border-radius: 10px !important;
     backdrop-filter: blur(40px) !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.9), var(--glow-sm), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.90), 0 0 20px rgba(56,189,248,0.10) !important;
 }
-[data-baseweb="select"] [role="option"]:hover {
-    background: rgba(56,189,248,0.12) !important;
+/* Option items */
+[data-baseweb="select"] [role="option"],
+[data-baseweb="menu"] li {
+    color: #B8D4F0 !important;
+    font-size: 13px !important;
+    background: transparent !important;
 }
-
+[data-baseweb="select"] [role="option"]:hover,
+[data-baseweb="menu"] li:hover {
+    background: rgba(56,189,248,0.15) !important;
+    color: #FFFFFF !important;
+}
+[data-baseweb="select"] [aria-selected="true"] {
+    background: rgba(56,189,248,0.22) !important;
+    color: #7DD3FC !important;
+}
 /* Multiselect tags */
 .stMultiSelect [data-baseweb="tag"] {
-    background: rgba(56,189,248,0.18) !important;
-    border: 1px solid rgba(56,189,248,0.38) !important;
+    background: rgba(56,189,248,0.22) !important;
+    border: 1px solid rgba(56,189,248,0.50) !important;
     border-radius: 6px !important;
-    color: var(--cyan-bright) !important;
+    color: #7DD3FC !important;
     font-family: var(--font-body) !important;
     font-size: 12px !important;
 }
+.stMultiSelect [data-baseweb="tag"] span { color: #7DD3FC !important; }
+/* Date picker popup */
+[data-baseweb="calendar"] {
+    background: rgba(2,10,32,0.99) !important;
+    border: 1.5px solid rgba(56,189,248,0.30) !important;
+    border-radius: 12px !important;
+}
+[data-baseweb="calendar"] button { color: #E8F4FF !important; }
+[data-baseweb="calendar"] [aria-selected="true"] {
+    background: #38BDF8 !important; color: #020B18 !important;
+}
+/* Radio & Checkbox text */
+.stRadio [data-testid="stWidgetLabel"] p,
+.stRadio label span { color: #E8F4FF !important; }
+.stCheckbox label span { color: #B8D4F0 !important; }
 
 /* ═══════════════════════════════════════════════════════════
    BUTTONS — layered glass + neon
@@ -2462,12 +2509,11 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
 
     st.divider()
 
-    # ── Profile tabs ────────────────────────────────────────────────────────
-    ptab1, ptab2, ptab3, ptab4 = st.tabs([
-        "⚙️  General Settings",
+    # ── Profile tabs — 3 clean tabs (Sign Out is now global strip button) ─────
+    ptab1, ptab2, ptab3 = st.tabs([
+        "⚙️  Settings",
         "🏅  Achievements",
         "🥇  Leaderboard",
-        "🚪  Sign Out",
     ])
 
     # ════════════════════════════════
@@ -2659,6 +2705,124 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 if ok: st.success(f"✅ {msg}"); st.rerun()
                 else:  st.error(msg)
 
+        # ── EXPORT DATA AS CSV ───────────────────────────────────────────────
+        st.markdown("---")
+        st.markdown('<div class="neon-header">📤 Export My Data</div>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:12px;color:#7BA7CC;margin-bottom:14px">Download all your study data as CSV files. Your data belongs to you — always exportable.</p>', unsafe_allow_html=True)
+        _ecol1, _ecol2, _ecol3 = st.columns(3)
+        with _ecol1:
+            if not log_df.empty:
+                _csv_log = log_df.copy()
+                if "date" in _csv_log.columns:
+                    _csv_log["date"] = _csv_log["date"].dt.strftime("%Y-%m-%d")
+                st.download_button(
+                    label="📚 Study Log CSV",
+                    data=_csv_log.to_csv(index=False).encode("utf-8"),
+                    file_name=f"CA_StudyLog_{date.today().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="export_log_csv",
+                )
+            else:
+                st.info("No study log data yet.")
+        with _ecol2:
+            if not test_df.empty:
+                _csv_tst = test_df.copy()
+                if "date" in _csv_tst.columns:
+                    _csv_tst["date"] = _csv_tst["date"].dt.strftime("%Y-%m-%d")
+                st.download_button(
+                    label="🏆 Test Scores CSV",
+                    data=_csv_tst.to_csv(index=False).encode("utf-8"),
+                    file_name=f"CA_TestScores_{date.today().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="export_scores_csv",
+                )
+            else:
+                st.info("No test score data yet.")
+        with _ecol3:
+            if not rev_df.empty:
+                st.download_button(
+                    label="🔄 Revision Data CSV",
+                    data=rev_df.to_csv(index=False).encode("utf-8"),
+                    file_name=f"CA_Revision_{date.today().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="export_rev_csv",
+                )
+            else:
+                st.info("No revision data yet.")
+
+        # ── DANGER ZONE — Reset Account Data ─────────────────────────────────
+        st.markdown("---")
+        st.markdown("""
+        <div style="background:rgba(248,113,113,0.06);border:2px solid rgba(248,113,113,0.28);
+                    border-radius:14px;padding:18px 20px;margin-bottom:4px">
+            <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;
+                        color:#F87171;letter-spacing:2px;margin-bottom:8px">⚠️ DANGER ZONE</div>
+            <div style="font-size:13px;color:#FCA5A5;line-height:1.6;margin-bottom:4px">
+                <b>Reset Account Data</b> permanently deletes all study logs, test scores, and revision sessions.
+                Your profile, login credentials, and settings are <b>NOT</b> affected.
+                This action <b>cannot be undone.</b>
+            </div>
+        </div>""", unsafe_allow_html=True)
+
+        if "confirm_reset_open" not in st.session_state:
+            st.session_state.confirm_reset_open = False
+
+        if not st.session_state.confirm_reset_open:
+            if st.button("🗑️ Reset Account Data", key="reset_open_btn",
+                         help="Permanently delete all study, test & revision data"):
+                st.session_state.confirm_reset_open = True
+                st.rerun()
+        else:
+            st.markdown("""
+            <div style="background:rgba(248,113,113,0.10);border:1.5px solid rgba(248,113,113,0.45);
+                        border-radius:12px;padding:16px 18px;margin:10px 0">
+                <div style="font-size:13px;font-weight:700;color:#F87171;margin-bottom:6px">
+                    ⚠️ Confirm Permanent Deletion
+                </div>
+                <div style="font-size:12px;color:#FCA5A5;line-height:1.5">
+                    Type <b style="color:#FFFFFF;background:rgba(248,113,113,0.2);padding:1px 6px;border-radius:4px">DELETE</b>
+                    below to confirm. All study logs, test scores, and revision sessions will be permanently removed.
+                </div>
+            </div>""", unsafe_allow_html=True)
+            _confirm_text = st.text_input("Type DELETE to confirm reset", key="reset_confirm_input",
+                                          placeholder="DELETE")
+            _rca, _rcb = st.columns(2)
+            with _rca:
+                if st.button("❌ Cancel", key="reset_cancel_btn", use_container_width=True):
+                    st.session_state.confirm_reset_open = False
+                    st.rerun()
+            with _rcb:
+                _reset_armed = _confirm_text.strip().upper() == "DELETE"
+                if st.button("🗑️ CONFIRM — DELETE ALL DATA", key="reset_confirm_btn",
+                             use_container_width=True, disabled=not _reset_armed):
+                    _uid = uid()
+                    _reset_ok = True
+                    for _tbl in ["daily_log", "test_scores", "revision_sessions"]:
+                        try:
+                            sb.table(_tbl).delete().eq("user_id", _uid).execute()
+                        except Exception as _re:
+                            st.error(f"Failed to clear {_tbl}: {_re}")
+                            _reset_ok = False
+                    # Reset revision_tracker topic statuses back to not_started (don't delete rows — needed as reference)
+                    try:
+                        sb.table("revision_tracker").update({
+                            "topic_status": "not_started",
+                            "total_first_reading_time": 0,
+                            "completion_date": None,
+                            "revision_count": 0,
+                            "last_revision_date": None,
+                        }).eq("user_id", _uid).execute()
+                    except Exception as _re2:
+                        pass  # Non-fatal — tracker columns may vary
+                    if _reset_ok:
+                        st.session_state.confirm_reset_open = False
+                        st.cache_data.clear()
+                        st.success("✅ All study data deleted successfully. You're starting fresh!")
+                        st.rerun()
+
     # ════════════════════════════════
     # TAB 2 — Achievements
     # ════════════════════════════════
@@ -2716,7 +2880,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         a4.metric("✍️ Tests Attempted",  f"{ach_vals['total_tests']}")
 
     # ════════════════════════════════
-    # TAB 3 — Leaderboard (coming soon)
+    # TAB 3 — Leaderboard
     # ════════════════════════════════
     with ptab3:
         st.markdown("""
@@ -2741,28 +2905,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
             </div>
         </div>""", unsafe_allow_html=True)
 
-    # ════════════════════════════════
-    # TAB 4 — Sign Out
-    # ════════════════════════════════
-    with ptab4:
-        st.markdown("<br>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([1,1,1])
-        with col2:
-            st.markdown(f"""
-            <div style="background:rgba(8,18,50,0.88);border:2px solid rgba(248,113,113,0.30);
-                        border-radius:20px;padding:40px 30px;text-align:center">
-                <div style="font-size:48px;margin-bottom:16px">🚪</div>
-                <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;
-                            color:#FFFFFF;margin-bottom:8px">Sign Out</div>
-                <div style="font-size:13px;color:#7BA7CC;margin-bottom:24px">
-                    You are signed in as <b style="color:#38BDF8">{name}</b>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🚪 SIGN OUT", use_container_width=True, key="prof_logout"):
-                do_logout()
-                st.rerun()
+
 
 
 def auth_page():
@@ -3634,14 +3777,10 @@ def dashboard(log, tst, rev, rev_sess, pend):
     total_rev_hrs = float(rev_sess["hours"].sum()) if not rev_sess.empty and "hours" in rev_sess.columns else 0.0
     rev_sh    = rev_sess.groupby("subject")["hours"].sum() if not rev_sess.empty and "subject" in rev_sess.columns else pd.Series(dtype=float)
 
-    # ── Header row with refresh + PDF export ──
-    h1, h2, h3 = st.columns([5, 0.6, 0.6])
+    # ── Dashboard header — PDF export (Refresh/Logout now in global strip above tabs) ──
+    h1, h3 = st.columns([6.3, 0.6])
     with h1:
         st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
-    with h2:
-        if st.button("🔄", key="dash_refresh"):
-            st.cache_data.clear()
-            st.rerun()
     with h3:
         if st.button("🖨️", key="dash_pdf", help="Export Dashboard as PDF"):
             try:
@@ -3820,41 +3959,6 @@ def dashboard(log, tst, rev, rev_sess, pend):
 
     st.markdown("---")
 
-    # Charts row 1 — Daily Hours full width (Hours vs Target removed per user request)
-    if not log.empty:
-        start = date.today() - timedelta(days=29)
-        d30   = log[log["date"].dt.date >= start]
-        if not d30.empty:
-            grp = d30.groupby([d30["date"].dt.date, "subject"])["hours"].sum().reset_index()
-            grp.columns = ["Date", "Subject", "Hours"]
-            fig = go.Figure()
-            for s in SUBJECTS:
-                sub = grp[grp["Subject"] == s].sort_values("Date")
-                if sub.empty:
-                    continue
-                fig.add_trace(go.Bar(
-                    x=sub["Date"], y=sub["Hours"],
-                    name=SUBJ_FULL[s],
-                    marker=dict(color=COLORS[s], opacity=0.85, line=dict(width=0)),
-                    hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>%{{x}}<br>%{{y:.1f}}h<extra></extra>"
-                ))
-            fig.add_hline(y=6, line_dash="dash", line_color="#FBBF24", line_width=1.5,
-                          annotation_text="6h daily target", annotation_font_color="#FBBF24",
-                          annotation_font_size=10)
-            fig.update_layout(
-                barmode="stack", bargap=0.25,
-            )
-            apply_theme(fig, title="Daily Hours — Last 30 Days")
-            fig.update_layout(
-                hovermode="x unified",
-                transition=dict(duration=0),
-            )
-            fig.update_traces(marker_line_width=0)
-            fig.update_yaxes(rangemode="tozero")
-            st.plotly_chart(fig, width='stretch')
-        else:
-            st.info("No sessions in the last 30 days")
-
     # ── Revision Pendency Dashboard ──
     # Gate on log, not rev — pendency is computed purely from study log
     if not log.empty:
@@ -3927,122 +4031,6 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 sc2.metric("🟡 Due Today",      f"{today_count}",  "do today")
                 sc3.metric("🟢 Upcoming",       f"{total_up}",     "scheduled")
                 sc4.metric("📋 Topics in Log",  f"{total_topics_studied}", "tracked")
-
-        # ── Donut Charts ── (computed from pend, not rev DB columns)
-        st.markdown("---")
-        st.markdown('<div class="neon-header neon-header-glow">🍩 Study Coverage Overview</div>', unsafe_allow_html=True)
-
-        donut_filter_opts = ["All"] + SUBJECTS
-        d_col_f, _ = st.columns([1, 3])
-        with d_col_f:
-            donut_filter = st.selectbox("Filter by Subject", donut_filter_opts,
-                                        key="dash_donut_filter",
-                                        format_func=lambda x: x if x == "All" else f"{x} — {SUBJ_FULL[x]}")
-
-        all_topics_count = (sum(len(v) for v in TOPICS.values())
-                            if donut_filter == "All" else len(TOPICS.get(donut_filter, [])))
-        log_f  = log if donut_filter == "All" else log[log["subject"] == donut_filter]
-        pend_f = pend if (donut_filter == "All" or pend.empty) else pend[pend["subject"] == donut_filter]
-
-        # Count from log (source of truth)
-        topics_read     = log_f["topic"].nunique() if not log_f.empty else 0
-        topics_not_read = max(all_topics_count - topics_read, 0)
-
-        # Revised donut: of completed topics, how many have been revised at least once
-        # Use rev_df (revision_tracker) as source of truth for completion + revision_count
-        if not rev.empty and "topic_status" in rev.columns:
-            rev_f = rev if donut_filter == "All" else rev[rev["subject"] == donut_filter]
-            completed_topics = rev_f[rev_f["topic_status"] == "completed"]
-            # A topic is "revised" if revision_count > 0 OR last_revision_date is set
-            if "revision_count" in completed_topics.columns:
-                topics_revised   = int((pd.to_numeric(completed_topics["revision_count"], errors="coerce").fillna(0) > 0).sum())
-            elif not pend_f.empty and "revisions_done" in pend_f.columns:
-                topics_revised   = int((pend_f["revisions_done"] > 0).sum())
-            else:
-                topics_revised   = 0
-            completed_count  = len(completed_topics)
-            not_yet_revised  = max(completed_count - topics_revised, 0)
-        else:
-            topics_revised  = int((pend_f["revisions_done"] > 0).sum()) if not pend_f.empty and "revisions_done" in pend_f.columns else 0
-            completed_count = topics_read
-            not_yet_revised = max(completed_count - topics_revised, 0)
-
-        ov_count        = len(pend_f[pend_f["days_overdue"] > 0]) if not pend_f.empty else 0
-        not_overdue     = max(topics_read - ov_count, 0)
-
-        dc1, dc2, dc3 = st.columns(3)
-
-        def make_donut(vals, labels, colors, title, center_text):
-            # Guard: ensure no zero-sum
-            if sum(vals) == 0:
-                vals, labels, colors = [1], ["No Data"], ["#2D3748"]
-            # Primary colour drives glow
-            glow_clr = colors[0] if colors else "#38BDF8"
-            fig_d = go.Figure(go.Pie(
-                values=vals, labels=labels,
-                marker=dict(colors=colors, line=dict(color="rgba(0,0,0,0)", width=0)),
-                hole=0.62,
-                textinfo="percent",
-                textfont=dict(size=10, color="#FFFFFF"),
-                hovertemplate="%{label}: %{value}<extra></extra>"
-            ))
-            fig_d.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor ="rgba(0,0,0,0)",
-                height=220,
-                margin=dict(t=44, b=18, l=8, r=8),
-                title=dict(
-                    text=f"<b>{title}</b>",
-                    font=dict(family="DM Mono, monospace", size=11, color="#FFFFFF"),
-                    x=0.5, xanchor="center", y=0.98, yanchor="top"
-                ),
-                showlegend=True,
-                legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.12,
-                            font=dict(size=9, color="#C8E5F8"), bgcolor="rgba(0,0,0,0)"),
-                annotations=[dict(text=f"<b>{center_text}</b>", x=0.5, y=0.5,
-                                  font=dict(size=15, color="#FFFFFF",
-                                            family="DM Mono, monospace"),
-                                  showarrow=False)]
-            )
-            return fig_d, glow_clr
-
-        with dc1:
-            pct_r = f"{int(topics_read/all_topics_count*100)}%" if all_topics_count > 0 else "0%"
-            _fig1, _gc1 = make_donut(
-                [topics_read, topics_not_read], ["Read", "Not Read"],
-                ["#38BDF8", "#1E3A5F"], "📖 Topics Read", pct_r
-            )
-            st.markdown(f"""<div style="border-radius:50%;padding:4px;
-                box-shadow:0 0 28px {_gc1}88, 0 0 56px {_gc1}33;
-                background:radial-gradient(ellipse at center, {_gc1}10 0%, transparent 70%)">
-                </div>""", unsafe_allow_html=True)
-            st.plotly_chart(_fig1, width='stretch')
-
-        with dc2:
-            pct_rv = f"{int(topics_revised/completed_count*100)}%" if completed_count > 0 else "0%"
-            _fig2, _gc2 = make_donut(
-                [topics_revised, not_yet_revised], ["Revised", "Not Yet Revised"],
-                ["#34D399", "#0F3A2A"], "🔄 Revised (of Completed)", pct_rv
-            )
-            st.markdown(f"""<div style="border-radius:50%;padding:4px;
-                box-shadow:0 0 28px {_gc2}88, 0 0 56px {_gc2}33;
-                background:radial-gradient(ellipse at center, {_gc2}10 0%, transparent 70%)">
-                </div>""", unsafe_allow_html=True)
-            st.plotly_chart(_fig2, width='stretch')
-
-        with dc3:
-            pct_ov = f"{int(ov_count/topics_read*100)}%" if topics_read > 0 else "0%"
-            _fig3, _gc3 = make_donut(
-                [ov_count, not_overdue], ["Overdue", "On Track"],
-                ["#F87171", "#1A3A1A"], "⚠️ Overdue", pct_ov
-            )
-            st.markdown(f"""<div style="border-radius:50%;padding:4px;
-                box-shadow:0 0 28px {_gc3}88, 0 0 56px {_gc3}33;
-                background:radial-gradient(ellipse at center, {_gc3}10 0%, transparent 70%)">
-                </div>""", unsafe_allow_html=True)
-            st.plotly_chart(_fig3, width='stretch')
-
-        # ── Donut charts continue above; agenda moved to Revision tab ──
 
     # ══════════════════════════════════════════════════════════════════════
     # CA-GRADE ANALYTICS ENGINE — Full Intelligence Dashboard
@@ -4691,6 +4679,37 @@ def log_study(existing_log, rev_df, rev_sess):
         dark_table(r[show_cols],
                    caption=f"{len(existing_log)} total sessions · {_reading_hrs_cap:.1f}h first reading")
 
+    # ── Daily Hours — Last 30 Days (moved from Dashboard) ────────────────────
+    if not existing_log.empty:
+        st.markdown("---")
+        st.markdown('<div class="neon-header neon-header-glow">📈 Daily Hours — Last 30 Days</div>', unsafe_allow_html=True)
+        _start30 = date.today() - timedelta(days=29)
+        _d30 = existing_log[existing_log["date"].dt.date >= _start30]
+        if not _d30.empty:
+            _grp30 = _d30.groupby([_d30["date"].dt.date, "subject"])["hours"].sum().reset_index()
+            _grp30.columns = ["Date", "Subject", "Hours"]
+            _fig30 = go.Figure()
+            for s in SUBJECTS:
+                _sub30 = _grp30[_grp30["Subject"] == s].sort_values("Date")
+                if _sub30.empty:
+                    continue
+                _fig30.add_trace(go.Bar(
+                    x=_sub30["Date"], y=_sub30["Hours"],
+                    name=SUBJ_FULL[s],
+                    marker=dict(color=COLORS[s], opacity=0.85, line=dict(width=0)),
+                    hovertemplate=f"<b>{SUBJ_FULL[s]}</b><br>%{{x}}<br>%{{y:.1f}}h<extra></extra>"
+                ))
+            _fig30.add_hline(y=6, line_dash="dash", line_color="#FBBF24", line_width=1.5,
+                             annotation_text="6h daily target", annotation_font_color="#FBBF24",
+                             annotation_font_size=10)
+            _fig30.update_layout(barmode="stack", bargap=0.25, hovermode="x unified", transition=dict(duration=0))
+            apply_theme(_fig30, title="Daily Hours — Last 30 Days")
+            _fig30.update_traces(marker_line_width=0)
+            _fig30.update_yaxes(rangemode="tozero")
+            st.plotly_chart(_fig30, width='stretch')
+        else:
+            st.info("📊 No sessions logged in the last 30 days.")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ADD SCORE
@@ -4977,15 +4996,92 @@ def revision(log_df, rev_df, rev_sess_df, pend):
 
     today = date.today()
 
-    # ── Summary tabs: Status Table + Pendency ──────────────────────────────────
-    tab1, tab2, tab3 = st.tabs([
-        "📋 Topic Status", "⏰ Pending Revisions", "📖 Session History"
-    ])
+    # ── 🍩 Study Coverage Donuts (moved from Dashboard) ─────────────────────
+    st.markdown("---")
+    st.markdown('<div class="neon-header neon-header-glow">🍩 Study Coverage Overview</div>', unsafe_allow_html=True)
 
-    # ════════════════════════════════════════════════════════
-    # TAB 1 — Topic Status + Summary cards
-    # ════════════════════════════════════════════════════════
-    with tab1:
+    def _make_donut(vals, labels, colors, title, center_text):
+        if sum(vals) == 0:
+            vals, labels, colors = [1], ["No Data"], ["#2D3748"]
+        glow_clr = colors[0] if colors else "#38BDF8"
+        fig_d = go.Figure(go.Pie(
+            values=vals, labels=labels,
+            marker=dict(colors=colors, line=dict(color="rgba(0,0,0,0)", width=0)),
+            hole=0.62, textinfo="percent",
+            textfont=dict(size=10, color="#FFFFFF"),
+            hovertemplate="%{label}: %{value}<extra></extra>"
+        ))
+        fig_d.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            height=220, margin=dict(t=44, b=18, l=8, r=8),
+            title=dict(text=f"<b>{title}</b>",
+                       font=dict(family="DM Mono, monospace", size=11, color="#FFFFFF"),
+                       x=0.5, xanchor="center", y=0.98, yanchor="top"),
+            showlegend=True,
+            legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.12,
+                        font=dict(size=9, color="#C8E5F8"), bgcolor="rgba(0,0,0,0)"),
+            annotations=[dict(text=f"<b>{center_text}</b>", x=0.5, y=0.5,
+                              font=dict(size=15, color="#FFFFFF", family="DM Mono, monospace"),
+                              showarrow=False)]
+        )
+        return fig_d, glow_clr
+
+    _dn_filter_opts = ["All"] + SUBJECTS
+    _dn_col_f, _ = st.columns([1, 3])
+    with _dn_col_f:
+        _dn_filter = st.selectbox("Filter by Subject", _dn_filter_opts,
+                                   key="rev_donut_filter",
+                                   format_func=lambda x: x if x == "All" else f"{x} — {SUBJ_FULL[x]}")
+
+    _dn_all_topics = (sum(len(v) for v in TOPICS.values())
+                      if _dn_filter == "All" else len(TOPICS.get(_dn_filter, [])))
+    _dn_log  = log_df if _dn_filter == "All" else log_df[log_df["subject"] == _dn_filter] if not log_df.empty else log_df
+    _dn_pend = pend  if (_dn_filter == "All" or pend.empty) else pend[pend["subject"] == _dn_filter]
+
+    _dn_read     = _dn_log["topic"].nunique() if not _dn_log.empty else 0
+    _dn_not_read = max(_dn_all_topics - _dn_read, 0)
+
+    if not rev_df.empty and "topic_status" in rev_df.columns:
+        _dn_revf      = rev_df if _dn_filter == "All" else rev_df[rev_df["subject"] == _dn_filter]
+        _dn_completed = _dn_revf[_dn_revf["topic_status"] == "completed"]
+        if "revision_count" in _dn_completed.columns:
+            _dn_revised = int((pd.to_numeric(_dn_completed["revision_count"], errors="coerce").fillna(0) > 0).sum())
+        elif not _dn_pend.empty and "revisions_done" in _dn_pend.columns:
+            _dn_revised = int((_dn_pend["revisions_done"] > 0).sum())
+        else:
+            _dn_revised = 0
+        _dn_comp_count  = len(_dn_completed)
+        _dn_not_revised = max(_dn_comp_count - _dn_revised, 0)
+    else:
+        _dn_revised     = int((_dn_pend["revisions_done"] > 0).sum()) if not _dn_pend.empty and "revisions_done" in _dn_pend.columns else 0
+        _dn_comp_count  = _dn_read
+        _dn_not_revised = max(_dn_comp_count - _dn_revised, 0)
+
+    _dn_ov       = len(_dn_pend[_dn_pend["days_overdue"] > 0]) if not _dn_pend.empty else 0
+    _dn_ontrack  = max(_dn_read - _dn_ov, 0)
+
+    _dc1, _dc2, _dc3 = st.columns(3)
+    with _dc1:
+        _pct_r = f"{int(_dn_read/_dn_all_topics*100)}%" if _dn_all_topics > 0 else "0%"
+        _f1, _gc1 = _make_donut([_dn_read, _dn_not_read], ["Read","Not Read"],
+                                 ["#38BDF8","#1E3A5F"], "📖 Topics Read", _pct_r)
+        st.plotly_chart(_f1, width='stretch')
+    with _dc2:
+        _pct_rv = f"{int(_dn_revised/_dn_comp_count*100)}%" if _dn_comp_count > 0 else "0%"
+        _f2, _gc2 = _make_donut([_dn_revised, _dn_not_revised], ["Revised","Not Yet Revised"],
+                                  ["#34D399","#0F3A2A"], "🔄 Revised (of Completed)", _pct_rv)
+        st.plotly_chart(_f2, width='stretch')
+    with _dc3:
+        _pct_ov = f"{int(_dn_ov/_dn_read*100)}%" if _dn_read > 0 else "0%"
+        _f3, _gc3 = _make_donut([_dn_ov, _dn_ontrack], ["Overdue","On Track"],
+                                  ["#F87171","#1A3A1A"], "⚠️ Overdue", _pct_ov)
+        st.plotly_chart(_f3, width='stretch')
+
+    st.markdown("---")
+
+    # ── Topic Status inline (no sub-tabs) ────────────────────────────────────
+    if True:  # always show (was tab1)
+
         st.markdown('<div class="neon-header">📋 Topic Status Overview</div>', unsafe_allow_html=True)
 
         for ds in display_subjects:
@@ -5140,10 +5236,10 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                     else:
                         st.caption("Not started yet.")
 
-    # ════════════════════════════════════════════════════════
-    # TAB 2 — Pending Revisions by class
-    # ════════════════════════════════════════════════════════
-    with tab2:
+    # ── Pending Revisions (inline, no sub-tab) ───────────────────────────────
+    st.markdown("---")
+    st.markdown('<div class="neon-header neon-header-glow">⏰ Pending Revisions</div>', unsafe_allow_html=True)
+    if True:  # was tab2
         pend_all = pend
         pend_show = pend_all if (pend_all.empty or subj == "ALL") else pend_all[pend_all["subject"] == subj]
 
@@ -5214,10 +5310,9 @@ def revision(log_df, rev_df, rev_sess_df, pend):
         else:
             st.success("✅ No pending revisions yet — mark topics as Completed in Study Log to start scheduling.")
 
-    # ════════════════════════════════════════════════════════
-    # TAB 3 — Session History per topic
-    # ════════════════════════════════════════════════════════
-    with tab3:
+    # ── Session History per Topic (inline, no sub-tab) ─────────────────────
+    st.markdown("---")
+    if True:  # was tab3
         st.markdown('<div class="neon-header">📖 Topic Session History</div>', unsafe_allow_html=True)
         h_subj_opts = SUBJECTS if subj == "ALL" else [subj]
         hc1, hc2 = st.columns(2)
@@ -5344,36 +5439,78 @@ def revision(log_df, rev_df, rev_sess_df, pend):
     if _ms_labels:
         st.markdown("---")
         st.markdown('<div class="neon-header neon-header-glow">🧠 Memory Strength by Topic</div>', unsafe_allow_html=True)
-        _ms_fig = go.Figure(go.Bar(
-            y=_ms_labels, x=_ms_vals, orientation="h",
-            marker_color=_ms_clrs,
-            text=[f"{v:.0f}%" for v in _ms_vals],
-            textposition="inside", insidetextanchor="start",
-        ))
-        apply_theme(_ms_fig, title="Memory Strength by Topic",
-                    height=max(200, min(len(_ms_labels)*20+80, 600)))
-        _ms_fig.update_layout(margin=dict(t=50, b=40, l=230, r=20),
-                              transition=dict(duration=0))
-        _ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
-        _ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
-        st.plotly_chart(_ms_fig, width='stretch')
+
+        # ── Filter controls ──────────────────────────────────────────────────
+        _ms_fc1, _ms_fc2, _ms_fc3 = st.columns([1.2, 1.2, 2])
+        with _ms_fc1:
+            _ms_subj_filter = st.selectbox(
+                "Filter by Subject",
+                ["All"] + SUBJECTS,
+                key="ms_subj_filter",
+                format_func=lambda x: x if x == "All" else f"{x} — {SUBJ_FULL[x]}"
+            )
+        with _ms_fc2:
+            _ms_sort = st.selectbox(
+                "Sort by",
+                ["Weakest First", "Strongest First", "Alphabetical"],
+                key="ms_sort_order"
+            )
+        with _ms_fc3:
+            _ms_n = st.slider(
+                "Topics to show", min_value=5, max_value=min(len(_ms_labels), 50),
+                value=min(8, len(_ms_labels)), step=1, key="ms_n_bars"
+            )
+
+        # ── Build filtered + sorted list ─────────────────────────────────────
+        _ms_data = list(zip(_ms_labels, _ms_vals, _ms_clrs))
+        if _ms_subj_filter != "All":
+            _ms_data = [(l, v, c) for l, v, c in _ms_data if l.startswith(_ms_subj_filter)]
+        if _ms_sort == "Weakest First":
+            _ms_data.sort(key=lambda x: x[1])
+        elif _ms_sort == "Strongest First":
+            _ms_data.sort(key=lambda x: x[1], reverse=True)
+        else:
+            _ms_data.sort(key=lambda x: x[0])
+        _ms_data = _ms_data[:_ms_n]
+
+        if _ms_data:
+            _ms_lf, _ms_vf, _ms_cf = zip(*_ms_data)
+            _ms_fig = go.Figure(go.Bar(
+                y=list(_ms_lf), x=list(_ms_vf), orientation="h",
+                marker_color=list(_ms_cf),
+                text=[f"{v:.0f}%" for v in _ms_vf],
+                textposition="inside", insidetextanchor="start",
+            ))
+            apply_theme(_ms_fig, title=f"Memory Strength — Top {len(_ms_data)} Topics",
+                        height=max(200, min(len(_ms_data)*28+80, 680)))
+            _ms_fig.update_layout(margin=dict(t=50, b=40, l=230, r=20),
+                                  transition=dict(duration=0))
+            _ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
+            _ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
+            st.plotly_chart(_ms_fig, width='stretch')
+            st.caption(f"Showing {len(_ms_data)} of {len(_ms_labels)} completed topics · Use filters above to explore")
+        else:
+            st.info("No topics match the selected filter.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MY DATA
 # ══════════════════════════════════════════════════════════════════════════════
 def my_data(log, tst, rev):
     st.markdown("<h1>📋 My Data</h1>", unsafe_allow_html=True)
+    st.caption("Showing latest 10 rows per section. Export full data from Account → Settings → Export My Data.")
 
     tab1, tab2, tab3 = st.tabs(["📚 STUDY LOG", "🏆 TEST SCORES", "🔄 REVISION"])
 
     with tab1:
         if not log.empty:
-            f = st.multiselect("Filter by Subject", SUBJECTS, default=SUBJECTS)
+            f = st.multiselect("Filter by Subject", SUBJECTS, default=SUBJECTS, key="mydata_subj_filter")
             d = log[log["subject"].isin(f)].copy()
             d["date"] = d["date"].dt.strftime("%d %b %Y")
+            total_rows = len(d)
+            d_show = d.head(10)
             dark_table(
-                d[["date", "subject", "topic", "hours", "pages_done", "difficulty", "notes"]],
-                caption=f"{len(d)} sessions · {d['hours'].sum():.1f}h total"
+                d_show[["date", "subject", "topic", "hours", "pages_done", "difficulty", "notes"]],
+                caption=f"Showing 10 of {total_rows} sessions · {d['hours'].sum():.1f}h total"
             )
         else:
             st.info("No study sessions logged yet. Start by going to **Log Study**.")
@@ -5382,9 +5519,11 @@ def my_data(log, tst, rev):
         if not tst.empty:
             t = tst.copy()
             t["date"] = t["date"].dt.strftime("%d %b %Y")
+            total_rows = len(t)
+            t_show = t.head(10)
             dark_table(
-                t[["date", "subject", "test_name", "marks", "max_marks", "score_pct"]],
-                caption=f"{len(t)} tests · Avg: {tst['score_pct'].mean():.1f}%"
+                t_show[["date", "subject", "test_name", "marks", "max_marks", "score_pct"]],
+                caption=f"Showing 10 of {total_rows} tests · Avg: {tst['score_pct'].mean():.1f}%"
             )
         else:
             st.info("No test scores yet. Add scores via **Add Score**.")
@@ -5393,7 +5532,9 @@ def my_data(log, tst, rev):
         if not rev.empty:
             s  = st.selectbox("Filter by Subject", ["All"] + SUBJECTS, key="mydata_rev_filter")
             df = rev if s == "All" else rev[rev["subject"] == s]
-            dark_table(df.drop(columns=["id", "user_id"], errors="ignore"))
+            df_clean = df.drop(columns=["id", "user_id"], errors="ignore")
+            total_rows = len(df_clean)
+            dark_table(df_clean.head(10), caption=f"Showing 10 of {total_rows} revision records")
         else:
             st.info("No revision data yet.")
 
@@ -5651,14 +5792,27 @@ else:
     st.markdown("<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>",
                 unsafe_allow_html=True)
 
-    # ── MAIN NAV TABS (6 tabs — Profile is now a first-class tab) ─────────────
-    tab_dashboard, tab_log, tab_score, tab_revision, tab_data, tab_profile = st.tabs([
+    # ── Global action strip — Refresh · Logout (always visible above all tabs) ──
+    _gstrip_l, _gstrip_mid, _gstrip_r, _gstrip_lo = st.columns([7.5, 0.55, 0.55, 0.55])
+    with _gstrip_mid:
+        if st.button("🔄", key="global_refresh", help="Refresh all data"):
+            st.cache_data.clear()
+            st.rerun()
+    with _gstrip_r:
+        pass  # PDF button lives inside Dashboard tab (data-specific)
+    with _gstrip_lo:
+        if st.button("🚪", key="global_logout", help="Sign Out"):
+            do_logout()
+            st.rerun()
+
+    # ── MAIN NAV TABS — ordered by daily usage frequency ────────────────────
+    tab_dashboard, tab_log, tab_revision, tab_score, tab_data, tab_profile = st.tabs([
         "📊  Dashboard",
         "📝  Log Study",
-        "🏆  Add Score",
         "🔄  Revision",
+        "🏆  Add Score",
         "📋  My Data",
-        "👤  Profile",
+        "👤  Account",
     ])
 
     with tab_dashboard:
@@ -5667,11 +5821,11 @@ else:
     with tab_log:
         log_study(_log_h, _revt_h, _rev_h)
 
-    with tab_score:
-        add_test_score(_tst_h)
-
     with tab_revision:
         revision(_log_h, _revt_h, _rev_h, _pend_h)
+
+    with tab_score:
+        add_test_score(_tst_h)
 
     with tab_data:
         my_data(_log_h, _tst_h, _revt_h)
