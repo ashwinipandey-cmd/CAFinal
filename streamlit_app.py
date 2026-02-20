@@ -526,7 +526,6 @@ p, .stMarkdown p {
     margin-bottom: 14px;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s, background 0.25s;
 }
 /* Top edge shimmer line on every card */
 .glass-card::before, .panel::before {
@@ -550,7 +549,7 @@ p, .stMarkdown p {
         inset 0 1px 0 rgba(255,255,255,0.10),
         0 0 0 1px rgba(56,189,248,0.12),
         var(--glow-sm);
-    transform: translateY(-2px);
+
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -567,7 +566,6 @@ div[data-testid="stMetric"] {
         var(--shadow-card),
         inset 0 1px 0 rgba(255,255,255,0.07),
         0 0 0 0.5px rgba(56,189,248,0.06) !important;
-    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
     position: relative !important;
     overflow: hidden !important;
 }
@@ -579,7 +577,7 @@ div[data-testid="stMetric"]::before {
     background: linear-gradient(90deg, transparent, var(--cyan), var(--cyan-bright), transparent);
 }
 div[data-testid="stMetric"]:hover {
-    transform: translateY(-3px) !important;
+
     border-color: var(--border-mid) !important;
     background: var(--bg-card-hover) !important;
     box-shadow:
@@ -654,7 +652,6 @@ div[data-testid="stMetricDelta"] {
     letter-spacing: 0.4px !important;
     text-transform: none !important;
     padding: 14px 18px !important;
-    transition: all 0.2s ease !important;
     border-bottom: 2px solid transparent !important;
     white-space: nowrap !important;
     background: transparent !important;
@@ -721,7 +718,6 @@ div[data-testid="stMetricDelta"] {
     font-size: 12px !important;
     letter-spacing: 0.3px !important;
     color: var(--text-muted) !important;
-    transition: all 0.2s !important;
 }
 .stTabs .stTabs [data-baseweb="tab"]:hover {
     background: rgba(56,189,248,0.08) !important;
@@ -757,7 +753,6 @@ div[data-testid="stMetricDelta"] {
     padding: 12px 8px 8px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
     position: relative;
     overflow: hidden;
 }
@@ -768,12 +763,11 @@ div[data-testid="stMetricDelta"] {
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent);
     opacity: 0;
-    transition: opacity 0.2s;
 }
 .avatar-card:hover {
     border-color: rgba(56,189,248,0.45);
     background: rgba(8,24,60,0.80);
-    transform: translateY(-3px);
+
     box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 16px rgba(56,189,248,0.15);
 }
 .avatar-card:hover::before { opacity: 1; }
@@ -807,7 +801,6 @@ div[data-testid="stMetricDelta"] {
     color: var(--text-muted);
     margin-top: 6px;
     font-weight: 500;
-    transition: color 0.2s;
 }
 .avatar-card.selected .avatar-label { color: var(--cyan); font-weight: 700; }
 .avatar-card:hover .avatar-label    { color: var(--text-body); }
@@ -826,7 +819,6 @@ div[data-testid="stMetricDelta"] {
     font-family: var(--font-body) !important;
     font-size: 14px !important;
     padding: 10px 14px !important;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3) !important;
 }
 .stTextInput input::placeholder,
@@ -865,7 +857,6 @@ div[data-testid="stMetricDelta"] {
     font-family: var(--font-body) !important;
     font-size: 14px !important;
     backdrop-filter: blur(16px) !important;
-    transition: border-color 0.2s, box-shadow 0.2s !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.05) !important;
 }
 .stSelectbox > div > div > div { color: var(--text-primary) !important; }
@@ -908,7 +899,6 @@ div[data-testid="stMetricDelta"] {
     letter-spacing: 0.3px !important;
     text-transform: none !important;
     padding: 8px 18px !important;
-    transition: all 0.2s cubic-bezier(0.4,0,0.2,1) !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08) !important;
     position: relative !important;
     overflow: hidden !important;
@@ -919,13 +909,12 @@ div[data-testid="stMetricDelta"] {
     position: absolute;
     top: 0; left: -100%; right: 100%; bottom: 0;
     background: linear-gradient(90deg, transparent, rgba(56,189,248,0.15), transparent);
-    transition: left 0.4s ease, right 0.4s ease;
 }
 .stButton button:hover {
     background: linear-gradient(135deg, rgba(14,80,180,0.85), rgba(8,52,140,0.75)) !important;
     border-color: rgba(56,189,248,0.70) !important;
     color: #FFFFFF !important;
-    transform: translateY(-1px) !important;
+
     box-shadow:
         0 4px 16px rgba(0,0,0,0.4),
         0 0 20px rgba(56,189,248,0.20),
@@ -933,7 +922,7 @@ div[data-testid="stMetricDelta"] {
 }
 .stButton button:hover::before { left: 100%; right: -100%; }
 .stButton button:active {
-    transform: translateY(0) !important;
+
     box-shadow: 0 1px 6px rgba(56,189,248,0.18) !important;
 }
 
@@ -982,7 +971,6 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
     background: linear-gradient(90deg, var(--cyan-dim), var(--cyan), var(--cyan-bright)) !important;
     border-radius: 6px !important;
     box-shadow: 0 0 12px rgba(56,189,248,0.7), 0 0 24px rgba(56,189,248,0.3) !important;
-    transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1) !important;
     background-size: 200% 100% !important;
 }
 
@@ -1119,7 +1107,6 @@ hr {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    transition: all 0.22s ease;
     position: relative;
     overflow: hidden;
     box-shadow: var(--shadow-card);
@@ -1131,11 +1118,10 @@ hr {
     width: 3px;
     background: linear-gradient(180deg, var(--cyan), transparent);
     opacity: 0;
-    transition: opacity 0.22s;
 }
 .lb-card:hover {
     border-color: var(--border-mid);
-    transform: translateX(3px);
+
     box-shadow: var(--shadow-deep), 0 0 22px rgba(56,189,248,0.12);
 }
 .lb-card:hover::before { opacity: 1; }
@@ -1154,7 +1140,6 @@ hr {
     font-family: var(--font-body);
     font-size: 11px;
     color: var(--cyan-bright);
-    transition: all 0.2s;
 }
 .stat-pill:hover {
     background: rgba(56,189,248,0.18);
@@ -1215,10 +1200,9 @@ hr {
     text-align: center;
     position: relative;
     overflow: hidden;
-    transition: all 0.25s ease;
 }
 .subj-card:hover {
-    transform: translateY(-3px);
+
     border-color: var(--border-mid);
     box-shadow: var(--shadow-deep), var(--glow-sm);
 }
@@ -1229,7 +1213,6 @@ hr {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--cyan), transparent);
     opacity: 0;
-    transition: opacity 0.25s;
 }
 .subj-card:hover::after { opacity: 1; }
 
@@ -1245,14 +1228,13 @@ hr {
     display: flex;
     align-items: center;
     gap: 12px;
-    transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
 }
 .topic-row:hover {
     border-color: var(--border-mid);
     background: var(--bg-card-hover);
-    transform: translateX(3px);
+
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1753,7 +1735,7 @@ def dark_table(df, caption=""):
             for v in row.values
         )
         rows_html += (
-            f'<tr style="background:{bg};transition:background 0.15s" '
+            f'<tr style="background:{bg};" '
             f'onmouseover="this.style.background=\'rgba(56,189,248,0.13)\'" '
             f'onmouseout="this.style.background=\'{bg}\'">'
             f'{cells}</tr>'
@@ -2264,7 +2246,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                     st.markdown(
                         f'<div class="av-wrap">'
                         f'<div style="{border}background:{bg};border-radius:14px;'
-                        f'padding:12px 8px 8px;text-align:center;transition:all 0.22s ease;'
+                        f'padding:12px 8px 8px;text-align:center;'
                         f'cursor:pointer;user-select:none;position:relative">'
                         + check
                         + f'<div style="display:flex;justify-content:center;line-height:0">{av_img}</div>'
@@ -2606,7 +2588,6 @@ def dashboard(log, tst, rev, rev_sess, pend):
             border:1px solid rgba(56,189,248,0.30);
             border-radius:8px;
             font-size:18px;cursor:pointer;
-            transition:all 0.2s ease;
             color:#FFFFFF;
         }
         .print-btn:hover {
@@ -2687,7 +2668,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                             border:1px solid rgba(56,189,248,0.12)">
                     <div style="width:{pct:.0f}%;height:100%;border-radius:6px;
                                 background:linear-gradient(90deg,{clr}99,{clr});
-                                box-shadow:0 0 12px {glow};transition:width 1s ease"></div>
+                                box-shadow:0 0 12px {glow};"></div>
                 </div>
                 <div style="font-family:'DM Mono',monospace;font-size:17px;
                             font-weight:700;color:#FFFFFF;
@@ -2795,7 +2776,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
             apply_theme(fig, title="Daily Hours — Last 30 Days")
             fig.update_layout(
                 hovermode="x unified",
-                transition=dict(duration=700, easing="cubic-in-out"),
+                transition=dict(duration=0),
             )
             fig.update_traces(marker_line_width=0)
             fig.update_yaxes(rangemode="tozero")
@@ -3456,7 +3437,7 @@ def add_test_score(tst):
             fig3.add_hline(y=60, line_dash="dot", line_color="#34D399",
                            annotation_text="Target 60%", annotation_font_color="#34D399")
             apply_theme(fig3, title="Score Trends")
-            fig3.update_layout(transition=dict(duration=700, easing="cubic-in-out"))
+            fig3.update_layout(transition=dict(duration=0))
             fig3.update_yaxes(range=[0, 105])
             st.plotly_chart(fig3, use_container_width=True)
 
@@ -3474,7 +3455,7 @@ def add_test_score(tst):
             ))
             fig4.add_hline(y=50, line_dash="dash", line_color="#F87171")
             apply_theme(fig4, title="Avg Score by Subject")
-            fig4.update_layout(transition=dict(duration=700, easing="cubic-in-out"))
+            fig4.update_layout(transition=dict(duration=0))
             fig4.update_yaxes(range=[0, 110])
             st.plotly_chart(fig4, use_container_width=True)
 
@@ -4020,7 +4001,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
         apply_theme(_ms_fig, title="Memory Strength by Topic",
                     height=max(200, min(len(_ms_labels)*20+80, 600)))
         _ms_fig.update_layout(margin=dict(t=50, b=40, l=230, r=20),
-                              transition=dict(duration=700, easing="cubic-in-out"))
+                              transition=dict(duration=0))
         _ms_fig.update_xaxes(range=[0, 105], title_text="Memory Strength %")
         _ms_fig.update_yaxes(autorange="reversed", tickfont=dict(size=9))
         st.plotly_chart(_ms_fig, use_container_width=True)
