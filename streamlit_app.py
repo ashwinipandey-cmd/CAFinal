@@ -2766,69 +2766,71 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
 
 
 def auth_page():
-    st.markdown(GLASSY_CSS, unsafe_allow_html=True)
+    # Use st.empty() so the entire auth screen is wiped instantly on st.rerun()
+    # preventing the 3-4 second overlap between auth screen and dashboard
+    _auth_slot = st.empty()
+    with _auth_slot.container():
+        col1, col2, col3 = st.columns([1, 1.6, 1])
+        with col2:
+            st.markdown("""
+            <div class="brand-logo">
+                <div class="brand-title">CA FINAL TRACKER</div>
+                <div class="brand-tagline">Track · Analyse · Conquer</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([1, 1.6, 1])
-    with col2:
-        st.markdown("""
-        <div class="brand-logo">
-            <div class="brand-title">CA FINAL TRACKER</div>
-            <div class="brand-tagline">Track · Analyse · Conquer</div>
-        </div>
-        """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            tab1, tab2 = st.tabs(["⚡  LOGIN", "🚀  SIGN UP"])
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        tab1, tab2 = st.tabs(["⚡  LOGIN", "🚀  SIGN UP"])
-
-        with tab1:
-            with st.form("login_form"):
-                email    = st.text_input("Email Address", placeholder="your@email.com")
-                password = st.text_input("Password", type="password", placeholder="Enter password")
-                submitted = st.form_submit_button("LOGIN →", use_container_width=True)
-                if submitted:
-                    if not email or not password:
-                        st.warning("Please fill in all fields")
-                    else:
-                        with st.spinner("Authenticating..."):
-                            ok, msg = do_login(email, password)
-                        if ok:
-                            st.success(msg)
-                            st.rerun()
+            with tab1:
+                with st.form("login_form"):
+                    email    = st.text_input("Email Address", placeholder="your@email.com")
+                    password = st.text_input("Password", type="password", placeholder="Enter password")
+                    submitted = st.form_submit_button("LOGIN →", use_container_width=True)
+                    if submitted:
+                        if not email or not password:
+                            st.warning("Please fill in all fields")
                         else:
-                            st.error(msg)
+                            with st.spinner("Signing in..."):
+                                ok, msg = do_login(email, password)
+                            if ok:
+                                _auth_slot.empty()   # instantly wipe auth screen
+                                st.rerun()
+                            else:
+                                st.error(msg)
 
-        with tab2:
-            with st.form("signup_form"):
-                c1, c2    = st.columns(2)
-                full_name = c1.text_input("Full Name",  placeholder="Arjun Sharma")
-                username  = c2.text_input("Username",   placeholder="arjun_ca")
-                email2    = st.text_input("Email Address", placeholder="your@email.com")
-                pass2     = st.text_input("Password (min 6 chars)", type="password")
+            with tab2:
+                with st.form("signup_form"):
+                    c1, c2    = st.columns(2)
+                    full_name = c1.text_input("Full Name",  placeholder="Arjun Sharma")
+                    username  = c2.text_input("Username",   placeholder="arjun_ca")
+                    email2    = st.text_input("Email Address", placeholder="your@email.com")
+                    pass2     = st.text_input("Password (min 6 chars)", type="password")
 
-                st.markdown("---")
-                st.markdown("**📅 Your CA Final Exam**")
-                ec1, ec2  = st.columns(2)
-                exam_month = ec1.selectbox("Month", ["January", "May", "September"])
-                exam_year  = ec2.selectbox("Year",  [2025, 2026, 2027, 2028], index=2)
+                    st.markdown("---")
+                    st.markdown("**📅 Your CA Final Exam**")
+                    ec1, ec2  = st.columns(2)
+                    exam_month = ec1.selectbox("Month", ["January", "May", "September"])
+                    exam_year  = ec2.selectbox("Year",  [2025, 2026, 2027, 2028], index=2)
 
-                month_num = {"January": 1, "May": 5, "September": 9}[exam_month]
-                preview   = date(int(exam_year), month_num, 1)
-                days_left = max((preview - date.today()).days, 0)
-                st.info(f"📅 Exam: **{exam_month} {exam_year}** — **{days_left}** days remaining")
+                    month_num = {"January": 1, "May": 5, "September": 9}[exam_month]
+                    preview   = date(int(exam_year), month_num, 1)
+                    days_left = max((preview - date.today()).days, 0)
+                    st.info(f"📅 Exam: **{exam_month} {exam_year}** — **{days_left}** days remaining")
 
-                submitted2 = st.form_submit_button("CREATE ACCOUNT →", use_container_width=True)
-                if submitted2:
-                    if not all([full_name, username, email2, pass2]):
-                        st.warning("Please fill in all fields")
-                    elif len(pass2) < 6:
-                        st.warning("Password must be at least 6 characters")
-                    else:
-                        with st.spinner("Creating account..."):
-                            ok, msg = do_signup(email2, pass2, username, full_name, exam_month, exam_year)
-                        if ok:
-                            st.success(msg)
+                    submitted2 = st.form_submit_button("CREATE ACCOUNT →", use_container_width=True)
+                    if submitted2:
+                        if not all([full_name, username, email2, pass2]):
+                            st.warning("Please fill in all fields")
+                        elif len(pass2) < 6:
+                            st.warning("Password must be at least 6 characters")
                         else:
-                            st.error(msg)
+                            with st.spinner("Creating account..."):
+                                ok, msg = do_signup(email2, pass2, username, full_name, exam_month, exam_year)
+                            if ok:
+                                st.success(msg)
+                            else:
+                                st.error(msg)
 
 
 
@@ -5227,17 +5229,16 @@ else:
     exam      = get_exam_date()
     days_left = max((exam - date.today()).days, 0)
 
-    # ── Migration check ────────────────────────────────────────────────────────
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def _check_migration(user_id):
+    # ── Migration check — only on first login, stored in session_state ──────────
+    # Avoids blocking DB call on every page load/rerun
+    if "migration_ok" not in st.session_state:
         try:
-            sb.table("revision_tracker").select("topic_status").eq("user_id", user_id).limit(1).execute()
-            return True
+            sb.table("revision_tracker").select("topic_status")               .eq("user_id", _cache_key()).limit(1).execute()
+            st.session_state.migration_ok = True
         except Exception:
-            return False
+            st.session_state.migration_ok = False
 
-    migration_ok = _check_migration(_cache_key())
-    if not migration_ok:
+    if not st.session_state.migration_ok:
         st.warning(
             "⚠️ **Database migration required** — Run the updated `supabase_setup.sql` in Supabase → SQL Editor.",
             icon="🔧"
