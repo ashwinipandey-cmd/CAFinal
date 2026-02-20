@@ -1093,11 +1093,6 @@ hr {
     text-align: center;
     padding: 36px 0 18px;
 }
-.brand-logo .icon {
-    font-size: 56px;
-    filter: drop-shadow(0 0 24px rgba(56,189,248,0.7));
-    display: inline-block;
-}
 .brand-title {
     font-family: var(--font-display) !important;
     font-size: 30px !important;
@@ -2409,7 +2404,6 @@ def auth_page():
     with col2:
         st.markdown("""
         <div class="brand-logo">
-            <div class="icon">🎓</div>
             <div class="brand-title">CA FINAL TRACKER</div>
             <div class="brand-tagline">Track · Analyse · Conquer</div>
         </div>
@@ -4077,10 +4071,10 @@ if not st.session_state.logged_in:
     auth_page()
 else:
     profile   = st.session_state.profile
+    prof      = profile                              # single source of truth
     name      = profile.get("full_name", "Student")
     exam      = get_exam_date()
     days_left = max((exam - date.today()).days, 0)
-    prof      = st.session_state.profile
 
     # ── Migration check ────────────────────────────────────────────────────────
     @st.cache_data(ttl=3600, show_spinner=False)
@@ -4209,20 +4203,19 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-    # Right: Days left counter
+    # Right: Days left counter — label derived from same exam date object as days_left
+    _exam_label = exam.strftime("%b %Y").upper()  # e.g. "SEP 2027" — always in sync with days_left
     with h_days:
         st.markdown(f"""
         <div style="background:var(--bg-card);border:1.5px solid var(--border-mid);
                     border-radius:14px;padding:8px 10px;text-align:center;
                     position:relative;overflow:hidden;margin-top:4px;
                     box-shadow:0 0 20px rgba(56,189,248,0.18),var(--shadow-card)">
-
             <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:800;
                         color:#FFFFFF;line-height:1;
                         text-shadow:0 0 20px rgba(56,189,248,0.9),0 0 40px rgba(56,189,248,0.5)">{days_left}</div>
             <div style="font-size:8px;color:var(--text-muted);letter-spacing:2.5px;margin-top:3px;font-weight:700">DAYS</div>
-            <div style="font-size:9px;color:var(--cyan);margin-top:2px;font-weight:600">
-                {prof.get("exam_month","")[:3].upper()} {prof.get("exam_year","")}</div>
+            <div style="font-size:9px;color:var(--cyan);margin-top:2px;font-weight:600">{_exam_label}</div>
         </div>
         """, unsafe_allow_html=True)
 
