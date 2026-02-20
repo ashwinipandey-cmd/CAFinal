@@ -99,175 +99,6 @@ TOPICS = {
        "Customs – Refund Drawback & Special Provisions","FTP – Overview"]
 }
 
-# ══════════════════════════════════════════════════════════════════════════════
-# AVATAR CHARACTERS  (CA-themed illustrated SVG faces)
-# Each avatar: id, label, category, svg_body (contents inside a 64×64 viewBox)
-# ══════════════════════════════════════════════════════════════════════════════
-AVATARS = [
-    # ── Male students ─────────────────────────────────────────────────────────
-    {
-        "id": "boy_student",
-        "label": "Student Boy",
-        "category": "Students",
-        "bg": "#1E40AF",
-        "svg": """
-          <circle cx="32" cy="22" r="12" fill="#FBBF24"/>
-          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#1E40AF"/>
-          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
-          <ellipse cx="27" cy="20" rx="2" ry="2.5" fill="#1a1a1a"/>
-          <ellipse cx="37" cy="20" rx="2" ry="2.5" fill="#1a1a1a"/>
-          <path d="M28 27 Q32 31 36 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <rect x="18" y="10" width="28" height="8" rx="4" fill="#1E40AF"/>
-          <rect x="18" y="10" width="28" height="4" rx="2" fill="#3B82F6"/>
-          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#1E40AF"/>
-          <rect x="26" y="34" width="12" height="14" rx="2" fill="#BFDBFE"/>
-        """
-    },
-    {
-        "id": "boy_serious",
-        "label": "Focused Boy",
-        "category": "Students",
-        "bg": "#064E3B",
-        "svg": """
-          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
-          <ellipse cx="27" cy="20" rx="2" ry="2" fill="#1a1a1a"/>
-          <ellipse cx="37" cy="20" rx="2" ry="2" fill="#1a1a1a"/>
-          <line x1="25" y1="17" x2="29" y2="18" stroke="#1a1a1a" stroke-width="1.5"/>
-          <line x1="35" y1="17" x2="39" y2="18" stroke="#1a1a1a" stroke-width="1.5"/>
-          <path d="M28 27 Q32 29 36 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <rect x="20" y="9" width="24" height="10" rx="5" fill="#111827"/>
-          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#064E3B"/>
-          <rect x="26" y="34" width="12" height="14" rx="2" fill="#6EE7B7"/>
-          <circle cx="40" cy="38" r="5" fill="#FBBF24"/>
-          <text x="40" y="41" text-anchor="middle" font-size="6" fill="#111">₹</text>
-        """
-    },
-    # ── Female students ───────────────────────────────────────────────────────
-    {
-        "id": "girl_student",
-        "label": "Student Girl",
-        "category": "Students",
-        "bg": "#7C3AED",
-        "svg": """
-          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
-          <ellipse cx="27" cy="21" rx="1.8" ry="2.2" fill="#1a1a1a"/>
-          <ellipse cx="37" cy="21" rx="1.8" ry="2.2" fill="#1a1a1a"/>
-          <path d="M29 27 Q32 31 35 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <path d="M20 16 Q22 8 32 10 Q42 8 44 16 Q40 12 32 13 Q24 12 20 16Z" fill="#7C3AED"/>
-          <path d="M20 16 Q18 22 22 22" fill="#7C3AED"/>
-          <path d="M44 16 Q46 22 42 22" fill="#7C3AED"/>
-          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#7C3AED"/>
-          <rect x="26" y="34" width="12" height="14" rx="2" fill="#DDD6FE"/>
-          <circle cx="27" cy="21" r="0.8" fill="#FF6B9D"/>
-          <circle cx="37" cy="21" r="0.8" fill="#FF6B9D"/>
-        """
-    },
-    {
-        "id": "girl_glasses",
-        "label": "Studious Girl",
-        "category": "Students",
-        "bg": "#BE185D",
-        "svg": """
-          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
-          <ellipse cx="27" cy="20" rx="2" ry="2" fill="#1a1a1a"/>
-          <ellipse cx="37" cy="20" rx="2" ry="2" fill="#1a1a1a"/>
-          <rect x="23" y="17" width="8" height="6" rx="3" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>
-          <rect x="33" y="17" width="8" height="6" rx="3" fill="none" stroke="#1a1a1a" stroke-width="1.2"/>
-          <line x1="31" y1="20" x2="33" y2="20" stroke="#1a1a1a" stroke-width="1"/>
-          <path d="M29 27 Q32 31 35 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <path d="M21 14 Q26 8 38 10 Q44 12 43 16 Q38 10 32 12 Q25 11 21 14Z" fill="#BE185D"/>
-          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#BE185D"/>
-          <rect x="26" y="34" width="12" height="14" rx="2" fill="#FBCFE8"/>
-        """
-    },
-    # ── Professionals ─────────────────────────────────────────────────────────
-    {
-        "id": "ca_professional",
-        "label": "CA Professional",
-        "category": "Professionals",
-        "bg": "#1E293B",
-        "svg": """
-          <circle cx="32" cy="20" r="11" fill="#F5CBA7"/>
-          <ellipse cx="27" cy="19" rx="1.8" ry="2" fill="#1a1a1a"/>
-          <ellipse cx="37" cy="19" rx="1.8" ry="2" fill="#1a1a1a"/>
-          <path d="M28 26 Q32 29 36 26" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <rect x="22" y="8" width="20" height="8" rx="2" fill="#1E293B"/>
-          <rect x="19" y="30" width="26" height="18" rx="3" fill="#1E293B"/>
-          <rect x="27" y="30" width="10" height="18" rx="1" fill="#FFFFFF"/>
-          <rect x="29" y="28" width="6" height="4" rx="1" fill="#94A3B8"/>
-          <text x="32" y="42" text-anchor="middle" font-size="5.5" fill="#38BDF8" font-weight="bold">CA</text>
-        """
-    },
-    {
-        "id": "professional_woman",
-        "label": "CA Woman",
-        "category": "Professionals",
-        "bg": "#4C1D95",
-        "svg": """
-          <circle cx="32" cy="20" r="11" fill="#F5CBA7"/>
-          <ellipse cx="27" cy="19" rx="1.8" ry="2" fill="#1a1a1a"/>
-          <ellipse cx="37" cy="19" rx="1.8" ry="2" fill="#1a1a1a"/>
-          <path d="M29 26 Q32 29 35 26" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <path d="M21 14 Q26 6 38 9 Q44 11 43 14 Q38 9 32 10 Q25 9 21 14Z" fill="#4C1D95"/>
-          <rect x="19" y="30" width="26" height="18" rx="3" fill="#4C1D95"/>
-          <rect x="27" y="30" width="10" height="18" rx="1" fill="#EDE9FE"/>
-          <rect x="29" y="28" width="6" height="4" rx="1" fill="#A78BFA"/>
-          <text x="32" y="42" text-anchor="middle" font-size="5.5" fill="#7C3AED" font-weight="bold">CA</text>
-        """
-    },
-    # ── Articulars ────────────────────────────────────────────────────────────
-    {
-        "id": "night_owl",
-        "label": "Night Owl",
-        "category": "Others",
-        "bg": "#0F172A",
-        "svg": """
-          <circle cx="32" cy="22" r="12" fill="#F5CBA7"/>
-          <ellipse cx="27" cy="21" rx="1.8" ry="2" fill="#1a1a1a"/>
-          <ellipse cx="37" cy="21" rx="1.8" ry="2" fill="#1a1a1a"/>
-          <path d="M29 27 Q32 30 35 27" stroke="#c0756a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <rect x="24" y="18" width="16" height="3" rx="1.5" fill="#94A3B8" opacity="0.5"/>
-          <path d="M22 9 Q32 5 42 9 Q38 11 32 11 Q26 11 22 9Z" fill="#0F172A"/>
-          <text x="20" y="16" font-size="7">🌙</text>
-          <text x="38" y="14" font-size="6">⭐</text>
-          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#0F172A"/>
-          <text x="32" y="51" text-anchor="middle" font-size="8">☕</text>
-        """
-    },
-    {
-        "id": "topper",
-        "label": "Topper",
-        "category": "Others",
-        "bg": "#78350F",
-        "svg": """
-          <circle cx="32" cy="23" r="12" fill="#F5CBA7"/>
-          <ellipse cx="27" cy="22" rx="1.8" ry="2" fill="#1a1a1a"/>
-          <ellipse cx="37" cy="22" rx="1.8" ry="2" fill="#1a1a1a"/>
-          <path d="M28 28 Q32 33 36 28" stroke="#c0756a" stroke-width="2" fill="none" stroke-linecap="round"/>
-          <path d="M22 13 L32 5 L42 13 L39 13 L32 8 L25 13Z" fill="#FBBF24"/>
-          <path d="M25 13 L27 8 L32 11 L37 8 L39 13Z" fill="#F59E0B"/>
-          <circle cx="32" cy="6" r="2.5" fill="#FBBF24"/>
-          <ellipse cx="32" cy="48" rx="14" ry="10" fill="#78350F"/>
-          <circle cx="32" cy="42" r="6" fill="#FBBF24" opacity="0.3"/>
-          <text x="32" y="44" text-anchor="middle" font-size="7">🥇</text>
-        """
-    },
-]
-
-def get_avatar_svg(avatar_id: str, size: int = 64) -> str:
-    """Return a base64 data URI img tag for the avatar — safe to embed in st.markdown."""
-    import base64
-    av = next((a for a in AVATARS if a["id"] == avatar_id), AVATARS[0])
-    svg_str = (
-        f'<svg viewBox="0 0 64 64" width="{size}" height="{size}" '
-        f'xmlns="http://www.w3.org/2000/svg" '
-        f'style="border-radius:50%;background:{av["bg"]}">'
-        f'{av["svg"]}</svg>'
-    )
-    b64 = base64.b64encode(svg_str.encode("utf-8")).decode("utf-8")
-    return f'<img src="data:image/svg+xml;base64,{b64}" width="{size}" height="{size}" style="border-radius:50%;display:block;"/>'
-
-
 # ── WORLD CLASS GLASSY NEON CSS ───────────────────────────────────────────────
 GLASSY_CSS = """
 <style>
@@ -706,63 +537,6 @@ div[data-testid="stMetricDelta"] {
     padding: 14px 0 0 !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   AVATAR CARD SYSTEM — click-to-select
-═══════════════════════════════════════════════════════════ */
-.avatar-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 10px;
-    margin: 12px 0 18px;
-}
-.avatar-card {
-    background: rgba(4,14,40,0.70);
-    border: 1.5px solid rgba(56,189,248,0.15);
-    border-radius: 14px;
-    padding: 12px 8px 8px;
-    text-align: center;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-}
-.avatar-card:hover {
-    border-color: rgba(56,189,248,0.45);
-    background: rgba(8,24,60,0.80);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 16px rgba(56,189,248,0.15);
-}
-.avatar-card.selected {
-    border-color: var(--cyan);
-    background: rgba(14,60,140,0.35);
-    box-shadow:
-        0 0 0 2px rgba(56,189,248,0.3),
-        0 0 20px rgba(56,189,248,0.25),
-        0 8px 24px rgba(0,0,0,0.5);
-}
-.avatar-card.selected::after {
-    content: '✓';
-    position: absolute;
-    top: 6px; right: 8px;
-    width: 18px; height: 18px;
-    background: var(--cyan);
-    border-radius: 50%;
-    font-size: 10px;
-    font-weight: 900;
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 18px;
-    text-align: center;
-}
-.avatar-label {
-    font-size: 10px;
-    font-family: var(--font-ui);
-    color: var(--text-muted);
-    margin-top: 6px;
-    font-weight: 500;
-}
-.avatar-card.selected .avatar-label { color: var(--cyan); font-weight: 700; }
-.avatar-card:hover .avatar-label    { color: var(--text-body); }
 
 /* ═══════════════════════════════════════════════════════════
    FORM INPUTS — precision fields
@@ -1380,7 +1154,7 @@ def _fetch_logs(user_id):
     return df
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=900, show_spinner=False)  # 15 min — scores change rarely
 def _fetch_scores(user_id):
     r  = sb.table("test_scores") \
            .select("date,subject,test_name,marks,max_marks,score_pct,weak_areas,strong_areas,action_plan") \
@@ -1416,10 +1190,10 @@ def _fetch_revision(user_id):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _fetch_rev_sessions(user_id):
-    """Fetch revision_sessions table — each logged revision round."""
+    """Fetch revision_sessions — explicit columns only (no SELECT *)."""
     try:
         r = sb.table("revision_sessions") \
-              .select("*") \
+              .select("subject,topic,round,date,hours,difficulty,notes,status") \
               .eq("user_id", user_id) \
               .order("date", desc=True) \
               .execute()
@@ -1428,9 +1202,9 @@ def _fetch_rev_sessions(user_id):
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)  # 10 min — backed by materialized view
 def _fetch_leaderboard():
-    r = sb.table("leaderboard").select("*").execute()
+    r = sb.table("leaderboard").select("username,full_name,total_hours,days_studied,avg_score").execute()
     return pd.DataFrame(r.data)
 
 
@@ -1551,8 +1325,6 @@ def log_revision_session(subject: str, topic: str, revision_round: int,
     invalidate_cache()
     return True, "Revision logged!"
 
-
-
 def add_log(data):
     try:
         data["user_id"] = uid()
@@ -1632,8 +1404,6 @@ def _async_sync_if_needed(subject, topic):
           .execute()
     except Exception:
         pass
-
-
 
 
 # ── DARK TABLE HELPER ─────────────────────────────────────────────────────────
@@ -2124,71 +1894,6 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
     # TAB 1 — General Settings
     # ════════════════════════════════
     with ptab1:
-        # ── Avatar Picker ─────────────────────────────────────────────────────
-        st.markdown('<div class="neon-header">🎭 Choose Your Avatar</div>', unsafe_allow_html=True)
-        cur_avatar = prof.get("avatar_id", "boy_student")
-
-        # Single flat grid — no categories, click card = select
-        st.markdown("""
-        <style>
-        /* Invisible overlay button fills the entire av-wrap div */
-        div[data-testid="column"] .av-wrap { position:relative; display:block; }
-        div[data-testid="column"] .av-wrap .stButton { 
-            position:absolute !important; inset:0 !important; 
-            z-index:10 !important; margin:0 !important; 
-        }
-        div[data-testid="column"] .av-wrap .stButton > button {
-            position:absolute !important; inset:0 !important;
-            width:100% !important; height:100% !important;
-            opacity:0 !important; cursor:pointer !important;
-            border:none !important; background:transparent !important;
-            padding:0 !important; min-height:0 !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-        cols_per_row = 4
-        rows = [AVATARS[i:i+cols_per_row] for i in range(0, len(AVATARS), cols_per_row)]
-        for row_avs in rows:
-            grid_cols = st.columns(cols_per_row)
-            for col_i, av in enumerate(row_avs):
-                with grid_cols[col_i]:
-                    is_sel  = (av["id"] == cur_avatar)
-                    av_img  = get_avatar_svg(av["id"], 54)
-                    border  = ("border:2px solid #38BDF8;"
-                                "box-shadow:0 0 0 2px rgba(56,189,248,0.30),"
-                                "0 0 22px rgba(56,189,248,0.35);") if is_sel else (
-                               "border:1.5px solid rgba(56,189,248,0.18);")
-                    bg      = "rgba(14,60,140,0.40)" if is_sel else "rgba(4,14,40,0.70)"
-                    lbl_clr = "#38BDF8" if is_sel else "#6B91B8"
-                    lbl_fw  = "700" if is_sel else "500"
-                    check   = ('<div style="position:absolute;top:6px;right:8px;width:18px;height:18px;'
-                               'background:#38BDF8;border-radius:50%;font-size:10px;font-weight:900;'
-                               'color:#000;display:flex;align-items:center;justify-content:center;'
-                               'line-height:1;z-index:5">✓</div>') if is_sel else ""
-                    st.markdown(
-                        f'<div class="av-wrap">'
-                        f'<div style="{border}background:{bg};border-radius:14px;'
-                        f'padding:12px 8px 8px;text-align:center;'
-                        f'cursor:pointer;user-select:none;position:relative">'
-                        + check
-                        + f'<div style="display:flex;justify-content:center;line-height:0">{av_img}</div>'
-                        + f'<div style="font-size:10px;font-family:DM Sans,sans-serif;color:{lbl_clr};'
-                        + f'font-weight:{lbl_fw};margin-top:7px;letter-spacing:0.2px">{av["label"]}</div>'
-                        + '</div></div>',
-                        unsafe_allow_html=True
-                    )
-                    if st.button("·", key=f"av_{av['id']}", use_container_width=True):
-                        ok, msg = update_profile({"avatar_id": av["id"]})
-                        if ok:
-                            st.cache_data.clear()
-                            st.rerun()
-                        else:
-                            st.error(msg)
-            # pad remaining slots
-            for pad_i in range(cols_per_row - len(row_avs)):
-                grid_cols[len(row_avs) + pad_i].empty()
-
         st.markdown("---")
         st.markdown('<div class="neon-header">✏️ Personal Details</div>', unsafe_allow_html=True)
         p1, p2 = st.columns(2)
@@ -4000,7 +3705,7 @@ def leaderboard():
 
     # Only fetch opted-in users
     try:
-        r  = sb.table("leaderboard").select("*").execute()
+        r  = sb.table("leaderboard").select("username,full_name,total_hours,days_studied,avg_score").execute()
         lb = pd.DataFrame(r.data)
     except:
         lb = pd.DataFrame()
@@ -4136,36 +3841,35 @@ else:
     # ── Header layout ──────────────────────────────────────────────────────────
     h_av, h_info, h_days = st.columns([1, 5, 1])
 
-    # Left: Avatar circle (SVG)
-    # Pre-build avatar img to avoid Streamlit wrapping it in a <p> tag inside f-string
-    _av_img = get_avatar_svg(profile.get("avatar_id", "boy_student"), 64)
-    _av_html = (
+    # Left: User initial circle (replaces avatar)
+    _initial   = name[0].upper() if name else "U"
+    _init_html = (
         '<div style="position:relative;width:76px;height:76px;margin-bottom:0;line-height:0">'
         '<svg width="76" height="76" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">'
         '<defs>'
         '<linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">'
         '<stop offset="0%"   stop-color="#0EA5E9"/>'
-        '<stop offset="35%"  stop-color="#38BDF8"/>'
         '<stop offset="50%"  stop-color="#FFFFFF"/>'
-        '<stop offset="65%"  stop-color="#38BDF8"/>'
         '<stop offset="100%" stop-color="#7DD3FC"/>'
         '</linearGradient>'
         '</defs>'
         '<circle cx="38" cy="38" r="35" fill="none" stroke="rgba(56,189,248,0.12)" stroke-width="5"/>'
         f'<circle cx="38" cy="38" r="35" fill="none" stroke="url(#ringGrad)" stroke-width="5"'
         f' stroke-linecap="round" stroke-dasharray="{_filled:.2f} {_circ:.2f}"'
-        f' style="filter:drop-shadow(0 0 8px rgba(56,189,248,0.9)) drop-shadow(0 0 18px rgba(56,189,248,0.6))">'
+        f' style="filter:drop-shadow(0 0 8px rgba(56,189,248,0.9))">'
         '</circle>'
         '</svg>'
         '<div style="position:absolute;top:6px;left:6px;width:64px;height:64px;'
-        'border-radius:50%;overflow:hidden;line-height:0;font-size:0;'
+        'border-radius:50%;background:linear-gradient(135deg,#0C2A6E,#1D5FA8);'
+        'display:flex;align-items:center;justify-content:center;'
         'box-shadow:0 0 18px rgba(56,189,248,0.5)">'
-        + _av_img +
+        f'<span style="font-family:DM Mono,monospace;font-size:26px;font-weight:900;'
+        f'color:#FFFFFF;text-shadow:0 0 12px rgba(56,189,248,0.8)">{_initial}</span>'
         '</div>'
         '</div>'
     )
     with h_av:
-        st.markdown(_av_html, unsafe_allow_html=True)
+        st.markdown(_init_html, unsafe_allow_html=True)
 
     # Middle: Name (brand-title style) + animated XP bar
     with h_info:
