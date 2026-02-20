@@ -337,40 +337,6 @@ GLASSY_CSS = """
 /* ═══════════════════════════════════════════════════════════
    KEYFRAME ANIMATIONS
 ═══════════════════════════════════════════════════════════ */
-@keyframes gradient-shift {
-    0%,100% { background-position: 0% 50%; }
-    50%      { background-position: 100% 50%; }
-}
-@keyframes scanline {
-    0%,100% { opacity: 0.3; transform: translateX(100%); }
-    50%      { opacity: 0.9; }
-    100%     { transform: translateX(-100%); }
-}
-@keyframes pulse-border {
-    0%,100% { border-color: rgba(56,189,248,0.35); box-shadow: 0 0 12px rgba(56,189,248,0.15); }
-    50%      { border-color: rgba(56,189,248,0.65); box-shadow: 0 0 28px rgba(56,189,248,0.35); }
-}
-@keyframes float-up {
-    0%   { opacity:0; transform: translateY(12px); }
-    100% { opacity:1; transform: translateY(0); }
-}
-@keyframes shimmer-line {
-    0%   { background-position: 200% center; }
-    100% { background-position: -200% center; }
-}
-@keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-}
-@keyframes card-in {
-    from { opacity:0; transform:translateY(8px) scale(0.99); }
-    to   { opacity:1; transform:translateY(0) scale(1); }
-}
-@keyframes avatar-select-pop {
-    0%   { transform: scale(1); }
-    40%  { transform: scale(1.08); }
-    100% { transform: scale(1.03); }
-}
 
 /* ═══════════════════════════════════════════════════════════
    GLOBAL BASE
@@ -539,23 +505,8 @@ p, .stMarkdown p {
         0 0 20px rgba(56,189,248,0.9),
         0 0 40px rgba(56,189,248,0.7),
         0 0 80px rgba(56,189,248,0.4) !important;
-    animation: neon-header-pulse 2.5s ease-in-out infinite;
 }
-@keyframes neon-header-pulse {
-    0%,100% {
-        text-shadow:
-            0 0 10px rgba(56,189,248,1.0),
-            0 0 20px rgba(56,189,248,0.8),
-            0 0 40px rgba(56,189,248,0.5);
-    }
-    50% {
-        text-shadow:
-            0 0 14px rgba(56,189,248,1.0),
-            0 0 28px rgba(125,211,252,1.0),
-            0 0 56px rgba(56,189,248,0.8),
-            0 0 100px rgba(56,189,248,0.5);
-    }
-}
+
 
 /* ═══════════════════════════════════════════════════════════
    CARD SYSTEM — The core UI unit
@@ -575,7 +526,6 @@ p, .stMarkdown p {
     margin-bottom: 14px;
     position: relative;
     overflow: hidden;
-    animation: card-in 0.35s ease both;
     transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s, background 0.25s;
 }
 /* Top edge shimmer line on every card */
@@ -591,7 +541,6 @@ p, .stMarkdown p {
         rgba(56,189,248,0.6) 60%,
         transparent 100%);
     background-size: 200% 100%;
-    animation: shimmer-line 4s linear infinite;
 }
 .glass-card:hover, .panel:hover {
     border-color: var(--border-mid);
@@ -621,7 +570,6 @@ div[data-testid="stMetric"] {
     transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
     position: relative !important;
     overflow: hidden !important;
-    animation: card-in 0.35s ease both !important;
 }
 div[data-testid="stMetric"]::before {
     content: '';
@@ -629,8 +577,6 @@ div[data-testid="stMetric"]::before {
     top: 0; left: 0; right: 0;
     height: 1.5px;
     background: linear-gradient(90deg, transparent, var(--cyan), var(--cyan-bright), transparent);
-    background-size: 200% 100%;
-    animation: shimmer-line 3.5s linear infinite;
 }
 div[data-testid="stMetric"]:hover {
     transform: translateY(-3px) !important;
@@ -698,7 +644,6 @@ div[data-testid="stMetricDelta"] {
         var(--cyan) 40%, var(--cyan-bright) 50%,
         var(--cyan) 60%, var(--cyan-dim) 80%, transparent 100%);
     background-size: 200% 100%;
-    animation: shimmer-line 5s linear infinite;
 }
 .stTabs [data-baseweb="tab"] {
     border-radius: 0 !important;
@@ -839,7 +784,6 @@ div[data-testid="stMetricDelta"] {
         0 0 0 2px rgba(56,189,248,0.3),
         0 0 20px rgba(56,189,248,0.25),
         0 8px 24px rgba(0,0,0,0.5);
-    animation: avatar-select-pop 0.3s ease both;
 }
 .avatar-card.selected::after {
     content: '✓';
@@ -1016,7 +960,6 @@ div[data-testid="stMetricDelta"] {
     height: 1.5px;
     background: linear-gradient(90deg, transparent, var(--cyan), var(--cyan-bright), var(--cyan), transparent);
     background-size: 200% 100%;
-    animation: shimmer-line 4s linear infinite;
 }
 /* Hide submit hint */
 .stForm small, .stForm [data-testid="InputInstructions"],
@@ -1041,7 +984,6 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
     box-shadow: 0 0 12px rgba(56,189,248,0.7), 0 0 24px rgba(56,189,248,0.3) !important;
     transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1) !important;
     background-size: 200% 100% !important;
-    animation: shimmer-line 2.5s linear infinite !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1229,7 +1171,6 @@ hr {
 .brand-logo .icon {
     font-size: 56px;
     filter: drop-shadow(0 0 24px rgba(56,189,248,0.7));
-    animation: float-up 0.6s ease both, spin-slow 20s linear infinite;
     display: inline-block;
 }
 .brand-title {
@@ -1241,7 +1182,6 @@ hr {
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     background-clip: text !important;
-    animation: gradient-shift 4s ease infinite !important;
     letter-spacing: -0.5px !important;
     line-height: 1.1 !important;
 }
@@ -1276,7 +1216,6 @@ hr {
     position: relative;
     overflow: hidden;
     transition: all 0.25s ease;
-    animation: card-in 0.35s ease both;
 }
 .subj-card:hover {
     transform: translateY(-3px);
@@ -1395,7 +1334,7 @@ def apply_theme(fig, title="", height=None, extra_layout=None):
             borderwidth=1,
             font=dict(size=11, color="#C8E5F8")
         ),
-        transition   =dict(duration=600, easing="cubic-in-out"),
+        transition   =dict(duration=0),
     )
     if title:
         fig.update_layout(
@@ -2734,7 +2673,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
             <div style="background:rgba(6,14,38,0.82);border:2px solid {clr}77;border-radius:14px;
                         padding:14px 12px;text-align:center;
                         box-shadow:0 0 22px {clr}55, 0 0 44px {clr}22, inset 0 1px 0 rgba(255,255,255,0.09);
-                        position:relative;overflow:hidden;animation:card-in 0.35s ease both">
+                        position:relative;overflow:hidden">
                 <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
                             background:linear-gradient(90deg,transparent,{clr},transparent);
                             opacity:0.9"></div>
@@ -3116,16 +3055,6 @@ def dashboard(log, tst, rev, rev_sess, pend):
         _bar_clr_88 = _bar_clr + "88"
         _bar_clr_44 = _bar_clr + "44"
         st.markdown(f"""
-        <style>
-        @keyframes bar-ltr-shimmer {{
-            0%   {{ background-position: 200% center; }}
-            100% {{ background-position: -200% center; }}
-        }}
-        @keyframes bar-fill-ltr {{
-            from {{ width: 0%; }}
-            to   {{ width: {_overall}%; }}
-        }}
-        </style>
         <div style="background:rgba(6,14,38,0.80);border:2px solid {_bar_clr_44};
                     border-radius:16px;padding:20px 24px;margin:14px 0;
                     box-shadow:0 0 24px {_bar_clr_44}, inset 0 1px 0 rgba(255,255,255,0.06)">
@@ -3142,9 +3071,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 <div style="width:{_overall}%;height:100%;border-radius:8px;
                             background:linear-gradient(90deg,{_bar_clr_44},{_bar_clr_88},{_bar_clr},#FFFFFF88,{_bar_clr},{_bar_clr_88},{_bar_clr_44});
                             background-size:300% 100%;
-                            box-shadow:0 0 14px {_bar_clr_88},0 0 28px {_bar_clr_44};
-                            animation:bar-fill-ltr 1.2s cubic-bezier(0.4,0,0.2,1) both,
-                                      bar-ltr-shimmer 2.5s linear infinite"></div>
+                            box-shadow:0 0 14px {_bar_clr_88},0 0 28px {_bar_clr_44}"></div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#7BA7CC">
                 <span>Completion {_coverage_pct:.0f}% × 35%</span>
@@ -4300,42 +4227,10 @@ else:
     # sitting invisibly over the SVG circle so the circle IS the button.
     st.markdown(f"""
     <style>
-    /* XP animations */
+    /* XP bar animation — runs for 10 seconds then stops */
     @keyframes xp-shimmer {{
         0%   {{ background-position: 300% center; }}
         100% {{ background-position: -300% center; }}
-    }}
-    @keyframes lvl-glow {{
-        0%,100% {{
-            text-shadow: 0 0 8px rgba({_glow_rgb},0.9),
-                         0 0 20px rgba({_glow_rgb},0.7),
-                         0 0 40px rgba({_glow_rgb},0.4);
-        }}
-        50% {{
-            text-shadow: 0 0 16px rgba({_glow_rgb},1.0),
-                         0 0 40px rgba({_glow_rgb},0.9),
-                         0 0 80px rgba({_glow_rgb},0.6),
-                         0 0 120px rgba({_glow_rgb},0.3);
-        }}
-    }}
-    @keyframes ring-fill {{
-        from {{ stroke-dasharray: 0 {_circ:.2f}; }}
-        to   {{ stroke-dasharray: {_filled:.2f} {_circ:.2f}; }}
-    }}
-    @keyframes ring-shimmer {{
-        0%   {{ stroke: #0EA5E9; filter: drop-shadow(0 0 6px rgba(56,189,248,0.9)); }}
-        25%  {{ stroke: #38BDF8; filter: drop-shadow(0 0 14px rgba(56,189,248,1.0)); }}
-        50%  {{ stroke: #FFFFFF; filter: drop-shadow(0 0 20px rgba(255,255,255,0.9)) drop-shadow(0 0 40px rgba(56,189,248,0.8)); }}
-        75%  {{ stroke: #38BDF8; filter: drop-shadow(0 0 14px rgba(56,189,248,1.0)); }}
-        100% {{ stroke: #0EA5E9; filter: drop-shadow(0 0 6px rgba(56,189,248,0.9)); }}
-    }}
-    @keyframes name-gradient {{
-        0%,100% {{ background-position: 0% center; }}
-        50%      {{ background-position: 100% center; }}
-    }}
-    @keyframes pulse-count {{
-        0%,100% {{ text-shadow:0 0 20px rgba(56,189,248,0.8),0 0 40px rgba(56,189,248,0.4); }}
-        50%      {{ text-shadow:0 0 30px rgba(56,189,248,1.0),0 0 60px rgba(56,189,248,0.6); }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -4356,17 +4251,12 @@ else:
         '<stop offset="50%"  stop-color="#FFFFFF"/>'
         '<stop offset="65%"  stop-color="#38BDF8"/>'
         '<stop offset="100%" stop-color="#7DD3FC"/>'
-        '<animateTransform attributeName="gradientTransform" type="translate"'
-        ' values="1 0;-1 0;1 0" dur="2.2s" repeatCount="indefinite"/>'
         '</linearGradient>'
         '</defs>'
         '<circle cx="38" cy="38" r="35" fill="none" stroke="rgba(56,189,248,0.12)" stroke-width="5"/>'
         f'<circle cx="38" cy="38" r="35" fill="none" stroke="url(#ringGrad)" stroke-width="5"'
         f' stroke-linecap="round" stroke-dasharray="{_filled:.2f} {_circ:.2f}"'
         f' style="filter:drop-shadow(0 0 8px rgba(56,189,248,0.9)) drop-shadow(0 0 18px rgba(56,189,248,0.6))">'
-        f'<animate attributeName="stroke-dasharray"'
-        f' from="0 {_circ:.2f}" to="{_filled:.2f} {_circ:.2f}"'
-        f' dur="1.2s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1"/>'
         '</circle>'
         '</svg>'
         '<div style="position:absolute;top:6px;left:6px;width:64px;height:64px;'
@@ -4390,14 +4280,12 @@ else:
                             background-size:200% auto;
                             -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                             background-clip:text;
-                            animation:gradient-shift 4s ease infinite;
                             letter-spacing:-0.5px;line-height:1.1">{name}</div>
                 <div style="font-size:10px;color:#7BA7CC;align-self:center">@{profile.get("username","")}</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
                 <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:900;
-                            color:{_lvl_clr};letter-spacing:1px;
-                            animation:lvl-glow 2.2s ease-in-out infinite">LVL&nbsp;{_lvl}</div>
+                            color:{_lvl_clr};letter-spacing:1px">LVL&nbsp;{_lvl}</div>
                 <div style="background:rgba({_glow_rgb},0.15);border:1px solid rgba({_glow_rgb},0.40);
                             border-radius:8px;padding:3px 10px;
                             font-size:11px;font-weight:700;color:{_lvl_clr};
@@ -4415,7 +4303,7 @@ else:
                                 #FFFFFF 50%,
                                 #38BDF8 70%, #7DD3FC 100%);
                             background-size:300% 100%;
-                            animation:xp-shimmer 2.2s linear infinite;
+                            animation:xp-shimmer 2.5s linear 4 forwards;
                             box-shadow:0 0 18px rgba(56,189,248,1.0),
                                        0 0 36px rgba(56,189,248,0.7),
                                        0 0 60px rgba(14,165,233,0.4)">
@@ -4434,8 +4322,7 @@ else:
                     position:relative;overflow:hidden;margin-top:4px;
                     box-shadow:0 0 20px rgba(56,189,248,0.18),var(--shadow-card)">
             <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
-                        background:linear-gradient(90deg,transparent,#38BDF8,#7DD3FC,transparent);
-                        background-size:200% 100%;animation:shimmer-line 3s linear infinite"></div>
+                        background:linear-gradient(90deg,transparent,#38BDF8,#7DD3FC,transparent)"></div>
             <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:800;
                         color:#FFFFFF;line-height:1;
                         text-shadow:0 0 20px rgba(56,189,248,0.9),0 0 40px rgba(56,189,248,0.5)">{days_left}</div>
