@@ -1380,7 +1380,7 @@ def _fetch_logs(user_id):
     return df
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=900, show_spinner=False)  # 15 min — scores change rarely
 def _fetch_scores(user_id):
     r  = sb.table("test_scores") \
            .select("date,subject,test_name,marks,max_marks,score_pct,weak_areas,strong_areas,action_plan") \
@@ -1416,10 +1416,10 @@ def _fetch_revision(user_id):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _fetch_rev_sessions(user_id):
-    """Fetch revision_sessions table — each logged revision round."""
+    """Fetch revision_sessions — explicit columns only (no SELECT *)."""
     try:
         r = sb.table("revision_sessions") \
-              .select("*") \
+              .select("subject,topic,round,date,hours,difficulty,notes,status") \
               .eq("user_id", user_id) \
               .order("date", desc=True) \
               .execute()
@@ -1428,9 +1428,9 @@ def _fetch_rev_sessions(user_id):
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)  # 10 min — backed by materialized view
 def _fetch_leaderboard():
-    r = sb.table("leaderboard").select("*").execute()
+    r = sb.table("leaderboard").select("username,full_name,total_hours,days_studied,avg_score").execute()
     return pd.DataFrame(r.data)
 
 
@@ -4000,7 +4000,7 @@ def leaderboard():
 
     # Only fetch opted-in users
     try:
-        r  = sb.table("leaderboard").select("*").execute()
+        r  = sb.table("leaderboard").select("username,full_name,total_hours,days_studied,avg_score").execute()
         lb = pd.DataFrame(r.data)
     except:
         lb = pd.DataFrame()
