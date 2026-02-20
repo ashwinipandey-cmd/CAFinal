@@ -1452,28 +1452,83 @@ def dark_table(df, caption=""):
     """, unsafe_allow_html=True)
 
 
-# ── REVISION ENGINE ───────────────────────────────────────────────────────────
-# Base intervals (days after previous event)
-REVISION_INTERVALS = [3, 7, 15, 30, 45, 60]   # R1→R6
+# ══════════════════════════════════════════════════════════════════════════════
+# REVISION ENGINE — Controlled Growth Spaced Model (CGSM)
+# Based on the mathematical framework from the CA Final Strategy document.
+#
+# Core formula (non-exploding linear acceleration):
+#   d    = g2 − g1            (increment)
+#   Gap1 = g1                 (R1 gap, user-defined)
+#   Gap2 = g2                 (R2 gap, user-defined)
+#   Gapₙ = Gapₙ₋₁ + d × f   (controlled growth, f = growth factor)
+#
+# Hard guards:
+#   MaxGap ≤ min(120, DaysLeft/2)
+#   No revision beyond AttemptDate − 15 days
+# ══════════════════════════════════════════════════════════════════════════════
 
-def get_revision_interval(n: int) -> int:
+def get_cgsm_gaps(g1: int, g2: int, num_rev: int, growth_factor: float = 1.30,
+                  max_gap: int = 120, days_left: int = None) -> list:
+    """
+    Controlled Growth Spaced Model — returns list of gap values (days) for R1..RN.
+
+    g1          : days gap before R1 (user-defined)
+    g2          : days gap before R2 (user-defined, measured from R1 date)
+    num_rev     : total number of revision rounds (1–10)
+    growth_factor: linear acceleration factor f (default 1.30)
+    max_gap     : hard cap on any single gap (default 120 days)
+    days_left   : if set, also caps at days_left/2
+
+    Returns: list of integer gap values, length = num_rev
+    """
+    if num_rev == 0:
+        return []
+    if num_rev == 1:
+        return [max(g1, 1)]
+
+    # Effective max gap: the tighter of the two caps
+    eff_max = max_gap
+    if days_left is not None and days_left > 0:
+        eff_max = min(eff_max, max(int(days_left / 2), g1 + 1))
+
+    d = g2 - g1   # base increment
+
+    gaps = [g1, g2]
+    for _ in range(2, num_rev):
+        next_gap = round(gaps[-1] + d * growth_factor)
+        next_gap = max(next_gap, gaps[-1] + 1)   # always strictly increasing
+        next_gap = min(next_gap, eff_max)          # hard ceiling
+        gaps.append(next_gap)
+
+    return gaps[:num_rev]
+
+
+def get_revision_interval(n: int, prof: dict = None, days_left: int = None) -> int:
     """
     Return gap (days) before revision round n (1-based).
-    n=1 → 3d, n=2 → 7d, n=3 → 15d, n=4 → 30d, n=5 → 45d, n=6 → 60d
-    Beyond R6 → weighted average of previous two intervals.
+    Uses CGSM formula when profile has r1_days/r2_days/growth_factor.
+    Falls back to classic intervals for legacy profiles.
     """
-    if n <= len(REVISION_INTERVALS):
-        return REVISION_INTERVALS[n - 1]
-    # Weighted average for n > 6
-    prev2 = get_revision_interval(n - 2)
-    prev1 = get_revision_interval(n - 1)
-    return round((prev1 + prev2) / 2)
+    if prof is None:
+        prof = st.session_state.get("profile", {})
+
+    g1             = int(prof.get("r1_days", 3))
+    g2             = int(prof.get("r2_days", 7))
+    growth_factor  = float(prof.get("growth_factor", 1.30))
+    num_rev        = int(prof.get("num_revisions", 6))
+    max_gap        = int(prof.get("max_gap_days", 120))
+
+    gaps = get_cgsm_gaps(g1, g2, max(n, num_rev), growth_factor, max_gap, days_left)
+    if n <= len(gaps):
+        return gaps[n - 1]
+    return gaps[-1] if gaps else 7  # fallback
 
 
 def get_revision_ratios(r1_ratio: float, r2_ratio: float, num_rev: int) -> list:
     """
     Returns list of ratios (as decimals) for R1..RN.
-    R1, R2 set by user. R3+ computed as weighted average of previous two.
+    R1, R2 set by user. R3+ decrease by 0.15× factor (later revisions are faster).
+    Min ratio = 0.10 (10% of TFR — always meaningful).
     """
     if num_rev == 0:
         return []
@@ -1481,42 +1536,557 @@ def get_revision_ratios(r1_ratio: float, r2_ratio: float, num_rev: int) -> list:
     if num_rev >= 2:
         ratios.append(r2_ratio)
     for i in range(2, num_rev):
-        ratios.append(round((ratios[-2] + ratios[-1]) / 2, 4))
+        # Each subsequent revision is faster — decay by 15% of previous
+        next_r = round(ratios[-1] * 0.85, 4)
+        next_r = max(next_r, 0.10)   # floor at 10%
+        ratios.append(next_r)
     return ratios
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# CA-GRADE ANALYTICS ENGINE
+# Implements: AIR Preparedness Index, RPI, PWDAM, Stress Index,
+#             Phase Detection, Retention Density, Subject Balance Detector
+# ══════════════════════════════════════════════════════════════════════════════
+
+def compute_frp(log_df: pd.DataFrame, prof: dict) -> float:
+    """
+    First Read Progress Ratio (FRP).
+    FRP = TotalFirstReadHoursCompleted / TotalFirstReadHoursRequired
+    Range: 0.0 → 1.0  (can exceed 1.0 if user overshot target; capped at 1.0)
+    """
+    if log_df.empty:
+        return 0.0
+    # Only reading sessions (not revision)
+    if "session_type" in log_df.columns:
+        read_log = log_df[log_df["session_type"] != "revision"]
+    else:
+        read_log = log_df
+
+    total_read_hrs = float(read_log["hours"].sum()) if not read_log.empty else 0.0
+    total_req_hrs  = sum(
+        int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s]))
+        for s in SUBJECTS
+    )
+    if total_req_hrs <= 0:
+        return 0.0
+    return min(total_read_hrs / total_req_hrs, 1.0)
+
+
+def compute_pwdam(frp: float, study_hours_today: float, phase: str) -> dict:
+    """
+    Progress-Weighted Dynamic Allocation Model (PWDAM).
+    Computes how to split today's study hours between revision and first read.
+
+    Formula (non-linear, exam-aligned):
+      RevisionShare = Base + (Max − Base) × FRP^1.3
+
+    Articleship:  Base=0.25, Max=0.70
+    Post-Art:     Base=0.40, Max=1.00
+
+    Returns dict with revision_hrs, first_read_hrs, revision_share_pct
+    """
+    if phase == "articleship":
+        base, max_share = 0.25, 0.70
+    else:
+        base, max_share = 0.40, 1.00
+
+    revision_share  = base + (max_share - base) * (frp ** 1.3)
+    revision_share  = min(revision_share, 1.0)
+    revision_hrs    = round(study_hours_today * revision_share, 2)
+    first_read_hrs  = round(max(study_hours_today - revision_hrs, 0.0), 2)
+
+    return {
+        "revision_share_pct": round(revision_share * 100, 1),
+        "revision_hrs":       revision_hrs,
+        "first_read_hrs":     first_read_hrs,
+    }
+
+
+def detect_study_phase(prof: dict) -> str:
+    """
+    Returns 'articleship' or 'post_articleship' based on profile settings.
+    Checks articleship_end_date; falls back to manual phase setting.
+    """
+    phase_manual = prof.get("study_phase", "articleship")
+    art_end = prof.get("articleship_end_date")
+    if art_end:
+        try:
+            end_dt = date.fromisoformat(str(art_end)[:10])
+            if date.today() >= end_dt:
+                return "post_articleship"
+            else:
+                return "articleship"
+        except:
+            pass
+    return phase_manual
+
+
+def compute_air_index(log_df: pd.DataFrame, rev_df: pd.DataFrame,
+                      rev_sess_df: pd.DataFrame, pend_df: pd.DataFrame,
+                      prof: dict) -> dict:
+    """
+    AIR Preparedness Index — per-subject and overall.
+
+    AIR = 0.35×Coverage + 0.30×RevisionDepth + 0.20×Consistency + 0.15×Balance
+    (normalized 0–100)
+
+    Returns dict with:
+      overall: float 0–100
+      per_subject: {s: float 0–100}
+      components: {coverage, revision_depth, consistency, balance}
+      color: hex string
+      label: text label
+    """
+    all_topics  = sum(len(v) for v in TOPICS.values())
+    num_rev     = int(prof.get("num_revisions", 6))
+
+    # ── Coverage Score: completed topics / total topics ────────────────────────
+    completed_count = 0
+    if not rev_df.empty and "topic_status" in rev_df.columns:
+        completed_count = int((rev_df["topic_status"] == "completed").sum())
+    coverage = completed_count / all_topics if all_topics > 0 else 0.0
+
+    # ── Revision Depth Score: completed revisions / max possible revisions ─────
+    total_rev_done = len(rev_sess_df) if not rev_sess_df.empty else 0
+    max_possible   = completed_count * num_rev
+    rev_depth      = min(total_rev_done / max_possible, 1.0) if max_possible > 0 else 0.0
+
+    # ── Consistency Score: 1 − (overdue / total_due) ───────────────────────────
+    overdue_count = 0
+    total_due     = 0
+    if not pend_df.empty:
+        total_due     = len(pend_df)
+        overdue_count = int((pend_df["days_overdue"] > 0).sum())
+    consistency   = (1 - overdue_count / total_due) if total_due > 0 else 1.0
+
+    # ── Balance Score: 1 − subject imbalance deviation ─────────────────────────
+    # Measure how evenly distributed revision effort is across subjects
+    if not rev_sess_df.empty and "subject" in rev_sess_df.columns and total_rev_done > 0:
+        subj_shares = {s: len(rev_sess_df[rev_sess_df["subject"] == s]) / total_rev_done
+                       for s in SUBJECTS}
+        ideal_share  = 1.0 / len(SUBJECTS)
+        deviation    = sum(abs(subj_shares.get(s, 0) - ideal_share) for s in SUBJECTS) / len(SUBJECTS)
+        balance      = max(0.0, 1.0 - deviation * 2)
+    else:
+        balance = 0.5  # neutral — no data yet
+
+    # ── Overall AIR ────────────────────────────────────────────────────────────
+    overall_raw = 0.35 * coverage + 0.30 * rev_depth + 0.20 * consistency + 0.15 * balance
+    overall     = round(overall_raw * 100, 1)
+
+    # ── Per-subject AIR ────────────────────────────────────────────────────────
+    per_subject = {}
+    for s in SUBJECTS:
+        n_topics  = len(TOPICS.get(s, []))
+        s_comp    = 0
+        if not rev_df.empty and "topic_status" in rev_df.columns:
+            s_comp = int(((rev_df["subject"] == s) & (rev_df["topic_status"] == "completed")).sum())
+        s_cov     = s_comp / n_topics if n_topics > 0 else 0.0
+
+        s_rev_done = len(rev_sess_df[rev_sess_df["subject"] == s]) if not rev_sess_df.empty and "subject" in rev_sess_df.columns else 0
+        s_max_rev  = s_comp * num_rev
+        s_depth    = min(s_rev_done / s_max_rev, 1.0) if s_max_rev > 0 else 0.0
+
+        s_overdue = 0
+        s_total_d = 0
+        if not pend_df.empty:
+            sp = pend_df[pend_df["subject"] == s]
+            s_total_d = len(sp)
+            s_overdue = int((sp["days_overdue"] > 0).sum())
+        s_cons = (1 - s_overdue / s_total_d) if s_total_d > 0 else 1.0
+
+        s_air = round((0.35 * s_cov + 0.30 * s_depth + 0.20 * s_cons + 0.15 * balance) * 100, 1)
+        per_subject[s] = s_air
+
+    # ── Color & label ──────────────────────────────────────────────────────────
+    if overall >= 80:
+        color, label = "#34D399", "STRONG"
+    elif overall >= 60:
+        color, label = "#FBBF24", "MODERATE"
+    elif overall >= 40:
+        color, label = "#F97316", "AT RISK"
+    else:
+        color, label = "#F87171", "CRITICAL"
+
+    return {
+        "overall":      overall,
+        "per_subject":  per_subject,
+        "components":   {
+            "coverage":      round(coverage * 100, 1),
+            "revision_depth":round(rev_depth * 100, 1),
+            "consistency":   round(consistency * 100, 1),
+            "balance":       round(balance * 100, 1),
+        },
+        "color": color,
+        "label": label,
+    }
+
+
+def compute_rpi(log_df: pd.DataFrame, rev_df: pd.DataFrame,
+                rev_sess_df: pd.DataFrame, pend_df: pd.DataFrame,
+                prof: dict) -> dict:
+    """
+    Readiness Probability Index (RPI) — the elite-level CA Final score.
+
+    RPI = 0.30×C + 0.30×RD + 0.20×RDen + 0.10×Cons + 0.10×(1−ExpRisk)
+    (Range 0–1, displayed as 0–100)
+
+    C    = Coverage ratio
+    RD   = Revision Depth ratio
+    RDen = Retention Density (avg revision touches per topic)
+    Cons = Execution Consistency (days studied / elapsed days)
+    ExpRisk = Exposure Risk (% of completed topics not seen in >30 days)
+    """
+    all_topics  = sum(len(v) for v in TOPICS.values())
+    num_rev     = int(prof.get("num_revisions", 6))
+
+    # C — Coverage
+    completed_count = 0
+    if not rev_df.empty and "topic_status" in rev_df.columns:
+        completed_count = int((rev_df["topic_status"] == "completed").sum())
+    C = completed_count / all_topics if all_topics > 0 else 0.0
+
+    # RD — Revision Depth
+    total_rev_done = len(rev_sess_df) if not rev_sess_df.empty else 0
+    max_possible   = completed_count * num_rev
+    RD = min(total_rev_done / max_possible, 1.0) if max_possible > 0 else 0.0
+
+    # RDen — Retention Density (average touches per topic)
+    # Target: ≥4.0 by exam day
+    RDen_raw = total_rev_done / all_topics if all_topics > 0 else 0.0
+    # Normalize against target of 4.0
+    RDen = min(RDen_raw / 4.0, 1.0)
+
+    # Cons — Execution Consistency
+    if not log_df.empty and "date" in log_df.columns:
+        days_active    = log_df["date"].dt.date.nunique()
+        first_day      = log_df["date"].dt.date.min()
+        elapsed_days   = max((date.today() - first_day).days, 1)
+        Cons = min(days_active / elapsed_days, 1.0)
+    else:
+        Cons = 0.0
+
+    # ExpRisk — Exposure Risk
+    # % of completed topics whose last revision/read was >30 days ago
+    if not pend_df.empty and not pend_df.empty:
+        high_overdue   = int((pend_df["days_overdue"] > 30).sum()) if "days_overdue" in pend_df.columns else 0
+        tracked_topics = len(pend_df)
+        ExpRisk = high_overdue / tracked_topics if tracked_topics > 0 else 0.0
+    else:
+        ExpRisk = 0.0
+
+    # RPI formula
+    rpi_raw = 0.30 * C + 0.30 * RD + 0.20 * RDen + 0.10 * Cons + 0.10 * (1 - ExpRisk)
+    rpi     = round(rpi_raw * 100, 1)
+
+    # Interpretation
+    if rpi >= 80:
+        label, color = "HIGH CLEARANCE STABILITY", "#34D399"
+    elif rpi >= 65:
+        label, color = "COMPETITIVE — RISK EXISTS", "#60A5FA"
+    elif rpi >= 50:
+        label, color = "UNSTABLE", "#FBBF24"
+    else:
+        label, color = "STRUCTURALLY UNSAFE", "#F87171"
+
+    # Retention density value for milestone checking
+    days_left = max((get_exam_date() - date.today()).days, 0)
+    rden_milestone = None
+    if days_left <= 45:
+        rden_milestone = ("Exam − 45d target", 3.0)
+    elif days_left <= 90:
+        rden_milestone = ("Exam − 90d target", 2.0)
+    else:
+        rden_milestone = ("Exam day target", 4.0)
+
+    return {
+        "rpi":           rpi,
+        "label":         label,
+        "color":         color,
+        "components":    {
+            "coverage":     round(C * 100, 1),
+            "revision_depth": round(RD * 100, 1),
+            "retention_density": round(RDen_raw, 2),
+            "consistency":  round(Cons * 100, 1),
+            "exposure_risk":round(ExpRisk * 100, 1),
+        },
+        "rden_actual":   round(RDen_raw, 2),
+        "rden_milestone":rden_milestone,
+    }
+
+
+def compute_stress_index(pend_df: pd.DataFrame, log_df: pd.DataFrame,
+                          daily_cap: int) -> dict:
+    """
+    Stress Index = PlannedWork / RollingCapacity (14-day average)
+    > 1.3 → Plan is aggressive (warn)
+    > 1.5 → Critical — insufficient pace
+
+    Returns dict with stress_index, level ('normal'/'warn'/'critical'), message
+    """
+    # 14-day rolling average study hours
+    if log_df.empty:
+        rolling_avg = 0.0
+    else:
+        cutoff      = date.today() - timedelta(days=14)
+        recent      = log_df[log_df["date"].dt.date >= cutoff]
+        rolling_avg = float(recent["hours"].sum()) / 14.0 if not recent.empty else 0.0
+
+    # Planned daily work (overdue + today's due revisions)
+    planned_daily = 0
+    if not pend_df.empty:
+        overdue_count = int((pend_df["days_overdue"] >= 0).sum())
+        planned_daily = min(overdue_count, daily_cap)
+
+    # Stress = planned_daily / rolling_avg
+    stress = planned_daily / rolling_avg if rolling_avg > 0 else (1.0 if planned_daily == 0 else 2.0)
+
+    if stress >= 1.5:
+        level   = "critical"
+        color   = "#F87171"
+        message = "⚠️ Current pace insufficient for structured 2nd revision cycle"
+    elif stress >= 1.3:
+        level   = "warn"
+        color   = "#FBBF24"
+        message = "Plan may be aggressive — consider adjusting daily cap or revision settings"
+    else:
+        level   = "normal"
+        color   = "#34D399"
+        message = "Workload is sustainable"
+
+    return {
+        "stress_index":   round(stress, 2),
+        "rolling_avg_hrs":round(rolling_avg, 1),
+        "level":          level,
+        "color":          color,
+        "message":        message,
+    }
+
+
+def compute_execution_consistency(log_df: pd.DataFrame) -> dict:
+    """
+    Execution Consistency = DaysStudied / ElapsedDays
+    Brutally factual — no sugarcoating.
+    """
+    if log_df.empty:
+        return {"pct": 0, "days_studied": 0, "elapsed": 0, "color": "#F87171"}
+
+    days_studied = log_df["date"].dt.date.nunique()
+    first_day    = log_df["date"].dt.date.min()
+    elapsed      = max((date.today() - first_day).days + 1, 1)
+    pct          = round(days_studied / elapsed * 100, 1)
+
+    color = "#34D399" if pct >= 70 else "#FBBF24" if pct >= 50 else "#F87171"
+    return {"pct": pct, "days_studied": days_studied, "elapsed": elapsed, "color": color}
+
+
+def compute_phase_info(prof: dict, log_df: pd.DataFrame, days_left: int) -> dict:
+    """
+    Determine current preparation phase (A/B/C) and what it means.
+
+    Phase A — Coverage Phase:   FRP < 0.80
+    Phase B — Consolidation:    FRP >= 0.80
+    Phase C — Compression:      Last 60 days (auto, not optional)
+    """
+    frp   = compute_frp(log_df, prof)
+    phase = detect_study_phase(prof)
+
+    if days_left <= 60:
+        prep_phase = "C"
+        label      = "🔴 Phase C — COMPRESSION"
+        desc       = "Last 60 days: max gap ≤ 15 days, no new first reads, full revision intensity"
+        color      = "#F87171"
+    elif frp >= 0.80:
+        prep_phase = "B"
+        label      = "🟡 Phase B — CONSOLIDATION"
+        desc       = "Syllabus ≥80% done: revision dominant, gaps tightening, mock cycles increasing"
+        color      = "#FBBF24"
+    else:
+        prep_phase = "A"
+        label      = "🔵 Phase A — COVERAGE"
+        desc       = "First read priority, revision grows automatically with syllabus progress"
+        color      = "#60A5FA"
+
+    # Apply compression-mode gap cap in Phase C
+    effective_max_gap = 15 if prep_phase == "C" else int(prof.get("max_gap_days", 120))
+
+    return {
+        "prep_phase":        prep_phase,
+        "label":             label,
+        "desc":              desc,
+        "color":             color,
+        "frp":               frp,
+        "study_phase":       phase,
+        "effective_max_gap": effective_max_gap,
+    }
+
+
+def compute_weekly_subject_balance(rev_sess_df: pd.DataFrame) -> dict:
+    """
+    Weekly Subject Imbalance Detector — runs post-articleship only.
+    Checks if any subject's weekly revision share deviates >20% from ideal.
+
+    Returns list of flags: [{subject, share_pct, ideal_pct, flag, color}]
+    """
+    ideal = 1.0 / len(SUBJECTS)   # 20% each
+    result = {}
+
+    if rev_sess_df.empty or "subject" not in rev_sess_df.columns:
+        for s in SUBJECTS:
+            result[s] = {"share_pct": 0, "ideal_pct": ideal * 100,
+                          "flag": "no_data", "color": "#94A3B8"}
+        return result
+
+    # Last 7 days
+    cutoff  = date.today() - timedelta(days=7)
+    if "date" in rev_sess_df.columns:
+        try:
+            dates_col = pd.to_datetime(rev_sess_df["date"]).dt.date
+            weekly    = rev_sess_df[dates_col >= cutoff]
+        except:
+            weekly = rev_sess_df
+    else:
+        weekly = rev_sess_df
+
+    total_weekly = len(weekly) if not weekly.empty else 0
+
+    for s in SUBJECTS:
+        if total_weekly == 0:
+            share = 0.0
+        else:
+            s_count = len(weekly[weekly["subject"] == s]) if not weekly.empty else 0
+            share   = s_count / total_weekly
+
+        deviation = share - ideal
+        if deviation < -0.20:
+            flag, color = "under_revised", "#F87171"
+        elif deviation > 0.20:
+            flag, color = "over_focused", "#FBBF24"
+        else:
+            flag, color = "balanced", "#34D399"
+
+        result[s] = {
+            "share_pct": round(share * 100, 1),
+            "ideal_pct": round(ideal * 100, 1),
+            "flag":      flag,
+            "color":     color,
+        }
+
+    return result
+
+
+def compute_exam_projection(log_df: pd.DataFrame, rev_df: pd.DataFrame,
+                             prof: dict, days_left: int) -> dict:
+    """
+    Exam Readiness Projection — at current pace, what happens by exam day?
+
+    Returns:
+      - projected_frp_at_exam (0–1)
+      - projected_cycles_at_exam
+      - status: 'on_track' | 'at_risk' | 'critical'
+      - message: human readable summary
+    """
+    all_topics = sum(len(v) for v in TOPICS.values())
+
+    if log_df.empty or days_left <= 0:
+        return {
+            "status": "no_data",
+            "message": "Start logging study sessions to see your exam projection.",
+            "projected_frp": 0.0,
+            "projected_cycles": 0,
+        }
+
+    # 14-day rolling avg reading hours/day
+    if "session_type" in log_df.columns:
+        read_log = log_df[log_df["session_type"] != "revision"]
+    else:
+        read_log = log_df
+
+    cutoff       = date.today() - timedelta(days=14)
+    recent_read  = read_log[read_log["date"].dt.date >= cutoff]
+    daily_read_avg = float(recent_read["hours"].sum()) / 14.0 if not recent_read.empty else 0.0
+
+    # Current FRP and projected
+    frp_now      = compute_frp(log_df, prof)
+    total_req    = sum(int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s])) for s in SUBJECTS)
+    hrs_done     = frp_now * total_req
+    hrs_remaining= max(total_req - hrs_done, 0)
+
+    days_to_finish_fr = (hrs_remaining / daily_read_avg) if daily_read_avg > 0 else 9999
+    proj_frp     = min(frp_now + daily_read_avg * days_left / total_req, 1.0) if total_req > 0 else frp_now
+
+    # Revision cycles at exam
+    completed_count = int((rev_df["topic_status"] == "completed").sum()) if not rev_df.empty and "topic_status" in rev_df.columns else 0
+    num_rev         = int(prof.get("num_revisions", 6))
+    cutoff_rev      = date.today() - timedelta(days=14)
+    recent_rev      = log_df[(log_df.get("session_type") == "revision") if "session_type" in log_df.columns else pd.Series([False]*len(log_df))]
+    daily_rev_avg   = float(recent_rev["hours"].sum()) / 14.0 if not recent_rev.empty else 0.0
+    proj_rev_hrs    = daily_rev_avg * days_left
+    est_cycles      = round(proj_rev_hrs / max(completed_count * 1.5, 1), 1) if completed_count > 0 else 0.0
+
+    # Determine status
+    if proj_frp < 0.9 and days_left < 120:
+        status = "critical"
+        color  = "#F87171"
+        msg    = f"⚠️ At current pace, syllabus will be only {proj_frp*100:.0f}% complete by exam. Insufficient time for 2nd revision cycle."
+    elif days_to_finish_fr > days_left - 60:
+        status = "at_risk"
+        color  = "#FBBF24"
+        msg    = f"First read may complete too late — leaving < 60 days for consolidation. Increase daily reading hours."
+    elif est_cycles < 2:
+        status = "at_risk"
+        color  = "#FBBF24"
+        msg    = f"Projected only {est_cycles:.1f} revision cycles before exam. CA Final needs minimum 3. Increase revision pace."
+    else:
+        status = "on_track"
+        color  = "#34D399"
+        msg    = f"On track — projected {est_cycles:.1f} revision cycles and {proj_frp*100:.0f}% first read by exam."
+
+    return {
+        "status":          status,
+        "color":           color,
+        "message":         msg,
+        "projected_frp":   round(proj_frp * 100, 1),
+        "projected_cycles":round(est_cycles, 1),
+        "daily_read_avg":  round(daily_read_avg, 1),
+        "days_to_finish_fr": int(days_to_finish_fr),
+    }
+
+
 def compute_revision_schedule(tfr: float, r1_ratio: float, r2_ratio: float,
-                               num_rev: int, completion_date: date) -> list:
+                               num_rev: int, completion_date: date,
+                               prof: dict = None, days_left: int = None) -> list:
     """
     Given TFR (hours), ratios, num revisions, and topic completion date,
-    returns list of dicts:
+    returns list of dicts using CGSM gap formula:
       {round: 1, duration_hrs: X, due_date: date, interval_days: N}
-
-    R1 duration = TFR × r1_ratio
-    R2 duration = TFR × r2_ratio   (user said R2 is also TFR-based)
-    R3+ duration = prev_duration × ratio  (each ratio applied to previous)
-    Wait — user confirmed: R2 = TFR × r2_ratio too.
-    So ALL durations = TFR × ratio[i]
+    Uses get_cgsm_gaps() for non-exploding interval calculation.
     """
+    if prof is None:
+        prof = st.session_state.get("profile", {})
+    g1            = int(prof.get("r1_days", 3))
+    g2            = int(prof.get("r2_days", 7))
+    growth_factor = float(prof.get("growth_factor", 1.30))
+    max_gap       = int(prof.get("max_gap_days", 120))
+    gaps      = get_cgsm_gaps(g1, g2, num_rev, growth_factor, max_gap, days_left)
     ratios    = get_revision_ratios(r1_ratio, r2_ratio, num_rev)
     schedule  = []
     prev_date = completion_date
-
     for i, ratio in enumerate(ratios):
         rn        = i + 1
-        interval  = get_revision_interval(rn)
+        interval  = gaps[i] if i < len(gaps) else gaps[-1]
         due       = prev_date + timedelta(days=interval)
         duration  = round(tfr * ratio, 2)
         schedule.append({
             "round":         rn,
             "label":         f"R{rn}",
-            "duration_hrs":  max(duration, 0.5),   # minimum 30 min
+            "duration_hrs":  max(duration, 0.5),
             "due_date":      due,
             "interval_days": interval,
             "ratio":         ratio,
         })
         prev_date = due
-
     return schedule
 
 
@@ -1631,9 +2201,17 @@ def compute_revision_pendencies(rev_df_hash, log_df_hash, log_json):
         rev_dates = sorted([d for d, st in session_list if st == "revision"])
         revs_done = len(rev_dates)
 
-        # Next due: apply schedule from completion_date
-        interval  = get_revision_interval(revs_done + 1)
-        base_date = rev_dates[-1] if rev_dates else comp_date
+        # Next due: apply CGSM schedule from completion_date
+        _prof_pend    = st.session_state.get("profile", {})
+        _g1           = int(_prof_pend.get("r1_days", 3))
+        _g2           = int(_prof_pend.get("r2_days", 7))
+        _gf           = float(_prof_pend.get("growth_factor", 1.30))
+        _mgap         = int(_prof_pend.get("max_gap_days", 120))
+        _nr           = max(int(_prof_pend.get("num_revisions", 6)), revs_done + 1)
+        _gaps         = get_cgsm_gaps(_g1, _g2, _nr, _gf, _mgap)
+        _round_idx    = revs_done  # 0-based index for next round
+        interval      = _gaps[_round_idx] if _round_idx < len(_gaps) else _gaps[-1]
+        base_date     = rev_dates[-1] if rev_dates else comp_date
         due_date  = base_date + timedelta(days=interval)
         days_diff = (today - due_date).days
 
@@ -1694,7 +2272,9 @@ def update_profile(data):
         err = str(e)
         # If new columns don't exist yet, retry with only known-safe columns
         new_cols = {"r1_ratio","r2_ratio","num_revisions",
-                    "target_hrs_fr","target_hrs_afm","target_hrs_aa","target_hrs_dt","target_hrs_idt"}
+                    "target_hrs_fr","target_hrs_afm","target_hrs_aa","target_hrs_dt","target_hrs_idt",
+                    "r1_days","r2_days","growth_factor","max_gap_days","daily_rev_cap",
+                    "study_phase","articleship_end_date","daily_study_hours","prep_mode"}
         if any(c in err for c in new_cols) or "column" in err.lower():
             safe_data = {k: v for k, v in data.items() if k not in new_cols}
             try:
@@ -1933,19 +2513,94 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                                     key="prof_year")
 
         st.markdown("---")
-        st.markdown('<div class="neon-header">🔄 Revision Engine Settings</div>', unsafe_allow_html=True)
-        st.caption("R1 & R2 Ratios set by you — all later ratios auto-calculated via weighted average.")
+        st.markdown('<div class="neon-header">📍 Study Phase</div>', unsafe_allow_html=True)
+        st.caption("Defines your current preparation phase — affects how study time is allocated between first read and revision.")
+        sp1, sp2 = st.columns(2)
+        phase_opts = ["articleship", "post_articleship"]
+        phase_labels = {"articleship": "🔵 During Articleship (4–7 hrs/day)", "post_articleship": "🟢 Post Articleship (10–14 hrs/day)"}
+        cur_phase = prof.get("study_phase", "articleship")
+        new_phase = sp1.selectbox("Current Phase", phase_opts,
+                                   index=phase_opts.index(cur_phase) if cur_phase in phase_opts else 0,
+                                   format_func=lambda x: phase_labels[x], key="prof_phase")
+        art_end_val = prof.get("articleship_end_date")
+        try:
+            art_end_default = date.fromisoformat(str(art_end_val)[:10]) if art_end_val else date.today() + timedelta(days=180)
+        except:
+            art_end_default = date.today() + timedelta(days=180)
+        new_art_end = sp2.date_input("Articleship End Date (approx.)", value=art_end_default,
+                                     min_value=date(2023,1,1), max_value=date(2030,1,1), key="prof_art_end")
+        phase_key = new_phase
+        study_hrs_default = {"articleship": 5, "post_articleship": 12}
+        cur_study_hrs = int(prof.get("daily_study_hours", study_hrs_default[phase_key]))
+        new_study_hrs = sp1.slider("Avg Study Hours/Day", 1, 16, cur_study_hrs, 1, key="prof_study_hrs",
+                                    help="Used for daily time allocation suggestions (PWDAM engine)")
+
+        st.markdown("---")
+        st.markdown('<div class="neon-header">⚙️ Preparation Mode</div>', unsafe_allow_html=True)
+        st.caption("Clearance Mode optimizes for passing. Rank Mode increases intensity for All India Rank aspirants.")
+        mode_opts = ["clearance", "rank"]
+        mode_labels = {"clearance": "🎯 Clearance Mode (default — stable, focused on passing)", "rank": "🏆 Rank Mode (aggressive — higher density, more pressure)"}
+        cur_mode = prof.get("prep_mode", "clearance")
+        new_mode = st.selectbox("Preparation Mode", mode_opts,
+                                 index=mode_opts.index(cur_mode) if cur_mode in mode_opts else 0,
+                                 format_func=lambda x: mode_labels[x], key="prof_mode")
+        if new_mode == "rank":
+            st.warning("⚠️ Rank Mode increases workload significantly. Suitable only for aspirants targeting AIR positions.")
+
+        st.markdown("---")
+        st.markdown('<div class="neon-header">🔄 Revision Engine — CGSM Settings</div>', unsafe_allow_html=True)
+        st.caption("Gap Engine uses Controlled Growth Spaced Model. R1 & R2 set by you — all later gaps auto-calculated. Growth Factor controls acceleration.")
+
         re1, re2, re3 = st.columns(3)
+        cur_r1_days  = int(prof.get("r1_days", 3))
+        cur_r2_days  = int(prof.get("r2_days", 7))
+        cur_nrev     = int(prof.get("num_revisions", 6))
+        new_r1_days  = re1.number_input("R1 Gap (days after completion)", min_value=1, max_value=14,
+                                         value=cur_r1_days, step=1, key="prof_r1_days",
+                                         help="Days to wait before first revision after topic completion")
+        new_r2_days  = re2.number_input("R2 Gap (days after R1)", min_value=2, max_value=21,
+                                         value=cur_r2_days, step=1, key="prof_r2_days",
+                                         help="Days to wait before second revision after R1")
+        new_nrev     = re3.slider("Total Revisions (1–10)", 3, 10, cur_nrev, 1, key="prof_nrev")
+
+        re4, re5, re6 = st.columns(3)
+        cur_gf    = float(prof.get("growth_factor", 1.30))
+        cur_maxg  = int(prof.get("max_gap_days", 120))
+        cur_dcap  = int(prof.get("daily_rev_cap", 5))
+        new_gf    = re4.slider("Growth Factor (f)", 1.0, 2.0, cur_gf, 0.05, key="prof_gf",
+                                help="Controls how fast gaps grow. 1.3 = recommended. Higher = more spacing.")
+        new_maxg  = re5.number_input("Max Gap Cap (days)", min_value=30, max_value=120,
+                                      value=cur_maxg, step=5, key="prof_maxg",
+                                      help="No revision gap will exceed this value")
+        new_dcap  = re6.number_input("Daily Revision Cap", min_value=1, max_value=15,
+                                      value=cur_dcap, step=1, key="prof_dcap",
+                                      help="Max revisions per day (prospective only — past is never changed)")
+
+        # Live gap preview
+        days_left_preview = max((get_exam_date() - date.today()).days, 0)
+        preview_gaps = get_cgsm_gaps(new_r1_days, new_r2_days, new_nrev, new_gf, new_maxg, days_left_preview)
+        gaps_str = " → ".join([f"R{i+1}:{g}d" for i, g in enumerate(preview_gaps)])
+        st.markdown(f"""
+        <div style="background:rgba(56,189,248,0.07);border:1.5px solid rgba(56,189,248,0.20);
+                    border-radius:10px;padding:10px 14px;margin:6px 0;font-size:11px">
+            <span style="color:#7BA7CC;font-weight:700">Gap Preview → </span>
+            <span style="color:#7DD3FC;font-family:'DM Mono',monospace">{gaps_str}</span>
+            <span style="color:#6B91B8;margin-left:12px">(capped at {new_maxg}d)</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+        st.markdown('<div class="neon-header">📊 Revision Duration Ratios (% of TFR)</div>', unsafe_allow_html=True)
+        st.caption("R1 & R2 durations as % of Total First Reading time. Later revisions auto-decay (each 15% shorter).")
+        rd1, rd2 = st.columns(2)
         cur_r1   = float(prof.get("r1_ratio", 0.25))
         cur_r2   = float(prof.get("r2_ratio", 0.25))
-        cur_nrev = int(prof.get("num_revisions", 6))
-        new_r1   = re1.slider("R1 Ratio (% of TFR)", 5, 80, int(cur_r1*100), 5, key="prof_r1",
+        new_r1   = rd1.slider("R1 Duration (% of TFR)", 5, 80, int(cur_r1*100), 5, key="prof_r1",
                                help="R1 duration = TFR × this ratio") / 100
-        new_r2   = re2.slider("R2 Ratio (% of TFR)", 5, 80, int(cur_r2*100), 5, key="prof_r2",
+        new_r2   = rd2.slider("R2 Duration (% of TFR)", 5, 80, int(cur_r2*100), 5, key="prof_r2",
                                help="R2 duration = TFR × this ratio") / 100
-        new_nrev = re3.slider("Number of Revisions", 3, 10, cur_nrev, 1, key="prof_nrev")
-        ratios = get_revision_ratios(new_r1, new_r2, new_nrev)
-        st.caption("Auto schedule: " + " → ".join([f"R{i+1}:{r*100:.0f}%" for i,r in enumerate(ratios)]))
+        ratios   = get_revision_ratios(new_r1, new_r2, new_nrev)
+        st.caption("Duration decay: " + " → ".join([f"R{i+1}:{r*100:.0f}%" for i,r in enumerate(ratios)]))
 
         st.markdown("---")
         st.markdown('<div class="neon-header">📚 First Reading Targets (hours per subject)</div>', unsafe_allow_html=True)
@@ -1982,6 +2637,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
             errors = []
             if not new_full.strip(): errors.append("Full Name cannot be empty")
             if not new_user.strip(): errors.append("Username cannot be empty")
+            if new_r1_days >= new_r2_days: errors.append("R2 gap must be greater than R1 gap")
             if errors:
                 for e in errors: st.warning(f"⚠️ {e}")
             else:
@@ -1991,6 +2647,13 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                     "gender": new_gender, "phone": new_phone.strip(),
                     "exam_month": new_month, "exam_year": new_year,
                     "r1_ratio": new_r1, "r2_ratio": new_r2, "num_revisions": new_nrev,
+                    "r1_days": new_r1_days, "r2_days": new_r2_days,
+                    "growth_factor": new_gf, "max_gap_days": new_maxg,
+                    "daily_rev_cap": new_dcap,
+                    "study_phase": new_phase,
+                    "articleship_end_date": str(new_art_end),
+                    "daily_study_hours": new_study_hrs,
+                    "prep_mode": new_mode,
                     **{f"target_hrs_{s.lower()}": new_target_hrs[s] for s in SUBJECTS},
                 })
                 if ok: st.success(f"✅ {msg}"); st.rerun()
@@ -2248,6 +2911,30 @@ def dashboard(log, tst, rev, rev_sess, pend):
     c3.metric("🔄 Revision Hours",    f"{total_rev_hrs:.1f}h",      "separate tracking")
     c4.metric("🎯 Avg Score",         f"{avg_score:.1f}%",          "Target 60%+")
     c5.metric("📅 Days Active",       f"{days_studied}",            "unique days")
+
+    # ── Recovery Mode banner ──────────────────────────────────────────────────
+    # Triggered when overdue > 1.5 × daily_cap — shows prominently above everything
+    if not pend.empty:
+        _daily_cap_bann = int(prof.get("daily_rev_cap", 5))
+        _overdue_bann   = int((pend["days_overdue"] > 0).sum())
+        if _overdue_bann > _daily_cap_bann * 1.5:
+            st.markdown(f"""
+            <div style="background:rgba(248,113,113,0.12);border:2px solid rgba(248,113,113,0.50);
+                        border-radius:12px;padding:12px 18px;margin:10px 0;
+                        box-shadow:0 0 20px rgba(248,113,113,0.20)">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div style="font-size:20px">🔴</div>
+                    <div>
+                        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;
+                                    color:#F87171;letter-spacing:0.5px">RECOVERY MODE TRIGGERED</div>
+                        <div style="font-size:11px;color:#C8E5F8;margin-top:2px">
+                            {_overdue_bann} revisions overdue (>{_daily_cap_bann * 1.5:.0f} × daily cap).
+                            Focus on clearing backlog before adding new topics. Revision schedule auto-compressed.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -2600,95 +3287,377 @@ def dashboard(log, tst, rev, rev_sess, pend):
 
         # ── Donut charts continue above; agenda moved to Revision tab ──
 
-    # ── Score Dashboard (moved from Revision tab) ─────────────────────────────
-    rev_for_score = rev
-    log_for_score = log
-    if not rev_for_score.empty or not log_for_score.empty:
+    # ══════════════════════════════════════════════════════════════════════
+    # CA-GRADE ANALYTICS ENGINE — Full Intelligence Dashboard
+    # AIR Index · RPI · PWDAM · Stress Index · Phase · Projection
+    # ══════════════════════════════════════════════════════════════════════
+    _prof_dash  = st.session_state.profile
+    _phase_info = compute_phase_info(_prof_dash, log, days_left)
+    _air        = compute_air_index(log, rev, rev_sess, pend, _prof_dash)
+    _rpi        = compute_rpi(log, rev, rev_sess, pend, _prof_dash)
+    _frp        = _phase_info["frp"]
+    _dcap       = int(_prof_dash.get("daily_rev_cap", 5))
+    _stress     = compute_stress_index(pend, log, _dcap)
+    _cons       = compute_execution_consistency(log)
+    _study_hrs  = int(_prof_dash.get("daily_study_hours", 6))
+    _pwdam      = compute_pwdam(_frp, _study_hrs, _phase_info["study_phase"])
+    _projection = compute_exam_projection(log, rev, _prof_dash, days_left)
+    _balance    = compute_weekly_subject_balance(rev_sess)
+
+    if not log.empty or not rev.empty:
         st.markdown("---")
-        st.markdown('<div class="neon-header neon-header-glow">⭐ Study Confidence Score</div>', unsafe_allow_html=True)
 
-        from collections import defaultdict as _dd
-        _prof         = st.session_state.profile
-        _num_rev      = int(_prof.get("num_revisions", 6))
-        _rev_sess_sc  = rev_sess
+        # ── Row 1: Phase + PWDAM Suggestion ──────────────────────────────────
+        ph_col, pw_col = st.columns([1, 1])
 
-        _completion_info: dict = {}
-        if not rev_for_score.empty:
-            for _, _r in rev_for_score.iterrows():
-                _k = (_r["subject"], _r["topic"])
-                _completion_info[_k] = {
-                    "status":    _r.get("topic_status","not_started") or "not_started",
-                    "comp_date": _r.get("completion_date"),
-                }
-
-        _rev_dates_map: dict = _dd(list)
-        if not log_for_score.empty:
-            for _, _r in log_for_score.iterrows():
-                _stype = _r.get("session_type","reading") if "session_type" in log_for_score.columns else "reading"
-                if _stype == "revision":
-                    _d = _r["date"].date() if hasattr(_r["date"],"date") else date.fromisoformat(str(_r["date"])[:10])
-                    _rev_dates_map[(_r["subject"],_r["topic"])].append(_d)
-        if not _rev_sess_sc.empty:
-            for _, _r in _rev_sess_sc.iterrows():
-                _d = _r["date"] if isinstance(_r["date"],date) else date.fromisoformat(str(_r["date"])[:10])
-                _rev_dates_map[(_r["subject"],_r["topic"])].append(_d)
-
-        _all_topic_count = sum(len(v) for v in TOPICS.values())
-        _completed_count = sum(1 for i in _completion_info.values() if i["status"]=="completed")
-        _reading_count   = sum(1 for i in _completion_info.values() if i["status"]=="reading")
-        _total_rev_done  = sum(len(set(v)) for v in _rev_dates_map.values())
-        _max_revs        = _completed_count * _num_rev
-        _pend_sc         = pend
-        _overdue_count   = len(_pend_sc[_pend_sc["days_overdue"]>0]) if not _pend_sc.empty else 0
-
-        _coverage_pct = _completed_count / _all_topic_count * 100 if _all_topic_count > 0 else 0
-        _depth_pct    = min(_total_rev_done / _max_revs * 100, 100) if _max_revs > 0 else 0
-        _penalty      = min(_overdue_count * 2, 30)
-        _overall      = max(0, round(_coverage_pct*0.35 + _depth_pct*0.50 - _penalty*0.15, 1))
-
-        _grade = (
-            ("🏆 MASTER",       "#34D399") if _overall >= 85 else
-            ("🎯 STRONG",       "#60A5FA") if _overall >= 65 else
-            ("📈 PROGRESSING",  "#FBBF24") if _overall >= 40 else
-            ("🚀 JUST STARTED", "#F87171")
-        )
-        sc1, sc2, sc3, sc4, sc5 = st.columns(5)
-        sc1.metric("📖 Reading",    f"{_reading_count}",       "in progress")
-        sc2.metric("✅ Completed",  f"{_completed_count}/{_all_topic_count}", f"{_coverage_pct:.0f}%")
-        sc3.metric("🔄 Revisions",  f"{_total_rev_done}",      f"of {_max_revs} target")
-        sc4.metric("🔴 Overdue",    f"{_overdue_count}",       "need revision now")
-        sc5.metric("⭐ Confidence", f"{_overall}%",            _grade[0])
-
-        _bar_clr = _grade[1]
-        _bar_clr_88 = _bar_clr + "88"
-        _bar_clr_44 = _bar_clr + "44"
-        st.markdown(f"""
-        <div style="background:rgba(6,14,38,0.80);border:2px solid {_bar_clr_44};
-                    border-radius:16px;padding:20px 24px;margin:14px 0;
-                    box-shadow:0 0 24px {_bar_clr_44}, inset 0 1px 0 rgba(255,255,255,0.06)">
-            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-                <span style="font-family:'DM Mono',monospace;font-size:13px;
-                             font-weight:700;color:{_bar_clr};
-                             text-shadow:0 0 12px {_bar_clr_88}">{_grade[0]}</span>
-                <span style="font-family:'DM Mono',monospace;font-size:20px;
-                             font-weight:700;color:#FFFFFF;
-                             text-shadow:0 0 16px rgba(255,255,255,0.4)">{_overall}%</span>
+        with ph_col:
+            _pc   = _phase_info["color"]
+            _pc44 = _pc + "44"
+            _pc22 = _pc + "22"
+            st.markdown(f"""
+            <div style="background:rgba(6,14,38,0.85);border:2px solid {_pc44};
+                        border-radius:14px;padding:16px 18px;height:100%;
+                        box-shadow:0 0 20px {_pc22}">
+                <div style="font-size:10px;font-weight:700;color:#7BA7CC;
+                            letter-spacing:1.2px;margin-bottom:6px">PREPARATION PHASE</div>
+                <div style="font-family:'DM Mono',monospace;font-size:15px;
+                            font-weight:800;color:{_pc};margin-bottom:6px">{_phase_info["label"]}</div>
+                <div style="font-size:11px;color:#93C8E8;line-height:1.5">{_phase_info["desc"]}</div>
+                <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+                    <div style="font-size:10px;background:rgba(56,189,248,0.08);
+                                border:1px solid rgba(56,189,248,0.20);border-radius:6px;
+                                padding:3px 8px;color:#7DD3FC">
+                        📊 Syllabus: {_frp*100:.0f}% complete
+                    </div>
+                    <div style="font-size:10px;background:rgba(56,189,248,0.08);
+                                border:1px solid rgba(56,189,248,0.20);border-radius:6px;
+                                padding:3px 8px;color:#7DD3FC">
+                        📅 Max gap: {_phase_info["effective_max_gap"]}d
+                    </div>
+                </div>
             </div>
-            <div style="background:rgba(14,60,140,0.18);border-radius:8px;height:14px;overflow:hidden;
-                        border:1px solid {_bar_clr_44}">
-                <div style="width:{_overall}%;height:100%;border-radius:8px;
-                            background:linear-gradient(90deg,{_bar_clr_44},{_bar_clr_88},{_bar_clr},#FFFFFF88,{_bar_clr},{_bar_clr_88},{_bar_clr_44});
-                            box-shadow:0 0 14px {_bar_clr_88},0 0 28px {_bar_clr_44}"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#7BA7CC">
-                <span>Completion {_coverage_pct:.0f}% × 35%</span>
-                <span>Revision Depth {_depth_pct:.0f}% × 50%</span>
-                <span>Overdue penalty −{_penalty:.0f}% × 15%</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        # Memory strength chart moved to Revision tab
+        with pw_col:
+            _rv_c = "#34D399" if _pwdam["revision_hrs"] > _pwdam["first_read_hrs"] else "#38BDF8"
+            st.markdown(f"""
+            <div style="background:rgba(6,14,38,0.85);border:2px solid rgba(52,211,153,0.30);
+                        border-radius:14px;padding:16px 18px;height:100%;
+                        box-shadow:0 0 20px rgba(52,211,153,0.08)">
+                <div style="font-size:10px;font-weight:700;color:#7BA7CC;
+                            letter-spacing:1.2px;margin-bottom:6px">TODAY'S SUGGESTED SPLIT</div>
+                <div style="font-size:11px;color:#93C8E8;margin-bottom:10px">
+                    Based on {_frp*100:.0f}% syllabus progress (FRP) · {_study_hrs}h/day setting
+                </div>
+                <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+                    <div style="text-align:center">
+                        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;
+                                    color:#34D399;text-shadow:0 0 14px rgba(52,211,153,0.8)">
+                            {_pwdam["revision_hrs"]:.1f}h</div>
+                        <div style="font-size:9px;color:#7BA7CC;letter-spacing:0.5px">REVISION</div>
+                    </div>
+                    <div style="font-size:16px;color:#3A5A7A">+</div>
+                    <div style="text-align:center">
+                        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;
+                                    color:#38BDF8;text-shadow:0 0 14px rgba(56,189,248,0.8)">
+                            {_pwdam["first_read_hrs"]:.1f}h</div>
+                        <div style="font-size:9px;color:#7BA7CC;letter-spacing:0.5px">FIRST READ</div>
+                    </div>
+                    <div style="margin-left:auto;text-align:right">
+                        <div style="font-size:10px;color:#93C8E8">Revision share</div>
+                        <div style="font-family:'DM Mono',monospace;font-size:16px;
+                                    font-weight:700;color:#FBBF24">{_pwdam["revision_share_pct"]:.0f}%</div>
+                    </div>
+                </div>
+                <div style="margin-top:10px;background:rgba(14,60,140,0.25);border-radius:6px;height:6px;overflow:hidden">
+                    <div style="width:{_pwdam['revision_share_pct']:.0f}%;height:100%;
+                                background:linear-gradient(90deg,#34D399,#FBBF24);
+                                border-radius:6px"></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Row 2: AIR Index + RPI ────────────────────────────────────────────
+        st.markdown('<div class="neon-header neon-header-glow">🎯 Preparedness Intelligence</div>', unsafe_allow_html=True)
+        air_col, rpi_col = st.columns([3, 2])
+
+        with air_col:
+            st.markdown('<div style="font-size:11px;color:#7BA7CC;margin-bottom:10px;font-weight:600">AIR PREPAREDNESS INDEX — per subject heatmap</div>', unsafe_allow_html=True)
+            subj_cols = st.columns(5)
+            for i, s in enumerate(SUBJECTS):
+                s_air   = _air["per_subject"].get(s, 0)
+                if s_air >= 80:   s_c = "#34D399"
+                elif s_air >= 60: s_c = "#FBBF24"
+                elif s_air >= 40: s_c = "#F97316"
+                else:             s_c = "#F87171"
+                s_c22 = s_c + "22"
+                s_c44 = s_c + "44"
+                with subj_cols[i]:
+                    st.markdown(f"""
+                    <div style="background:rgba(6,14,38,0.88);border:2px solid {s_c44};
+                                border-radius:12px;padding:12px 8px;text-align:center;
+                                box-shadow:0 0 16px {s_c22}">
+                        <div style="font-family:'DM Mono',monospace;font-size:13px;
+                                    font-weight:800;color:{s_c}">{s}</div>
+                        <div style="font-size:9px;color:#7BA7CC;margin:3px 0">AIR Score</div>
+                        <div style="font-family:'DM Mono',monospace;font-size:20px;
+                                    font-weight:700;color:#FFFFFF;
+                                    text-shadow:0 0 12px {s_c}">{s_air:.0f}</div>
+                        <div style="margin-top:6px;background:rgba(14,60,140,0.30);
+                                    border-radius:4px;height:5px;overflow:hidden">
+                            <div style="width:{s_air:.0f}%;height:100%;
+                                        background:{s_c};border-radius:4px"></div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            # Overall AIR bar
+            _ac   = _air["color"]
+            _ac44 = _ac + "44"
+            _ac88 = _ac + "88"
+            comp  = _air["components"]
+            st.markdown(f"""
+            <div style="background:rgba(6,14,38,0.80);border:2px solid {_ac44};
+                        border-radius:14px;padding:16px 20px;
+                        box-shadow:0 0 20px {_ac44}">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                    <div>
+                        <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px">OVERALL AIR PREPAREDNESS</div>
+                        <div style="font-family:'DM Mono',monospace;font-size:13px;color:{_ac};font-weight:700">{_air["label"]}</div>
+                    </div>
+                    <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
+                                color:#FFFFFF;text-shadow:0 0 20px {_ac88}">{_air["overall"]:.0f}</div>
+                </div>
+                <div style="background:rgba(14,60,140,0.18);border-radius:8px;height:10px;overflow:hidden;margin-bottom:10px">
+                    <div style="width:{_air["overall"]:.0f}%;height:100%;border-radius:8px;
+                                background:linear-gradient(90deg,{_ac44},{_ac88},{_ac});
+                                box-shadow:0 0 12px {_ac88}"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:10px">
+                    <div style="text-align:center">
+                        <div style="color:#FFFFFF;font-weight:700">{comp["coverage"]:.0f}%</div>
+                        <div style="color:#7BA7CC">Coverage ×35%</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="color:#FFFFFF;font-weight:700">{comp["revision_depth"]:.0f}%</div>
+                        <div style="color:#7BA7CC">Rev Depth ×30%</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="color:#FFFFFF;font-weight:700">{comp["consistency"]:.0f}%</div>
+                        <div style="color:#7BA7CC">Consistency ×20%</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="color:#FFFFFF;font-weight:700">{comp["balance"]:.0f}%</div>
+                        <div style="color:#7BA7CC">Balance ×15%</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with rpi_col:
+            _rc   = _rpi["color"]
+            _rc44 = _rc + "44"
+            _rc88 = _rc + "88"
+            rcomp = _rpi["components"]
+            rden  = _rpi["rden_actual"]
+            rmile = _rpi["rden_milestone"]
+            st.markdown(f"""
+            <div style="background:rgba(6,14,38,0.88);border:2px solid {_rc44};
+                        border-radius:14px;padding:16px 18px;
+                        box-shadow:0 0 20px {_rc44}">
+                <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">
+                    READINESS PROBABILITY INDEX (RPI)
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                    <div style="font-family:'DM Mono',monospace;font-size:36px;font-weight:900;
+                                color:#FFFFFF;text-shadow:0 0 20px {_rc88}">{_rpi["rpi"]:.0f}</div>
+                    <div style="text-align:right">
+                        <div style="font-size:10px;font-weight:700;color:{_rc}">{_rpi["label"]}</div>
+                        <div style="font-size:9px;color:#7BA7CC;margin-top:2px">out of 100</div>
+                    </div>
+                </div>
+                <div style="background:rgba(14,60,140,0.18);border-radius:6px;height:8px;overflow:hidden;margin-bottom:12px">
+                    <div style="width:{_rpi["rpi"]:.0f}%;height:100%;border-radius:6px;
+                                background:linear-gradient(90deg,{_rc44},{_rc},{_rc88});
+                                box-shadow:0 0 10px {_rc88}"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:5px;font-size:10px">
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#7BA7CC">Coverage</span>
+                        <span style="color:#E8F4FF;font-weight:700">{rcomp["coverage"]:.0f}%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#7BA7CC">Revision Depth</span>
+                        <span style="color:#E8F4FF;font-weight:700">{rcomp["revision_depth"]:.0f}%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#7BA7CC">Retention Density</span>
+                        <span style="color:#FBBF24;font-weight:700">{rden:.2f} touches/topic</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#7BA7CC">Consistency</span>
+                        <span style="color:#E8F4FF;font-weight:700">{rcomp["consistency"]:.0f}%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:#7BA7CC">Exposure Risk</span>
+                        <span style="color:#F87171;font-weight:700">{rcomp["exposure_risk"]:.0f}%</span>
+                    </div>
+                </div>
+                <div style="margin-top:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);
+                            border-radius:8px;padding:8px 10px;font-size:10px">
+                    <div style="color:#FBBF24;font-weight:700;margin-bottom:2px">📍 Retention Density Milestone</div>
+                    <div style="color:#C8E5F8">{rmile[0]}: need ≥{rmile[1]:.1f} · current: {rden:.2f}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Row 3: Stress Index + Execution Consistency + Exam Projection ────
+        st3a, st3b, st3c = st.columns([1, 1, 2])
+
+        with st3a:
+            _si   = _stress["stress_index"]
+            _sc   = _stress["color"]
+            _sc44 = _sc + "44"
+            st.markdown(f"""
+            <div style="background:rgba(6,14,38,0.85);border:2px solid {_sc44};
+                        border-radius:14px;padding:14px 16px;height:100%;
+                        box-shadow:0 0 16px {_sc44}">
+                <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">STRESS INDEX</div>
+                <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
+                            color:{_sc};text-shadow:0 0 14px {_sc}44">{_si:.2f}</div>
+                <div style="font-size:9px;color:#7BA7CC;margin-bottom:8px">
+                    14d avg: {_stress["rolling_avg_hrs"]:.1f}h/day
+                </div>
+                <div style="font-size:10px;color:#93C8E8;line-height:1.4">{_stress["message"]}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with st3b:
+            _cc   = _cons["color"]
+            _cc44 = _cc + "44"
+            st.markdown(f"""
+            <div style="background:rgba(6,14,38,0.85);border:2px solid {_cc44};
+                        border-radius:14px;padding:14px 16px;height:100%;
+                        box-shadow:0 0 16px {_cc44}">
+                <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">EXECUTION CONSISTENCY</div>
+                <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
+                            color:{_cc};text-shadow:0 0 14px {_cc}44">{_cons["pct"]:.0f}%</div>
+                <div style="font-size:9px;color:#7BA7CC;margin-bottom:6px">
+                    {_cons["days_studied"]} days studied / {_cons["elapsed"]} elapsed
+                </div>
+                <div style="background:rgba(14,60,140,0.25);border-radius:4px;height:5px;overflow:hidden">
+                    <div style="width:{_cons["pct"]:.0f}%;height:100%;background:{_cc};border-radius:4px"></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with st3c:
+            _proj_c   = _projection["color"] if "color" in _projection else "#94A3B8"
+            _proj_c44 = _proj_c + "44"
+            _p_frp    = _projection.get("projected_frp", 0)
+            _p_cyc    = _projection.get("projected_cycles", 0)
+            _p_daily  = _projection.get("daily_read_avg", 0)
+            st.markdown(f"""
+            <div style="background:rgba(6,14,38,0.85);border:2px solid {_proj_c44};
+                        border-radius:14px;padding:14px 16px;
+                        box-shadow:0 0 16px {_proj_c44}">
+                <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">EXAM READINESS PROJECTION</div>
+                <div style="font-size:11px;color:#E8F4FF;line-height:1.5;margin-bottom:8px">{_projection["message"]}</div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap">
+                    <div style="text-align:center">
+                        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:{_proj_c}">{_p_frp:.0f}%</div>
+                        <div style="font-size:9px;color:#7BA7CC">Projected FR</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#FBBF24">{_p_cyc:.1f}</div>
+                        <div style="font-size:9px;color:#7BA7CC">Rev Cycles</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#60A5FA">{_p_daily:.1f}h</div>
+                        <div style="font-size:9px;color:#7BA7CC">Daily avg (14d)</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Row 4: Weekly Subject Balance (post-articleship only) ─────────────
+        if _phase_info["study_phase"] == "post_articleship":
+            st.markdown('<div class="neon-header neon-header-glow">📊 Weekly Subject Balance</div>', unsafe_allow_html=True)
+            st.caption("Deviation >20% from ideal 20% per subject flagged. Weekly view — post-articleship only.")
+            bal_cols = st.columns(5)
+            for i, s in enumerate(SUBJECTS):
+                b = _balance.get(s, {})
+                bc = b.get("color", "#94A3B8")
+                bf = b.get("flag", "no_data")
+                bs = b.get("share_pct", 0)
+                bi = b.get("ideal_pct", 20)
+                flag_icon = {"balanced": "✅", "under_revised": "⚠️", "over_focused": "🔶", "no_data": "—"}.get(bf, "—")
+                bc44 = bc + "44"
+                with bal_cols[i]:
+                    st.markdown(f"""
+                    <div style="background:rgba(6,14,38,0.85);border:2px solid {bc44};
+                                border-radius:10px;padding:10px 8px;text-align:center;
+                                box-shadow:0 0 12px {bc44}">
+                        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:{bc}">{s}</div>
+                        <div style="font-size:18px;margin:4px 0">{flag_icon}</div>
+                        <div style="font-size:14px;font-weight:700;color:#FFFFFF">{bs:.0f}%</div>
+                        <div style="font-size:9px;color:#7BA7CC">this week</div>
+                        <div style="font-size:9px;color:#6B91B8">ideal: {bi:.0f}%</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        # ── Danger Zone: Top topics needing immediate attention ───────────────
+        if not pend.empty and not log.empty:
+            overdue_topics = pend[pend["days_overdue"] > 0].copy()
+            if not overdue_topics.empty:
+                st.markdown('<div class="neon-header neon-header-glow">🚨 Danger Zone — Needs Immediate Attention</div>', unsafe_allow_html=True)
+                st.caption("Top overdue topics + never-revised completed topics. Act on these first.")
+                top_overdue = overdue_topics.nlargest(5, "days_overdue")
+                # Topics completed but never revised
+                never_revised = pend[pend["revisions_done"] == 0].copy() if not pend.empty else pd.DataFrame()
+                dz_c1, dz_c2 = st.columns(2)
+                with dz_c1:
+                    st.markdown('<div style="font-size:11px;color:#F87171;font-weight:700;margin-bottom:6px">🔴 Most Overdue Revisions</div>', unsafe_allow_html=True)
+                    for _, row in top_overdue.iterrows():
+                        dov = int(row["days_overdue"])
+                        st.markdown(f"""
+                        <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);
+                                    border-radius:8px;padding:8px 12px;margin:4px 0;
+                                    display:flex;justify-content:space-between;align-items:center">
+                            <div>
+                                <div style="font-size:11px;color:#E8F4FF;font-weight:600">{str(row["topic"])[:40]}</div>
+                                <div style="font-size:9px;color:#7BA7CC">{row["subject"]} · {row["round_label"]}</div>
+                            </div>
+                            <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+                                        color:#F87171;white-space:nowrap">{dov}d late</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                with dz_c2:
+                    if not never_revised.empty:
+                        st.markdown('<div style="font-size:11px;color:#FBBF24;font-weight:700;margin-bottom:6px">⚠️ Completed — Never Revised</div>', unsafe_allow_html=True)
+                        for _, row in never_revised.head(5).iterrows():
+                            st.markdown(f"""
+                            <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.22);
+                                        border-radius:8px;padding:8px 12px;margin:4px 0;
+                                        display:flex;justify-content:space-between;align-items:center">
+                                <div>
+                                    <div style="font-size:11px;color:#E8F4FF;font-weight:600">{str(row["topic"])[:40]}</div>
+                                    <div style="font-size:9px;color:#7BA7CC">{row["subject"]} · Not yet revised</div>
+                                </div>
+                                <div style="font-size:10px;font-weight:700;color:#FBBF24">R1 due</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div style="font-size:11px;color:#34D399;padding:12px">✅ All completed topics have been revised at least once!</div>', unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
 
     elif log.empty and tst.empty:
         st.markdown("""
