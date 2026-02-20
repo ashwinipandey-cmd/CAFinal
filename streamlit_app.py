@@ -2836,123 +2836,132 @@ def auth_page():
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PDF EXPORT — generate_dashboard_pdf()
-# Visual dashboard replica with matplotlib charts, cards, avatar, all metrics.
-# Called when user clicks the 🖨️ button on the Dashboard.
+# Pure ReportLab — no matplotlib needed. Webpage-style layout, no overlaps.
 # ══════════════════════════════════════════════════════════════════════════════
 def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
                             prof, days_left, total_reading_hrs,
                             total_rev_hrs, avg_score, days_studied, dpd):
-    """
-    Render a pixel-accurate visual replica of the CA Final Dashboard as a PDF.
-    Uses matplotlib to draw every panel as an image (cards, bars, charts, avatar)
-    then assembles them into a multi-page ReportLab PDF.
-    """
-    import io, math
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
-    from matplotlib.patches import FancyBboxPatch, Arc
-    import numpy as np
+    import io
     import pandas as pd
-
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import cm, mm
-    from reportlab.platypus import (SimpleDocTemplate, Spacer,
-                                     Image as RLImage, Paragraph)
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+        HRFlowable, KeepTogether
+    )
     from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.graphics.shapes import Drawing, Rect, Circle, String, Line
+    from reportlab.graphics import renderPDF
+    from reportlab.platypus.flowables import Flowable
 
-    # ── Colour palette (exact match to app CSS) ──────────────────────────────
-    BG      = "#020B18"
-    CARD    = "#061434"
-    CARD2   = "#071838"
-    CYAN    = "#38BDF8"
-    CYAN_L  = "#7DD3FC"
-    GREEN   = "#34D399"
-    GOLD    = "#FBBF24"
-    RED     = "#F87171"
-    PURPLE  = "#818CF8"
-    ORANGE  = "#F97316"
-    BLUE    = "#60A5FA"
-    MUTED   = "#6B91B8"
-    BODY    = "#B8D4F0"
-    BORDER  = "#0E3C8C"
-    WHITE   = "#FFFFFF"
-    NAVY2   = "#0A1F55"
+    # ── Palette ────────────────────────────────────────────────────────────────
+    BG     = colors.HexColor("#020B18")
+    CARD   = colors.HexColor("#061434")
+    CARD2  = colors.HexColor("#071838")
+    NAVY2  = colors.HexColor("#0A1F55")
+    CYAN   = colors.HexColor("#38BDF8")
+    CYAN_L = colors.HexColor("#7DD3FC")
+    GREEN  = colors.HexColor("#34D399")
+    GOLD   = colors.HexColor("#FBBF24")
+    RED    = colors.HexColor("#F87171")
+    PURPLE = colors.HexColor("#818CF8")
+    ORANGE = colors.HexColor("#F97316")
+    BLUE   = colors.HexColor("#60A5FA")
+    MUTED  = colors.HexColor("#6B91B8")
+    BODY   = colors.HexColor("#B8D4F0")
+    BORDER = colors.HexColor("#0E3C8C")
+    WHITE  = colors.HexColor("#FFFFFF")
+    DKRED  = colors.HexColor("#2A0808")
+    DKRED2 = colors.HexColor("#180606")
+    LTRED  = colors.HexColor("#FFB3B3")
 
     SUBJ_CLR = {"FR": CYAN_L, "AFM": GREEN, "AA": GOLD, "DT": RED, "IDT": BLUE}
 
-    # ── Page geometry ─────────────────────────────────────────────────────────
-    PW, PH   = A4          # 595 x 842 pt
-    LM = RM  = 1.4*cm
-    TM = BM  = 1.4*cm
-    W_PT     = PW - LM - RM   # usable width in points
-    W_IN     = W_PT / 72      # usable width in inches (for matplotlib)
+    def hx(clr): return clr.hexval()[2:]   # strip leading "0x" if present
+
+    # ── Page setup ─────────────────────────────────────────────────────────────
+    PW, PH = A4
+    LM = RM = 1.4 * cm
+    TM = BM = 1.6 * cm
+    W  = PW - LM - RM
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
                              leftMargin=LM, rightMargin=RM,
                              topMargin=TM,  bottomMargin=BM)
 
-    # ── Helper: matplotlib fig → ReportLab Image ─────────────────────────────
-    def fig2img(fig, w_pt, h_pt):
-        ib = io.BytesIO()
-        fig.savefig(ib, format="png", dpi=180,
-                    bbox_inches="tight", facecolor=BG, edgecolor="none")
-        plt.close(fig)
-        ib.seek(0)
-        return RLImage(ib, width=w_pt, height=h_pt)
+    # ── Styles ─────────────────────────────────────────────────────────────────
+    def PS(name, **kw):
+        base = dict(fontName="Helvetica", fontSize=8.5, textColor=BODY,
+                    leading=12, spaceAfter=0, spaceBefore=0)
+        base.update(kw)
+        return ParagraphStyle(name, **base)
 
-    # ── Helper: draw a rounded card rectangle on ax ───────────────────────────
-    def card_rect(ax, x, y, w, h, fc=CARD, ec=BORDER, lw=0.8,
-                  radius=0.03, transform=None):
-        tr = transform or ax.transAxes
-        p  = FancyBboxPatch((x, y), w, h,
-                             boxstyle=f"round,pad={radius}",
-                             facecolor=fc, edgecolor=ec,
-                             linewidth=lw, transform=tr, zorder=2,
-                             clip_on=False)
-        ax.add_patch(p)
-        return p
+    S_H1   = PS("h1",  fontName="Helvetica-Bold", fontSize=18, textColor=CYAN_L, leading=22)
+    S_H2   = PS("h2",  fontName="Helvetica-Bold", fontSize=10, textColor=CYAN, spaceBefore=6, spaceAfter=3)
+    S_H3   = PS("h3",  fontName="Helvetica-Bold", fontSize=9,  textColor=CYAN_L, spaceAfter=3)
+    S_BODY = PS("bd",  fontSize=8,  textColor=BODY,  leading=12)
+    S_SML  = PS("sm",  fontSize=7,  textColor=MUTED, leading=10)
+    S_LBL  = PS("lb",  fontName="Helvetica-Bold", fontSize=7, textColor=MUTED)
+    S_MONO = PS("mn",  fontName="Courier-Bold",   fontSize=8, textColor=CYAN_L)
 
-    # ── Helper: horizontal progress bar ──────────────────────────────────────
-    def hbar(ax, x, y, w, h, pct, fg=CYAN, bg=BORDER, transform=None):
-        tr = transform or ax.transAxes
-        ax.add_patch(FancyBboxPatch((x, y), w, h,
-            boxstyle="round,pad=0.005", facecolor=bg, edgecolor="none",
-            transform=tr, zorder=3, clip_on=False))
-        fill_w = max(w * min(pct, 100) / 100, 0.001)
-        ax.add_patch(FancyBboxPatch((x, y), fill_w, h,
-            boxstyle="round,pad=0.005", facecolor=fg, edgecolor="none",
-            transform=tr, zorder=4, clip_on=False))
+    def sp(h=5): return Spacer(1, h)
 
-    # ── Pre-compute all analytics ─────────────────────────────────────────────
+    def bar_str(pct, width=10, fg_char="█", bg_char="░"):
+        filled = max(0, min(int(pct / (100 / width)), width))
+        return fg_char * filled + bg_char * (width - filled)
+
+    # ── Section header helper ──────────────────────────────────────────────────
+    def sec(title):
+        return [
+            sp(6),
+            HRFlowable(width=W, color=BORDER, thickness=0.5),
+            sp(3),
+            Paragraph(title, S_H2),
+        ]
+
+    # ── Card table helper ──────────────────────────────────────────────────────
+    def ctable(data, cw, extras=None):
+        base = [
+            ("BACKGROUND",    (0,0),(-1,-1), CARD),
+            ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+            ("LEFTPADDING",   (0,0),(-1,-1), 8),
+            ("RIGHTPADDING",  (0,0),(-1,-1), 8),
+            ("TOPPADDING",    (0,0),(-1,-1), 7),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 7),
+            ("VALIGN",        (0,0),(-1,-1), "TOP"),
+        ]
+        if extras:
+            base.extend(extras)
+        t = Table(data, colWidths=cw)
+        t.setStyle(TableStyle(base))
+        return t
+
+    # ── Pre-compute ────────────────────────────────────────────────────────────
     name_str  = prof.get("full_name", "Student")
     uname_str = prof.get("username", "")
     exam_date = get_exam_date()
     num_rev   = int(prof.get("num_revisions", 6))
 
-    prof_targets = {s: int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s]))
-                    for s in SUBJECTS}
+    prof_tgt  = {s: int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s]))
+                 for s in SUBJECTS}
 
-    if not log.empty and "session_type" in log.columns:
-        read_log = log[log["session_type"] != "revision"]
-    else:
-        read_log = log
-    sh = (read_log.groupby("subject")["hours"].sum()
-          if not read_log.empty else pd.Series(dtype=float))
+    rlog = (log[log["session_type"] != "revision"]
+            if not log.empty and "session_type" in log.columns else log)
+    sh   = (rlog.groupby("subject")["hours"].sum()
+            if not rlog.empty else pd.Series(dtype=float))
 
-    completed_by_subj = {}
+    comp_by_s = {}
     if not rev.empty and "topic_status" in rev.columns:
         for s in SUBJECTS:
-            completed_by_subj[s] = int(
-                ((rev["subject"] == s) &
-                 (rev["topic_status"] == "completed")).sum())
+            comp_by_s[s] = int(
+                ((rev["subject"]==s)&(rev["topic_status"]=="completed")).sum())
 
-    completed_count = sum(completed_by_subj.values())
-    all_topics      = sum(len(v) for v in TOPICS.values())
-    overdue_count   = int((pend["days_overdue"] > 0).sum()) if not pend.empty else 0
+    comp_total = sum(comp_by_s.values())
+    all_topics = sum(len(v) for v in TOPICS.values())
+    ov_cnt     = int((pend["days_overdue"]>0).sum()) if not pend.empty else 0
 
     air  = compute_air_index(log, rev, rev_sess, pend, prof)
     rpi  = compute_rpi(log, rev, rev_sess, pend, prof)
@@ -2965,622 +2974,633 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     mgap = int(prof.get("max_gap_days", 120))
     gaps = get_cgsm_gaps(g1, g2, num_rev, gf, mgap, days_left)
 
+    rpi_val  = rpi["rpi"]
+    rpi_clr  = colors.HexColor(rpi["color"]) if isinstance(rpi["color"], str) else rpi["color"]
+    rcomp    = rpi["components"]
+    rden     = rpi["rden_actual"]
+    rmile    = rpi["rden_milestone"]
+    cons_clr = colors.HexColor(cons["color"]) if isinstance(cons["color"], str) else cons["color"]
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PAGE BACKGROUND
+    # ══════════════════════════════════════════════════════════════════════════
+    def dark_page(cv, doc_obj):
+        cv.saveState()
+        cv.setFillColor(BG)
+        cv.rect(0, 0, PW, PH, fill=1, stroke=0)
+        cv.setFillColor(CYAN)
+        cv.rect(0, PH - 2.5*mm, PW, 2.5*mm, fill=1, stroke=0)
+        cv.setFillColor(NAVY2)
+        cv.rect(0, 0, PW, 9*mm, fill=1, stroke=0)
+        cv.setFillColor(MUTED)
+        cv.setFont("Helvetica", 6.5)
+        cv.drawString(LM, 3*mm,
+            f"CA Final Tracker  |  {name_str}  |  "
+            f"Generated {date.today().strftime('%d %B %Y')}")
+        cv.drawRightString(PW - RM, 3*mm, f"Page {doc_obj.page}")
+        cv.restoreState()
+
     story = []
 
-    def sp(h=4): return Spacer(1, h)
+    # ══════════════════════════════════════════════════════════════════════════
+    # 1. HEADER — Avatar + Name + Days Left
+    # ══════════════════════════════════════════════════════════════════════════
+    initial = name_str[0].upper() if name_str else "S"
+
+    # Avatar as a tiny Drawing
+    av = Drawing(44, 44)
+    av.add(Circle(22, 22, 21, fillColor=colors.HexColor("#1A4E8A"),
+                  strokeColor=CYAN, strokeWidth=2))
+    av.add(String(22, 14, initial, fontSize=20, fontName="Helvetica-Bold",
+                  fillColor=WHITE, textAnchor="middle"))
+
+    hdr_data = [[
+        av,
+        [
+            Paragraph(name_str, S_H1),
+            Paragraph(f"@{uname_str}  |  CA Final Dashboard Report",
+                      PS("hs", fontSize=8, textColor=MUTED)),
+            sp(2),
+            Paragraph(f"Exam: <b>{exam_date.strftime('%B %Y')}</b>  |  "
+                      f"Generated: {date.today().strftime('%d %b %Y')}",
+                      PS("hd", fontSize=8, textColor=BODY)),
+        ],
+        [
+            Paragraph("DAYS LEFT", S_LBL),
+            Paragraph(str(days_left),
+                      PS("dl", fontName="Helvetica-Bold", fontSize=28,
+                         textColor=WHITE, leading=32, alignment=TA_CENTER)),
+            Paragraph(exam_date.strftime("%b %Y").upper(),
+                      PS("dm", fontSize=8, textColor=CYAN, alignment=TA_CENTER)),
+        ],
+    ]]
+    hdr_t = Table(hdr_data, colWidths=[55, W-55-90, 90])
+    hdr_t.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), CARD),
+        ("BACKGROUND",    (2,0),(2,0),   NAVY2),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ("ALIGN",         (2,0),(2,0),   "CENTER"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 8),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 8),
+        ("TOPPADDING",    (0,0),(-1,-1), 10),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 10),
+        ("LINEABOVE",     (0,0),(-1,0),  3, CYAN),
+    ]))
+    story.append(hdr_t)
+    story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 1 — HEADER: Avatar + Name + Exam info + Days counter
+    # 2. KPI METRIC CARDS
     # ══════════════════════════════════════════════════════════════════════════
-    def panel_header():
-        H_IN = 1.5
-        fig, ax = plt.subplots(figsize=(W_IN, H_IN))
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
-        fig.patch.set_facecolor(BG)
-        ax.set_facecolor(BG)
+    story += sec("Key Metrics")
 
-        # Avatar circle
-        circ = plt.Circle((0.055, 0.50), 0.30,
-                           color="#1A4E8A", transform=ax.transAxes,
-                           zorder=3, clip_on=False)
-        ax.add_patch(circ)
-        ring = plt.Circle((0.055, 0.50), 0.32,
-                           color=CYAN, fill=False, linewidth=2.5,
-                           transform=ax.transAxes, zorder=4, clip_on=False)
-        ax.add_patch(ring)
-        initial = (name_str[0].upper() if name_str else "S")
-        ax.text(0.055, 0.50, initial, ha="center", va="center",
-                fontsize=26, fontweight="bold", color=WHITE,
-                transform=ax.transAxes, zorder=5)
-
-        # Name & subtitle
-        ax.text(0.13, 0.72, name_str,
-                fontsize=15, fontweight="bold", color=CYAN_L,
-                transform=ax.transAxes, va="center")
-        ax.text(0.13, 0.46, f"@{uname_str}  ·  CA Final Dashboard Report",
-                fontsize=8.5, color=MUTED, transform=ax.transAxes, va="center")
-        ax.text(0.13, 0.22,
-                f"Exam: {exam_date.strftime('%B %Y')}  ·  "
-                f"Generated {date.today().strftime('%d %b %Y')}",
-                fontsize=8, color=BODY, transform=ax.transAxes, va="center")
-
-        # Days-left card
-        card_rect(ax, 0.80, 0.05, 0.19, 0.90, fc=CARD, ec=CYAN, lw=1.5)
-        ax.text(0.895, 0.68, str(days_left),
-                ha="center", va="center", fontsize=24, fontweight="bold",
-                color=WHITE, transform=ax.transAxes, zorder=5)
-        ax.text(0.895, 0.44, "DAYS LEFT",
-                ha="center", va="center", fontsize=7, color=MUTED,
-                fontweight="bold", transform=ax.transAxes, zorder=5)
-        ax.text(0.895, 0.24, exam_date.strftime("%b %Y").upper(),
-                ha="center", va="center", fontsize=7.5, color=CYAN,
-                transform=ax.transAxes, zorder=5)
-
-        # Thin cyan top separator line
-        ax.axhline(0.97, color=CYAN, linewidth=2)
-
-        return fig2img(fig, W_PT, H_IN * 72)
-
-    story.append(panel_header())
-    story.append(sp(6))
+    sc_clr = (GREEN if avg_score >= 60 else GOLD if avg_score >= 40 else RED)
+    kpi_row = [[
+        [Paragraph("Days Left", S_LBL),
+         Paragraph(str(days_left), PS("kv1",fontName="Helvetica-Bold",fontSize=18,textColor=CYAN_L,leading=22)),
+         Paragraph("to exam", S_SML)],
+        [Paragraph("Reading Hours", S_LBL),
+         Paragraph(f"{total_reading_hrs:.0f}h", PS("kv2",fontName="Helvetica-Bold",fontSize=18,textColor=CYAN_L,leading=22)),
+         Paragraph(f"{dpd}h/day needed", S_SML)],
+        [Paragraph("Revision Hours", S_LBL),
+         Paragraph(f"{total_rev_hrs:.1f}h", PS("kv3",fontName="Helvetica-Bold",fontSize=18,textColor=GREEN,leading=22)),
+         Paragraph("logged", S_SML)],
+        [Paragraph("Avg Score", S_LBL),
+         Paragraph(f"{avg_score:.1f}%", PS("kv4",fontName="Helvetica-Bold",fontSize=18,textColor=sc_clr,leading=22)),
+         Paragraph("Target 60%+", S_SML)],
+        [Paragraph("Days Active", S_LBL),
+         Paragraph(str(days_studied), PS("kv5",fontName="Helvetica-Bold",fontSize=18,textColor=CYAN_L,leading=22)),
+         Paragraph("unique study days", S_SML)],
+    ]]
+    kpi_t = Table(kpi_row, colWidths=[W/5]*5)
+    kpi_t.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), CARD),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 9),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 6),
+        ("TOPPADDING",    (0,0),(-1,-1), 9),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 9),
+        ("LINEABOVE",     (0,0),(-1,0),  2.5, CYAN),
+    ]))
+    story.append(kpi_t)
+    story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 2 — 5 KPI METRIC CARDS
+    # 3. SUBJECT READING PROGRESS
     # ══════════════════════════════════════════════════════════════════════════
-    def panel_kpi():
-        H_IN = 1.05
-        fig, axes = plt.subplots(1, 5, figsize=(W_IN, H_IN))
-        fig.patch.set_facecolor(BG)
+    story += sec("First Reading Progress by Subject")
 
-        kpis = [
-            ("Days Left",      str(days_left),              "to exam",          CYAN_L),
-            ("Reading Hrs",    f"{total_reading_hrs:.0f}h", f"{dpd}h/day need", CYAN_L),
-            ("Revision Hrs",   f"{total_rev_hrs:.1f}h",     "logged",           GREEN),
-            ("Avg Score",      f"{avg_score:.1f}%",         "Target 60%+",
-             GREEN if avg_score >= 60 else GOLD if avg_score >= 40 else RED),
-            ("Days Active",    str(days_studied),            "unique days",      CYAN_L),
-        ]
+    sub_hdr = [[
+        Paragraph("Subject",  PS("sh1",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Done",     PS("sh2",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Target",   PS("sh3",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Progress Bar",PS("sh4",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Topics",   PS("sh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("%",        PS("sh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+    ]]
+    sub_cw = [W*0.28, W*0.09, W*0.09, W*0.33, W*0.10, W*0.11]
+    sub_rows = []
+    for s in SUBJECTS:
+        done = float(sh.get(s, 0)) if hasattr(sh,"get") else 0.0
+        tgt  = prof_tgt[s]
+        pct  = min(done/tgt*100, 100) if tgt > 0 else 0
+        n_c  = comp_by_s.get(s, 0)
+        n_t  = len(TOPICS.get(s, []))
+        clr  = SUBJ_CLR[s]
+        sub_rows.append([
+            Paragraph(f'<b>{SUBJ_FULL[s]}</b>', PS(f"sn{s}", fontSize=8.5, textColor=clr)),
+            Paragraph(f"{done:.0f}h", S_BODY),
+            Paragraph(f"{tgt}h",      S_BODY),
+            Paragraph(bar_str(pct, 20),
+                      PS(f"sb{s}", fontName="Courier", fontSize=8, textColor=clr, leading=10)),
+            Paragraph(f"{n_c}/{n_t}", S_BODY),
+            Paragraph(f"{pct:.0f}%",  PS(f"sp{s}", fontName="Helvetica-Bold", fontSize=9, textColor=clr)),
+        ])
 
-        for ax, (lbl, val, sub, clr) in zip(axes, kpis):
-            ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
-            ax.set_facecolor(CARD)
-            # Top accent line in card color
-            ax.axhline(0.97, color=clr, linewidth=3)
-            ax.text(0.5, 0.80, lbl, ha="center", fontsize=7,
-                    color=MUTED, fontweight="bold")
-            ax.text(0.5, 0.52, val, ha="center", fontsize=19,
-                    fontweight="bold", color=WHITE)
-            ax.text(0.5, 0.22, sub, ha="center", fontsize=7, color=MUTED)
-
-        plt.tight_layout(pad=0.2)
-        return fig2img(fig, W_PT, H_IN * 72)
-
-    story.append(panel_kpi())
-    story.append(sp(6))
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 3 — SUBJECT PROGRESS CARDS (with visual progress bars)
-    # ══════════════════════════════════════════════════════════════════════════
-    def panel_subject_progress():
-        H_IN = 2.4
-        fig, axes = plt.subplots(1, 5, figsize=(W_IN, H_IN))
-        fig.patch.set_facecolor(BG)
-
-        for ax, s in zip(axes, SUBJECTS):
-            done  = float(sh.get(s, 0)) if hasattr(sh, "get") else 0.0
-            tgt   = prof_targets[s]
-            pct   = min(done / tgt * 100, 100) if tgt > 0 else 0
-            n_c   = completed_by_subj.get(s, 0)
-            n_t   = len(TOPICS.get(s, []))
-            clr   = SUBJ_CLR[s]
-
-            ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
-            ax.set_facecolor(CARD)
-
-            # Coloured top border
-            ax.axhline(0.97, color=clr, linewidth=4)
-
-            # Subject code
-            ax.text(0.5, 0.84, s, ha="center", fontsize=16,
-                    fontweight="bold", color=clr)
-
-            # Full subject name (small)
-            short = SUBJ_FULL[s].replace("Advanced", "Adv.")
-            ax.text(0.5, 0.72, short, ha="center", fontsize=5.5,
-                    color=MUTED, wrap=True)
-
-            # Circular progress arc
-            theta2 = 360 * pct / 100
-            circle_bg = mpatches.Wedge((0.5, 0.47), 0.18, 0, 360,
-                                        width=0.05, facecolor=BORDER,
-                                        transform=ax.transAxes, zorder=2)
-            ax.add_patch(circle_bg)
-            if pct > 0:
-                circle_fg = mpatches.Wedge((0.5, 0.47), 0.18, 90, 90 - theta2,
-                                            width=0.05, facecolor=clr,
-                                            transform=ax.transAxes, zorder=3)
-                ax.add_patch(circle_fg)
-
-            # Percentage inside circle
-            ax.text(0.5, 0.47, f"{pct:.0f}%", ha="center", va="center",
-                    fontsize=12, fontweight="bold", color=WHITE,
-                    transform=ax.transAxes, zorder=4)
-
-            # Hours below circle
-            ax.text(0.5, 0.27, f"{done:.0f}h / {tgt}h",
-                    ha="center", fontsize=7.5, color=BODY)
-            # Topics
-            ax.text(0.5, 0.14,
-                    f"Done: {n_c}/{n_t} topics",
-                    ha="center", fontsize=7,
-                    color=GREEN if n_c > 0 else MUTED)
-
-        plt.tight_layout(pad=0.25)
-        return fig2img(fig, W_PT, H_IN * 72)
-
-    story.append(Paragraph("📖  First Reading Progress",
-                            ParagraphStyle("sec", fontName="Helvetica-Bold",
-                                           fontSize=10, textColor=colors.HexColor(CYAN),
-                                           spaceBefore=4, spaceAfter=4)))
-    story.append(panel_subject_progress())
-    story.append(sp(6))
+    sub_t = Table(sub_hdr + sub_rows, colWidths=sub_cw)
+    sub_t.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,0),  NAVY2),
+        ("BACKGROUND",    (0,1),(-1,-1), CARD),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1), [CARD, CARD2]),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("FONTNAME",      (0,0),(-1,0),  "Helvetica-Bold"),
+        ("TEXTCOLOR",     (0,0),(-1,0),  CYAN),
+        ("FONTSIZE",      (0,0),(-1,0),  7.5),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 7),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 7),
+        ("TOPPADDING",    (0,0),(-1,-1), 7),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 7),
+        ("ALIGN",         (1,0),(-1,-1), "CENTER"),
+    ]))
+    story.append(sub_t)
+    story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 4 — DAILY STUDY CHART (stacked bar, last 30 days)
+    # 4. AIR PREPAREDNESS INDEX
     # ══════════════════════════════════════════════════════════════════════════
-    def panel_daily_chart():
-        H_IN = 2.0
-        fig, ax = plt.subplots(figsize=(W_IN, H_IN))
-        fig.patch.set_facecolor(BG); ax.set_facecolor(CARD)
+    story += sec("AIR Preparedness Index")
 
-        start30 = date.today() - timedelta(days=29)
-        all_dates = pd.date_range(start30, date.today(), freq="D").date
+    air_comp = air["components"]
+    ov_air   = air["overall"]
+    ov_air_clr = (GREEN if ov_air>=80 else GOLD if ov_air>=60 else ORANGE if ov_air>=40 else RED)
 
-        if not log.empty:
-            d30 = log[log["date"].dt.date >= start30]
-            if not d30.empty:
-                grp = (d30.groupby([d30["date"].dt.date, "subject"])["hours"]
-                       .sum().unstack(fill_value=0)
-                       .reindex(all_dates, fill_value=0))
-                bottom = np.zeros(len(grp))
-                for s in SUBJECTS:
-                    if s in grp.columns:
-                        vals = grp[s].values.astype(float)
-                        ax.bar(range(len(grp)), vals, bottom=bottom,
-                               color=SUBJ_CLR[s], label=s, width=0.8, alpha=0.92)
-                        bottom += vals
-                ax.set_xlim(-0.5, len(grp) - 0.5)
-                ax.set_ylim(0, max(bottom.max() * 1.18, 8))
-                tick_idx = list(range(0, len(grp), 5))
-                ax.set_xticks(tick_idx)
-                ax.set_xticklabels(
-                    [all_dates[i].strftime("%d/%m") for i in tick_idx],
-                    fontsize=6, color=MUTED, rotation=40, ha="right")
-                ax.legend(loc="upper right", fontsize=6.5, framealpha=0.25,
-                          facecolor=CARD, edgecolor=BORDER,
-                          labelcolor=BODY, ncol=5)
-            else:
-                ax.text(0.5, 0.5, "No data in last 30 days",
-                        ha="center", va="center", color=MUTED,
-                        transform=ax.transAxes, fontsize=11)
-        else:
-            ax.text(0.5, 0.5, "No study data yet",
-                    ha="center", va="center", color=MUTED,
-                    transform=ax.transAxes, fontsize=11)
+    # 5 subject cards in a row
+    air_cells = []
+    for s in SUBJECTS:
+        s_air = air["per_subject"].get(s, 0)
+        clr   = (GREEN if s_air>=80 else GOLD if s_air>=60 else ORANGE if s_air>=40 else RED)
+        sl    = ("STRONG" if s_air>=80 else "MODERATE" if s_air>=60 else "AT RISK" if s_air>=40 else "CRITICAL")
+        air_cells.append([
+            Paragraph(s,    PS(f"as{s}", fontName="Helvetica-Bold", fontSize=11, textColor=clr, alignment=TA_CENTER)),
+            Paragraph(f"{s_air:.0f}",
+                      PS(f"av{s}", fontName="Helvetica-Bold", fontSize=22, textColor=WHITE, leading=26, alignment=TA_CENTER)),
+            Paragraph(sl,   PS(f"al{s}", fontName="Helvetica-Bold", fontSize=7, textColor=clr, alignment=TA_CENTER)),
+            sp(2),
+            Paragraph(bar_str(s_air, 10),
+                      PS(f"ab{s}", fontName="Courier", fontSize=8, textColor=clr, alignment=TA_CENTER)),
+        ])
 
-        ax.axhline(6, color=GOLD, linewidth=1.2, linestyle="--",
-                   alpha=0.75, label="6h target")
-        ax.yaxis.set_tick_params(labelsize=6, labelcolor=MUTED)
-        ax.set_ylabel("Hours", fontsize=7, color=MUTED)
-        ax.grid(axis="y", color=BORDER, alpha=0.45, linewidth=0.5)
-        for sp_ in ax.spines.values(): sp_.set_edgecolor(BORDER)
-        plt.tight_layout(pad=0.4)
-        return fig2img(fig, W_PT, H_IN * 72)
+    air_row = Table([air_cells], colWidths=[W/5]*5)
+    air_row_ts = [
+        ("BACKGROUND",    (0,0),(-1,-1), CARD),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+        ("TOPPADDING",    (0,0),(-1,-1), 8),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 8),
+        ("LEFTPADDING",   (0,0),(-1,-1), 4),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+    ]
+    for i, s in enumerate(SUBJECTS):
+        air_row_ts.append(("LINEABOVE", (i,0),(i,0), 3, SUBJ_CLR[s]))
+    air_row.setStyle(TableStyle(air_row_ts))
+    story.append(air_row)
+    story.append(sp(4))
 
-    story.append(Paragraph("📅  Daily Study Hours — Last 30 Days",
-                            ParagraphStyle("sec2", fontName="Helvetica-Bold",
-                                           fontSize=10, textColor=colors.HexColor(CYAN),
-                                           spaceBefore=4, spaceAfter=4)))
-    story.append(panel_daily_chart())
-    story.append(sp(6))
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 5 — AIR INDEX CARDS (per subject heatmap + overall)
-    # ══════════════════════════════════════════════════════════════════════════
-    def panel_air():
-        H_IN = 2.1
-        fig, axes = plt.subplots(1, 6, figsize=(W_IN, H_IN),
-                                  gridspec_kw={"width_ratios": [1, 1, 1, 1, 1, 1.4]})
-        fig.patch.set_facecolor(BG)
-
-        for ax, s in zip(axes[:5], SUBJECTS):
-            s_air = air["per_subject"].get(s, 0)
-            clr   = (GREEN if s_air >= 80 else GOLD  if s_air >= 60
-                     else ORANGE if s_air >= 40 else RED)
-            sl    = ("STRONG" if s_air >= 80 else "MODERATE" if s_air >= 60
-                     else "AT RISK" if s_air >= 40 else "CRITICAL")
-
-            ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
-            ax.set_facecolor(CARD)
-            ax.axhline(0.97, color=clr, linewidth=4)
-
-            ax.text(0.5, 0.82, s, ha="center", fontsize=13,
-                    fontweight="bold", color=clr)
-            ax.text(0.5, 0.62, f"{s_air:.0f}", ha="center", fontsize=22,
-                    fontweight="bold", color=WHITE)
-            ax.text(0.5, 0.44, sl, ha="center", fontsize=7,
-                    color=clr, fontweight="bold")
-
-            # Mini progress bar
-            hbar(ax, 0.08, 0.26, 0.84, 0.08, s_air, fg=clr)
-            ax.text(0.5, 0.12, "AIR Score", ha="center",
-                    fontsize=6, color=MUTED)
-
-        # Overall AIR card
-        ax6   = axes[5]
-        ov    = air["overall"]
-        ov_c  = air["color"]
-        comp  = air["components"]
-        ax6.set_xlim(0, 1); ax6.set_ylim(0, 1); ax6.axis("off")
-        ax6.set_facecolor(CARD2)
-        ax6.axhline(0.97, color=ov_c, linewidth=4)
-        ax6.text(0.5, 0.88, "OVERALL AIR",
-                 ha="center", fontsize=7.5, color=MUTED, fontweight="bold")
-        ax6.text(0.5, 0.70, f"{ov:.0f}",
-                 ha="center", fontsize=24, fontweight="bold", color=WHITE)
-        ax6.text(0.5, 0.55, air["label"],
-                 ha="center", fontsize=7, color=ov_c, fontweight="bold")
-        rows = [
-            (f"Coverage:    {comp['coverage']:.0f}%",       CYAN_L),
-            (f"Rev Depth:   {comp['revision_depth']:.0f}%", GREEN),
-            (f"Consistency: {comp['consistency']:.0f}%",    GOLD),
-            (f"Balance:     {comp['balance']:.0f}%",        PURPLE),
-        ]
-        for i, (txt, c) in enumerate(rows):
-            ax6.text(0.08, 0.42 - i * 0.095, txt,
-                     fontsize=6.5, color=c, fontweight="bold")
-
-        plt.tight_layout(pad=0.25)
-        return fig2img(fig, W_PT, H_IN * 72)
-
-    story.append(Paragraph("🎯  AIR Preparedness Index",
-                            ParagraphStyle("sec3", fontName="Helvetica-Bold",
-                                           fontSize=10, textColor=colors.HexColor(CYAN),
-                                           spaceBefore=4, spaceAfter=4)))
-    story.append(panel_air())
-    story.append(sp(6))
+    # Overall AIR + components summary
+    air_sum = [[
+        Paragraph("OVERALL AIR", PS("oa_lbl",fontName="Helvetica-Bold",fontSize=7.5,textColor=MUTED)),
+        Paragraph("Coverage",    PS("oa_c1",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Rev Depth",   PS("oa_c2",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Consistency", PS("oa_c3",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Balance",     PS("oa_c4",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Label",       PS("oa_c5",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+    ],[
+        Paragraph(f"{ov_air:.0f}/100",
+                  PS("oa_v",fontName="Helvetica-Bold",fontSize=14,textColor=ov_air_clr)),
+        Paragraph(f"{air_comp['coverage']:.0f}%",
+                  PS("oa_cv",fontName="Helvetica-Bold",fontSize=12,textColor=CYAN_L)),
+        Paragraph(f"{air_comp['revision_depth']:.0f}%",
+                  PS("oa_rv",fontName="Helvetica-Bold",fontSize=12,textColor=GREEN)),
+        Paragraph(f"{air_comp['consistency']:.0f}%",
+                  PS("oa_cs",fontName="Helvetica-Bold",fontSize=12,textColor=GOLD)),
+        Paragraph(f"{air_comp.get('balance',0):.0f}%",
+                  PS("oa_bl",fontName="Helvetica-Bold",fontSize=12,textColor=PURPLE)),
+        Paragraph(air["label"],
+                  PS("oa_ll",fontName="Helvetica-Bold",fontSize=9,textColor=ov_air_clr)),
+    ]]
+    air_sum_t = Table(air_sum, colWidths=[W*0.18,W*0.14,W*0.14,W*0.14,W*0.14,W*0.26])
+    air_sum_t.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,0),  NAVY2),
+        ("BACKGROUND",    (0,1),(-1,1),  CARD2),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("FONTNAME",      (0,0),(-1,0),  "Helvetica-Bold"),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 8),
+        ("TOPPADDING",    (0,0),(-1,-1), 7),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 7),
+        ("LINEABOVE",     (0,0),(-1,0),  2, ov_air_clr),
+    ]))
+    story.append(air_sum_t)
+    story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 6 — RPI + ANALYTICS ROW (4 cards side by side)
+    # 5. RPI + ANALYTICS (4 cards)
     # ══════════════════════════════════════════════════════════════════════════
-    def panel_rpi():
-        H_IN = 2.1
-        fig, axes = plt.subplots(1, 4, figsize=(W_IN, H_IN),
-                                  gridspec_kw={"width_ratios": [1.3, 1.1, 1, 1]})
-        fig.patch.set_facecolor(BG)
+    story += sec("Readiness Probability Index (RPI) & Analytics")
 
-        rpi_val = rpi["rpi"]
-        rpi_clr = rpi["color"]
-        rcomp   = rpi["components"]
-        rden    = rpi["rden_actual"]
-        rmile   = rpi["rden_milestone"]
-        cons_clr = cons["color"]
+    frp_pct = frp * 100
+    ov_clr  = RED if ov_cnt > 0 else GREEN
 
-        # RPI main card
-        ax0 = axes[0]
-        ax0.set_xlim(0, 1); ax0.set_ylim(0, 1); ax0.axis("off")
-        ax0.set_facecolor(CARD)
-        ax0.axhline(0.97, color=rpi_clr, linewidth=4)
-        ax0.text(0.5, 0.87, "READINESS INDEX (RPI)",
-                 ha="center", fontsize=7, color=MUTED, fontweight="bold")
-        ax0.text(0.5, 0.64, f"{rpi_val:.0f}",
-                 ha="center", fontsize=30, fontweight="bold", color=WHITE)
-        ax0.text(0.5, 0.47, rpi["label"],
-                 ha="center", fontsize=8, color=rpi_clr, fontweight="bold")
-        hbar(ax0, 0.07, 0.34, 0.86, 0.07, rpi_val, fg=rpi_clr)
-        ax0.text(0.5, 0.22,
-                 f"Ret Density: {rden:.2f}  (target {rmile[1]:.1f})",
-                 ha="center", fontsize=6.5, color=BODY)
-        ax0.text(0.5, 0.10, f"Milestone: {rmile[0]}",
-                 ha="center", fontsize=6, color=MUTED)
+    rpi_data = [[
+        # Card A: RPI score
+        [
+            Paragraph("RPI SCORE", S_LBL),
+            Paragraph(f"{rpi_val:.0f}",
+                      PS("rv",fontName="Helvetica-Bold",fontSize=30,textColor=WHITE,leading=34)),
+            Paragraph("/ 100", PS("r100",fontSize=8,textColor=MUTED)),
+            sp(3),
+            Paragraph(bar_str(rpi_val),
+                      PS("rb",fontName="Courier",fontSize=9,textColor=rpi_clr)),
+            sp(2),
+            Paragraph(rpi["label"],
+                      PS("rl",fontName="Helvetica-Bold",fontSize=8,textColor=rpi_clr)),
+            Paragraph(f"Ret Density: {rden:.2f}  target: {rmile[1]:.1f}", S_SML),
+        ],
+        # Card B: components
+        [
+            Paragraph("COMPONENTS", S_LBL),
+            sp(4),
+            Paragraph(f"Coverage:     {rcomp['coverage']:.0f}%",
+                      PS("rc1",fontName="Courier",fontSize=8,textColor=CYAN_L)),
+            Paragraph(bar_str(rcomp['coverage']),
+                      PS("rb1",fontName="Courier",fontSize=7,textColor=CYAN_L)),
+            sp(2),
+            Paragraph(f"Rev Depth:    {rcomp['revision_depth']:.0f}%",
+                      PS("rc2",fontName="Courier",fontSize=8,textColor=GREEN)),
+            Paragraph(bar_str(rcomp['revision_depth']),
+                      PS("rb2",fontName="Courier",fontSize=7,textColor=GREEN)),
+            sp(2),
+            Paragraph(f"Consistency:  {rcomp['consistency']:.0f}%",
+                      PS("rc3",fontName="Courier",fontSize=8,textColor=GOLD)),
+            Paragraph(bar_str(rcomp['consistency']),
+                      PS("rb3",fontName="Courier",fontSize=7,textColor=GOLD)),
+            sp(2),
+            Paragraph(f"Exp Risk:     {rcomp['exposure_risk']:.0f}%",
+                      PS("rc4",fontName="Courier",fontSize=8,textColor=RED)),
+            Paragraph(bar_str(rcomp['exposure_risk']),
+                      PS("rb4",fontName="Courier",fontSize=7,textColor=RED)),
+        ],
+        # Card C: consistency
+        [
+            Paragraph("CONSISTENCY", S_LBL),
+            Paragraph(f"{cons['pct']:.0f}%",
+                      PS("cv",fontName="Helvetica-Bold",fontSize=26,textColor=cons_clr,leading=30)),
+            Paragraph("Execution Rate", PS("cle",fontSize=7,textColor=MUTED)),
+            sp(3),
+            Paragraph(bar_str(cons['pct']),
+                      PS("cb",fontName="Courier",fontSize=9,textColor=cons_clr)),
+            sp(4),
+            Paragraph(f"{cons['days_studied']} days studied", S_SML),
+            Paragraph(f"of {cons['elapsed']} days elapsed",  S_SML),
+        ],
+        # Card D: FRP + overdue
+        [
+            Paragraph("SYLLABUS & OVERDUE", S_LBL),
+            sp(2),
+            Paragraph(f"{frp_pct:.0f}%",
+                      PS("fv",fontName="Helvetica-Bold",fontSize=22,textColor=CYAN_L,leading=26)),
+            Paragraph("First Read Progress", PS("fl",fontSize=7,textColor=MUTED)),
+            Paragraph(bar_str(frp_pct),
+                      PS("fb",fontName="Courier",fontSize=9,textColor=CYAN_L)),
+            sp(5),
+            Paragraph(str(ov_cnt),
+                      PS("ov",fontName="Helvetica-Bold",fontSize=22,textColor=ov_clr,leading=26)),
+            Paragraph("Overdue Revisions" if ov_cnt > 0 else "All On Track",
+                      PS("ovl",fontName="Helvetica-Bold",fontSize=7,textColor=ov_clr)),
+            Paragraph(f"{comp_total}/{all_topics} topics done",
+                      PS("td",fontSize=7,textColor=MUTED)),
+        ],
+    ]]
 
-        # Component breakdown card
-        ax1 = axes[1]
-        ax1.set_xlim(0, 1); ax1.set_ylim(0, 1); ax1.axis("off")
-        ax1.set_facecolor(CARD)
-        ax1.axhline(0.97, color=CYAN, linewidth=3)
-        ax1.text(0.5, 0.89, "RPI COMPONENTS",
-                 ha="center", fontsize=7, color=MUTED, fontweight="bold")
-        items = [
-            ("Coverage",    rcomp["coverage"],      CYAN_L),
-            ("Rev Depth",   rcomp["revision_depth"], GREEN),
-            ("Consistency", rcomp["consistency"],    GOLD),
-            ("Exp Risk",    rcomp["exposure_risk"],  RED),
-        ]
-        for i, (k, v, c) in enumerate(items):
-            y_text = 0.76 - i * 0.18
-            y_bar  = y_text - 0.08
-            ax1.text(0.07, y_text, k, fontsize=7, color=BODY, va="center")
-            ax1.text(0.93, y_text, f"{v:.0f}%", fontsize=7,
-                     fontweight="bold", color=c, ha="right", va="center")
-            hbar(ax1, 0.07, y_bar, 0.86, 0.055, v, fg=c)
-
-        # Execution consistency card
-        ax2 = axes[2]
-        ax2.set_xlim(0, 1); ax2.set_ylim(0, 1); ax2.axis("off")
-        ax2.set_facecolor(CARD)
-        ax2.axhline(0.97, color=cons_clr, linewidth=3)
-        ax2.text(0.5, 0.88, "CONSISTENCY",
-                 ha="center", fontsize=7, color=MUTED, fontweight="bold")
-        ax2.text(0.5, 0.64, f"{cons['pct']:.0f}%",
-                 ha="center", fontsize=26, fontweight="bold", color=cons_clr)
-        ax2.text(0.5, 0.46, "Execution Rate",
-                 ha="center", fontsize=7, color=MUTED)
-        hbar(ax2, 0.07, 0.33, 0.86, 0.07, cons["pct"], fg=cons_clr)
-        ax2.text(0.5, 0.20,
-                 f"{cons['days_studied']}d studied",
-                 ha="center", fontsize=7, color=BODY)
-        ax2.text(0.5, 0.10, f"of {cons['elapsed']}d elapsed",
-                 ha="center", fontsize=6.5, color=MUTED)
-
-        # FRP + Overdue card
-        ax3 = axes[3]
-        ov_clr = RED if overdue_count > 0 else GREEN
-        ax3.set_xlim(0, 1); ax3.set_ylim(0, 1); ax3.axis("off")
-        ax3.set_facecolor(CARD)
-        ax3.axhline(0.97, color=PURPLE, linewidth=3)
-        ax3.text(0.5, 0.88, "COVERAGE & OVERDUE",
-                 ha="center", fontsize=6.5, color=MUTED, fontweight="bold")
-        ax3.text(0.5, 0.72, f"{frp * 100:.0f}%",
-                 ha="center", fontsize=20, fontweight="bold", color=CYAN_L)
-        ax3.text(0.5, 0.57, "Syllabus FRP",
-                 ha="center", fontsize=6.5, color=MUTED)
-        hbar(ax3, 0.07, 0.45, 0.86, 0.06, frp * 100, fg=CYAN_L)
-        ax3.text(0.5, 0.32, str(overdue_count),
-                 ha="center", fontsize=20, fontweight="bold", color=ov_clr)
-        ax3.text(0.5, 0.18,
-                 "Overdue Revisions" if overdue_count > 0 else "All On Track",
-                 ha="center", fontsize=6.5, color=ov_clr, fontweight="bold")
-        ax3.text(0.5, 0.07,
-                 f"{completed_count}/{all_topics} topics completed",
-                 ha="center", fontsize=6, color=BODY)
-
-        plt.tight_layout(pad=0.25)
-        return fig2img(fig, W_PT, H_IN * 72)
-
-    story.append(Paragraph("🏆  Readiness Probability Index (RPI) + Analytics",
-                            ParagraphStyle("sec4", fontName="Helvetica-Bold",
-                                           fontSize=10, textColor=colors.HexColor(CYAN),
-                                           spaceBefore=4, spaceAfter=4)))
-    story.append(panel_rpi())
-    story.append(sp(6))
+    rpi_t = Table(rpi_data, colWidths=[W*0.22, W*0.28, W*0.24, W*0.26])
+    rpi_ts = [
+        ("BACKGROUND",    (0,0),(-1,-1), CARD),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 9),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 9),
+        ("TOPPADDING",    (0,0),(-1,-1), 9),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 9),
+        ("LINEABOVE",     (0,0),(0,0),   3, rpi_clr),
+        ("LINEABOVE",     (1,0),(1,0),   3, CYAN),
+        ("LINEABOVE",     (2,0),(2,0),   3, cons_clr),
+        ("LINEABOVE",     (3,0),(3,0),   3, PURPLE),
+    ]
+    rpi_t.setStyle(TableStyle(rpi_ts))
+    story.append(rpi_t)
+    story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 7 — REVISION STATUS CARDS (per subject)
+    # 6. REVISION PROGRESS
     # ══════════════════════════════════════════════════════════════════════════
-    def panel_revision():
-        H_IN = 2.0
-        fig, axes = plt.subplots(1, 5, figsize=(W_IN, H_IN))
-        fig.patch.set_facecolor(BG)
+    story += sec("Revision Progress by Subject")
 
-        for ax, s in zip(axes, SUBJECTS):
-            s_comp = completed_by_subj.get(s, 0)
-            s_rev  = (len(rev_sess[rev_sess["subject"] == s])
-                      if not rev_sess.empty and "subject" in rev_sess.columns else 0)
-            s_max  = s_comp * num_rev
-            s_pct  = min(s_rev / s_max * 100, 100) if s_max > 0 else 0
-            s_ov   = (int((pend[pend["subject"] == s]["days_overdue"] > 0).sum())
-                      if not pend.empty else 0)
-            clr    = SUBJ_CLR[s]
-            ov_clr = RED if s_ov > 0 else GREEN
+    rv_hdr = [[
+        Paragraph("Subject",      PS("rvh1",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Done Topics",  PS("rvh2",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Sessions",     PS("rvh3",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Max Rounds",   PS("rvh4",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Depth %",      PS("rvh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Overdue",      PS("rvh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Progress",     PS("rvh7",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+    ]]
+    rv_cw = [W*0.24,W*0.12,W*0.11,W*0.12,W*0.10,W*0.10,W*0.21]
+    rv_rows = []
+    for s in SUBJECTS:
+        s_comp = comp_by_s.get(s,0)
+        s_rev  = (len(rev_sess[rev_sess["subject"]==s])
+                  if not rev_sess.empty and "subject" in rev_sess.columns else 0)
+        s_max  = s_comp * num_rev
+        s_pct  = min(s_rev/s_max*100,100) if s_max>0 else 0
+        s_ov   = (int((pend[pend["subject"]==s]["days_overdue"]>0).sum())
+                  if not pend.empty else 0)
+        clr    = SUBJ_CLR[s]
+        ov_c   = RED if s_ov>0 else GREEN
+        rv_rows.append([
+            Paragraph(f'<b>{SUBJ_FULL[s]}</b>', PS(f"rvs{s}",fontSize=8.5,textColor=clr)),
+            Paragraph(str(s_comp), S_BODY),
+            Paragraph(str(s_rev),  S_BODY),
+            Paragraph(str(s_max),  S_BODY),
+            Paragraph(f"{s_pct:.0f}%",
+                      PS(f"rvd{s}",fontName="Helvetica-Bold",fontSize=8,textColor=clr)),
+            Paragraph(f"{'⚠ ' if s_ov>0 else ''}{s_ov}",
+                      PS(f"rvo{s}",fontName="Helvetica-Bold",fontSize=8,textColor=ov_c)),
+            Paragraph(bar_str(s_pct,10),
+                      PS(f"rvb{s}",fontName="Courier",fontSize=8,textColor=GREEN)),
+        ])
 
-            ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
-            ax.set_facecolor(CARD)
-            ax.axhline(0.97, color=clr, linewidth=4)
-
-            ax.text(0.5, 0.85, s, ha="center", fontsize=15,
-                    fontweight="bold", color=clr)
-
-            # Circular arc progress
-            circle_bg = mpatches.Wedge((0.5, 0.55), 0.19, 0, 360,
-                                        width=0.055, facecolor=BORDER,
-                                        transform=ax.transAxes, zorder=2)
-            ax.add_patch(circle_bg)
-            if s_pct > 0:
-                theta2 = 360 * s_pct / 100
-                circle_fg = mpatches.Wedge((0.5, 0.55), 0.19, 90, 90 - theta2,
-                                            width=0.055, facecolor=GREEN,
-                                            transform=ax.transAxes, zorder=3)
-                ax.add_patch(circle_fg)
-
-            ax.text(0.5, 0.55, f"{s_pct:.0f}%",
-                    ha="center", va="center", fontsize=11,
-                    fontweight="bold", color=WHITE,
-                    transform=ax.transAxes, zorder=4)
-
-            ax.text(0.5, 0.30, f"{s_rev}/{s_max} rounds",
-                    ha="center", fontsize=7.5, color=BODY)
-            ax.text(0.5, 0.16, f"{s_ov} overdue",
-                    ha="center", fontsize=7.5, fontweight="bold", color=ov_clr)
-
-        plt.tight_layout(pad=0.25)
-        return fig2img(fig, W_PT, H_IN * 72)
-
-    story.append(Paragraph("🔄  Revision Progress by Subject",
-                            ParagraphStyle("sec5", fontName="Helvetica-Bold",
-                                           fontSize=10, textColor=colors.HexColor(CYAN),
-                                           spaceBefore=4, spaceAfter=4)))
-    story.append(panel_revision())
-    story.append(sp(6))
+    rv_all = Table(rv_hdr+rv_rows, colWidths=rv_cw)
+    rv_all.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,0),  NAVY2),
+        ("BACKGROUND",    (0,1),(-1,-1), CARD),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1), [CARD,CARD2]),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("FONTNAME",      (0,0),(-1,0),  "Helvetica-Bold"),
+        ("TEXTCOLOR",     (0,0),(-1,0),  CYAN),
+        ("FONTSIZE",      (0,0),(-1,0),  7.5),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 7),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 7),
+        ("TOPPADDING",    (0,0),(-1,-1), 7),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 7),
+        ("ALIGN",         (1,0),(-1,-1), "CENTER"),
+    ]))
+    story.append(rv_all)
+    story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 8 — DANGER ZONE (overdue revisions as visual alert cards)
+    # 7. DANGER ZONE
     # ══════════════════════════════════════════════════════════════════════════
+    story += sec("Danger Zone — Needs Immediate Attention")
+
     if not pend.empty:
-        overdue_df = pend[pend["days_overdue"] > 0].nlargest(5, "days_overdue")
+        overdue_df = pend[pend["days_overdue"]>0].nlargest(10,"days_overdue")
+    else:
+        overdue_df = pd.DataFrame()
+
+    never_rev = pd.DataFrame()
+    if not rev.empty and "revision_count" in rev.columns and "topic_status" in rev.columns:
+        never_rev = rev[(rev["topic_status"]=="completed")&(rev["revision_count"]==0)]
+
+    if overdue_df.empty and never_rev.empty:
+        story.append(ctable(
+            [[Paragraph("All on track — no overdue revisions!", S_BODY)]], [W],
+            extras=[("LINEABOVE",(0,0),(-1,0),3,GREEN)]))
+    else:
         if not overdue_df.empty:
-            def panel_danger():
-                n     = len(overdue_df)
-                H_IN  = 1.4
-                fig, axes = plt.subplots(1, n, figsize=(W_IN, H_IN))
-                fig.patch.set_facecolor(BG)
-                if n == 1:
-                    axes = [axes]
-
-                for ax, (_, row) in zip(axes, overdue_df.iterrows()):
-                    dov  = int(row["days_overdue"])
-                    clr  = RED if dov > 14 else GOLD
-                    subj = str(row["subject"])
-
-                    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
-                    ax.set_facecolor("#180606")
-                    ax.axhline(0.97, color=clr, linewidth=4)
-
-                    ax.text(0.5, 0.84, subj, ha="center", fontsize=9,
-                            fontweight="bold",
-                            color=SUBJ_CLR.get(subj, RED))
-                    ax.text(0.5, 0.63, str(row["round_label"]),
-                            ha="center", fontsize=8, color=BODY)
-
-                    topic_short = str(row["topic"])[:22]
-                    ax.text(0.5, 0.48, topic_short, ha="center",
-                            fontsize=6.5, color=BODY)
-
-                    ax.text(0.5, 0.28, f"{dov}d",
-                            ha="center", fontsize=18, fontweight="bold", color=clr)
-                    ax.text(0.5, 0.13, "OVERDUE",
-                            ha="center", fontsize=6.5, color=clr, fontweight="bold")
-
-                plt.tight_layout(pad=0.3)
-                return fig2img(fig, W_PT, H_IN * 72)
-
-            story.append(Paragraph("🚨  Danger Zone — Top Overdue Revisions",
-                                    ParagraphStyle("sec6", fontName="Helvetica-Bold",
-                                                   fontSize=10,
-                                                   textColor=colors.HexColor(RED),
-                                                   spaceBefore=4, spaceAfter=4)))
-            story.append(panel_danger())
+            story.append(Paragraph("Overdue Revisions", S_H3))
+            story.append(sp(3))
+            dz_hdr = [[
+                Paragraph("Topic",      PS("dzh1",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Subject",    PS("dzh2",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Round",      PS("dzh3",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Days Late",  PS("dzh4",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Urgency",    PS("dzh5",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+            ]]
+            dz_cw = [W*0.44,W*0.13,W*0.12,W*0.14,W*0.17]
+            dz_rows = []
+            for _, row in overdue_df.iterrows():
+                dov  = int(row["days_overdue"])
+                urg  = ("CRITICAL" if dov>14 else "HIGH" if dov>7 else "MEDIUM")
+                uc   = (RED if dov>14 else GOLD if dov>7 else ORANGE)
+                sc   = SUBJ_CLR.get(str(row["subject"]), BODY)
+                dz_rows.append([
+                    Paragraph(str(row["topic"])[:55], S_BODY),
+                    Paragraph(str(row["subject"]),
+                              PS(f"dzs{dov}",fontName="Helvetica-Bold",fontSize=8,textColor=sc)),
+                    Paragraph(str(row["round_label"]), S_BODY),
+                    Paragraph(f"{dov}d",
+                              PS(f"dzd{dov}",fontName="Helvetica-Bold",fontSize=9,textColor=uc)),
+                    Paragraph(urg,
+                              PS(f"dzu{dov}",fontName="Helvetica-Bold",fontSize=7.5,textColor=uc)),
+                ])
+            dz_t = Table(dz_hdr+dz_rows, colWidths=dz_cw)
+            dz_t.setStyle(TableStyle([
+                ("BACKGROUND",    (0,0),(-1,0),  DKRED),
+                ("BACKGROUND",    (0,1),(-1,-1), DKRED2),
+                ("ROWBACKGROUNDS",(0,1),(-1,-1), [DKRED2, colors.HexColor("#120404")]),
+                ("GRID",          (0,0),(-1,-1), 0.5, colors.HexColor("#3A1010")),
+                ("TEXTCOLOR",     (0,1),(-1,-1), LTRED),
+                ("FONTNAME",      (0,0),(-1,0),  "Helvetica-Bold"),
+                ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+                ("LEFTPADDING",   (0,0),(-1,-1), 7),
+                ("RIGHTPADDING",  (0,0),(-1,-1), 7),
+                ("TOPPADDING",    (0,0),(-1,-1), 6),
+                ("BOTTOMPADDING", (0,0),(-1,-1), 6),
+                ("ALIGN",         (1,0),(-1,-1), "CENTER"),
+                ("LINEABOVE",     (0,0),(-1,0),  3, RED),
+            ]))
+            story.append(dz_t)
             story.append(sp(6))
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 9 — TEST SCORE LINE CHART + RECENT SCORES
-    # ══════════════════════════════════════════════════════════════════════════
-    if not tst.empty:
-        def panel_scores():
-            H_IN = 1.9
-            fig, ax = plt.subplots(figsize=(W_IN, H_IN))
-            fig.patch.set_facecolor(BG); ax.set_facecolor(CARD)
+        if not never_rev.empty:
+            story.append(Paragraph("Completed Topics — Never Revised", S_H3))
+            story.append(sp(3))
+            nr_hdr = [[
+                Paragraph("Topic",   PS("nrh1",fontName="Helvetica-Bold",fontSize=8,textColor=GOLD)),
+                Paragraph("Subject", PS("nrh2",fontName="Helvetica-Bold",fontSize=8,textColor=GOLD)),
+            ]]
+            nr_rows = []
+            for _, row in never_rev.head(10).iterrows():
+                sc = SUBJ_CLR.get(str(row.get("subject","")), BODY)
+                nr_rows.append([
+                    Paragraph(str(row.get("topic",""))[:65], S_BODY),
+                    Paragraph(str(row.get("subject","")),
+                              PS(f"nrs_{row.get('subject','')}",fontName="Helvetica-Bold",fontSize=8,textColor=sc)),
+                ])
+            nr_t = Table(nr_hdr+nr_rows, colWidths=[W*0.72,W*0.28])
+            nr_t.setStyle(TableStyle([
+                ("BACKGROUND",    (0,0),(-1,0),  colors.HexColor("#2A1A00")),
+                ("BACKGROUND",    (0,1),(-1,-1), colors.HexColor("#140E00")),
+                ("ROWBACKGROUNDS",(0,1),(-1,-1), [colors.HexColor("#140E00"),colors.HexColor("#0E0900")]),
+                ("GRID",          (0,0),(-1,-1), 0.5, colors.HexColor("#3A2800")),
+                ("TEXTCOLOR",     (0,1),(-1,-1), colors.HexColor("#FFD580")),
+                ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+                ("LEFTPADDING",   (0,0),(-1,-1), 7),
+                ("TOPPADDING",    (0,0),(-1,-1), 6),
+                ("BOTTOMPADDING", (0,0),(-1,-1), 6),
+                ("LINEABOVE",     (0,0),(-1,0),  3, GOLD),
+            ]))
+            story.append(nr_t)
 
-            sorted_tst = tst.sort_values("date")
-            scores = sorted_tst["score_pct"].tolist()
-            labels = [f"{r['subject']}\n{str(r['date'])[:10]}"
-                      for _, r in sorted_tst.iterrows()]
-            xs = list(range(len(scores)))
-
-            if len(scores) > 1:
-                ax.plot(xs, scores, color=CYAN, linewidth=2.2,
-                        marker="o", markersize=6,
-                        markerfacecolor=CYAN_L, markeredgecolor=CYAN,
-                        zorder=4)
-                ax.fill_between(xs, scores, alpha=0.12, color=CYAN)
-                # Colour each point by pass/fail
-                for x, sc in zip(xs, scores):
-                    c = GREEN if sc >= 60 else GOLD if sc >= 40 else RED
-                    ax.scatter(x, sc, color=c, s=40, zorder=5)
-                    ax.text(x, sc + 2, f"{sc:.0f}%",
-                            ha="center", fontsize=6, color=c, fontweight="bold")
-            elif len(scores) == 1:
-                c = GREEN if scores[0] >= 60 else GOLD if scores[0] >= 40 else RED
-                ax.scatter([0], scores, color=c, s=80, zorder=5)
-                ax.text(0, scores[0] + 2, f"{scores[0]:.0f}%",
-                        ha="center", fontsize=8, color=c, fontweight="bold")
-
-            ax.axhline(60, color=GREEN, linewidth=1.2, linestyle="--",
-                       alpha=0.7, label="Pass 60%")
-            ax.axhline(40, color=RED, linewidth=1, linestyle=":",
-                       alpha=0.5, label="Risk 40%")
-
-            ax.set_ylim(0, 108)
-            ax.set_xticks(xs)
-            ax.set_xticklabels(labels, fontsize=5.5, color=MUTED)
-            ax.yaxis.set_tick_params(labelsize=6.5, labelcolor=MUTED)
-            ax.set_ylabel("Score %", fontsize=7, color=MUTED)
-            ax.legend(loc="upper left", fontsize=6.5, framealpha=0.25,
-                      facecolor=CARD, edgecolor=BORDER, labelcolor=BODY)
-            ax.grid(axis="y", color=BORDER, alpha=0.4, linewidth=0.5)
-            for sp_ in ax.spines.values(): sp_.set_edgecolor(BORDER)
-            plt.tight_layout(pad=0.4)
-            return fig2img(fig, W_PT, H_IN * 72)
-
-        story.append(Paragraph("✍️  Test Score History",
-                                ParagraphStyle("sec7", fontName="Helvetica-Bold",
-                                               fontSize=10,
-                                               textColor=colors.HexColor(CYAN),
-                                               spaceBefore=4, spaceAfter=4)))
-        story.append(panel_scores())
-        story.append(sp(6))
+    story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # PANEL 10 — CGSM GAP SCHEDULE BAR CHART
+    # 8. TEST SCORES
     # ══════════════════════════════════════════════════════════════════════════
-    def panel_cgsm():
-        H_IN = 1.6
-        fig, ax = plt.subplots(figsize=(W_IN, H_IN))
-        fig.patch.set_facecolor(BG); ax.set_facecolor(CARD)
+    story += sec("Test Score History")
 
-        labels    = [f"R{i+1}" for i in range(len(gaps))]
-        bar_clrs  = [CYAN if g < 30 else GOLD if g < 60 else ORANGE
-                     for g in gaps]
-        bars = ax.bar(labels, gaps, color=bar_clrs, width=0.55, alpha=0.92)
+    if tst.empty:
+        story.append(ctable([[Paragraph("No test scores logged yet.", S_BODY)]], [W]))
+    else:
+        ts_hdr = [[
+            Paragraph("Date",      PS("tsh1",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+            Paragraph("Subject",   PS("tsh2",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+            Paragraph("Test Name", PS("tsh3",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+            Paragraph("Marks",     PS("tsh4",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+            Paragraph("Score %",   PS("tsh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+            Paragraph("Result",    PS("tsh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        ]]
+        ts_cw = [W*0.13,W*0.10,W*0.37,W*0.15,W*0.12,W*0.13]
+        ts_rows = []
+        for _, row in tst.sort_values("date", ascending=False).iterrows():
+            sc  = float(row.get("score_pct",0))
+            sc_c = (GREEN if sc>=60 else GOLD if sc>=40 else RED)
+            res  = ("PASS" if sc>=60 else "BORDERLINE" if sc>=40 else "FAIL")
+            sc2  = SUBJ_CLR.get(str(row.get("subject","")), BODY)
+            ts_rows.append([
+                Paragraph(str(row["date"])[:10], S_BODY),
+                Paragraph(str(row.get("subject","")),
+                          PS(f"tss{sc:.0f}",fontName="Helvetica-Bold",fontSize=8,textColor=sc2)),
+                Paragraph(str(row.get("test_name",""))[:42], S_BODY),
+                Paragraph(f"{row.get('marks','')}/{row.get('max_marks','')}", S_BODY),
+                Paragraph(f"{sc:.0f}%",
+                          PS(f"tsv{sc:.0f}",fontName="Helvetica-Bold",fontSize=9,textColor=sc_c)),
+                Paragraph(res,
+                          PS(f"tsr{sc:.0f}",fontName="Helvetica-Bold",fontSize=7.5,textColor=sc_c)),
+            ])
+        ts_t = Table(ts_hdr+ts_rows, colWidths=ts_cw)
+        ts_t.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(-1,0),  NAVY2),
+            ("BACKGROUND",    (0,1),(-1,-1), CARD),
+            ("ROWBACKGROUNDS",(0,1),(-1,-1), [CARD,CARD2]),
+            ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+            ("FONTNAME",      (0,0),(-1,0),  "Helvetica-Bold"),
+            ("TEXTCOLOR",     (0,0),(-1,0),  CYAN),
+            ("FONTSIZE",      (0,0),(-1,0),  7.5),
+            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+            ("LEFTPADDING",   (0,0),(-1,-1), 7),
+            ("RIGHTPADDING",  (0,0),(-1,-1), 7),
+            ("TOPPADDING",    (0,0),(-1,-1), 6),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 6),
+            ("ALIGN",         (1,0),(-1,-1), "CENTER"),
+            ("LINEABOVE",     (0,0),(-1,0),  2, CYAN),
+        ]))
+        story.append(ts_t)
+        story.append(sp(4))
 
-        for bar, g in zip(bars, gaps):
-            ax.text(bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + 0.4,
-                    f"{g}d", ha="center", va="bottom",
-                    fontsize=8, color=WHITE, fontweight="bold")
+        scores_list = [float(r.get("score_pct",0)) for _,r in tst.iterrows()]
+        best  = max(scores_list); worst = min(scores_list)
+        passed = sum(1 for s in scores_list if s>=60)
+        stat_data = [[
+            Paragraph(f"Tests: {len(ts_rows)}", PS("st1",fontName="Helvetica-Bold",fontSize=8,textColor=BODY)),
+            Paragraph(f"Best: {best:.0f}%",     PS("st2",fontName="Helvetica-Bold",fontSize=8,textColor=GREEN)),
+            Paragraph(f"Worst: {worst:.0f}%",   PS("st3",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+            Paragraph(f"Passed: {passed}/{len(ts_rows)}",
+                      PS("st4",fontName="Helvetica-Bold",fontSize=8,
+                         textColor=(GREEN if passed==len(ts_rows) else GOLD))),
+            Paragraph(f"Average: {avg_score:.1f}%",
+                      PS("st5",fontName="Helvetica-Bold",fontSize=8,textColor=sc_clr)),
+        ]]
+        stat_t = Table(stat_data, colWidths=[W*0.2]*5)
+        stat_t.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(-1,-1), CARD2),
+            ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+            ("LEFTPADDING",   (0,0),(-1,-1), 8),
+            ("TOPPADDING",    (0,0),(-1,-1), 6),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 6),
+            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ]))
+        story.append(stat_t)
 
-        ax.set_ylim(0, max(gaps) * 1.30)
-        ax.yaxis.set_tick_params(labelsize=6.5, labelcolor=MUTED)
-        ax.xaxis.set_tick_params(labelsize=8, labelcolor=BODY)
-        ax.set_ylabel("Gap (days)", fontsize=7, color=MUTED)
-        ax.grid(axis="y", color=BORDER, alpha=0.4, linewidth=0.5)
-        for sp_ in ax.spines.values(): sp_.set_edgecolor(BORDER)
+    story.append(sp(8))
 
-        ax.text(0.99, 0.96,
-                f"R1:{g1}d  R2:{g2}d  Growth:{gf}x  Cap:{mgap}d",
-                ha="right", va="top", fontsize=6.5, color=MUTED,
-                transform=ax.transAxes)
+    # ══════════════════════════════════════════════════════════════════════════
+    # 9. CGSM REVISION GAP SCHEDULE
+    # ══════════════════════════════════════════════════════════════════════════
+    story += sec("CGSM Revision Gap Schedule")
 
-        plt.tight_layout(pad=0.4)
-        return fig2img(fig, W_PT, H_IN * 72)
+    cfg_data = [[
+        Paragraph(f"R1 Gap: {g1}d",       S_MONO),
+        Paragraph(f"R2 Gap: {g2}d",       S_MONO),
+        Paragraph(f"Growth: {gf}x",       S_MONO),
+        Paragraph(f"Max Cap: {mgap}d",    S_MONO),
+        Paragraph(f"Mode: {prof.get('prep_mode','clearance').upper()}", S_MONO),
+    ]]
+    cfg_t = Table(cfg_data, colWidths=[W/5]*5)
+    cfg_t.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), CARD2),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("LEFTPADDING",   (0,0),(-1,-1), 8),
+        ("TOPPADDING",    (0,0),(-1,-1), 7),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 7),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+    ]))
+    story.append(cfg_t)
+    story.append(sp(5))
 
-    story.append(Paragraph("⚙️  CGSM Revision Gap Schedule",
-                            ParagraphStyle("sec8", fontName="Helvetica-Bold",
-                                           fontSize=10,
-                                           textColor=colors.HexColor(CYAN),
-                                           spaceBefore=4, spaceAfter=4)))
-    story.append(panel_cgsm())
+    gap_clrs = [CYAN if g<30 else GOLD if g<60 else ORANGE for g in gaps]
+    gap_cells = []
+    for i,(g,gc) in enumerate(zip(gaps,gap_clrs)):
+        gap_cells.append([
+            Paragraph(f"R{i+1}", PS(f"gr{i}",fontName="Helvetica-Bold",fontSize=9,textColor=gc,alignment=TA_CENTER)),
+            Paragraph(str(g),    PS(f"gv{i}",fontName="Helvetica-Bold",fontSize=20,textColor=WHITE,leading=24,alignment=TA_CENTER)),
+            Paragraph("days",   PS(f"gd{i}",fontSize=7,textColor=MUTED,alignment=TA_CENTER)),
+        ])
 
-    # ── Page background callback ──────────────────────────────────────────────
-    def dark_page(canvas_obj, doc_obj):
-        canvas_obj.saveState()
-        canvas_obj.setFillColor(colors.HexColor(BG))
-        canvas_obj.rect(0, 0, PW, PH, fill=1, stroke=0)
-        # Top cyan stripe
-        canvas_obj.setFillColor(colors.HexColor(CYAN))
-        canvas_obj.rect(0, PH - 3*mm, PW, 3*mm, fill=1, stroke=0)
-        # Footer stripe
-        canvas_obj.setFillColor(colors.HexColor(BORDER))
-        canvas_obj.rect(0, 0, PW, 8*mm, fill=1, stroke=0)
-        canvas_obj.setFillColor(colors.HexColor(MUTED))
-        canvas_obj.setFont("Helvetica", 6.5)
-        canvas_obj.drawString(LM,  2.5*mm,
-            f"CA Final Tracker  ·  {name_str}  ·  "
-            f"{date.today().strftime('%d %B %Y')}")
-        canvas_obj.drawRightString(PW - RM, 2.5*mm,
-            f"Page {doc_obj.page}")
-        canvas_obj.restoreState()
+    gap_t = Table([gap_cells], colWidths=[W/len(gaps)]*len(gaps))
+    gap_ts = [
+        ("BACKGROUND",    (0,0),(-1,-1), CARD),
+        ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
+        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+        ("TOPPADDING",    (0,0),(-1,-1), 9),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 9),
+        ("LEFTPADDING",   (0,0),(-1,-1), 4),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+    ]
+    for i,gc in enumerate(gap_clrs):
+        gap_ts.append(("LINEABOVE",(i,0),(i,0),3,gc))
+    gap_t.setStyle(TableStyle(gap_ts))
+    story.append(gap_t)
+    story.append(sp(5))
+    story.append(Paragraph(
+        "  →  ".join([f"R{i+1}: {g}d" for i,g in enumerate(gaps)]),
+        S_MONO))
 
+    # ── Build ──────────────────────────────────────────────────────────────────
     doc.build(story, onFirstPage=dark_page, onLaterPages=dark_page)
     buf.seek(0)
     return buf.read()
@@ -3623,7 +3643,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
             st.cache_data.clear()
             st.rerun()
     with h3:
-        if st.button("🖨️", key="dash_pdf"):
+        if st.button("🖨️", key="dash_pdf", help="Export Dashboard as PDF"):
             try:
                 pdf_bytes = generate_dashboard_pdf(
                     log, tst, rev, rev_sess, pend,
