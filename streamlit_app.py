@@ -527,20 +527,6 @@ p, .stMarkdown p {
     position: relative;
     overflow: hidden;
 }
-/* Top edge shimmer line on every card */
-.glass-card::before, .panel::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(56,189,248,0.6) 40%,
-        rgba(125,211,252,0.9) 50%,
-        rgba(56,189,248,0.6) 60%,
-        transparent 100%);
-    background-size: 200% 100%;
-}
 .glass-card:hover, .panel:hover {
     border-color: var(--border-mid);
     background: var(--bg-card-hover);
@@ -569,13 +555,7 @@ div[data-testid="stMetric"] {
     position: relative !important;
     overflow: hidden !important;
 }
-div[data-testid="stMetric"]::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1.5px;
-    background: linear-gradient(90deg, transparent, var(--cyan), var(--cyan-bright), transparent);
-}
+
 div[data-testid="stMetric"]:hover {
 
     border-color: var(--border-mid) !important;
@@ -631,18 +611,7 @@ div[data-testid="stMetricDelta"] {
     overflow-x: auto !important;
     scrollbar-width: none !important;
 }
-/* Animated top glow line */
-.stTabs [data-baseweb="tab-list"]::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg,
-        transparent 0%, var(--cyan-dim) 20%,
-        var(--cyan) 40%, var(--cyan-bright) 50%,
-        var(--cyan) 60%, var(--cyan-dim) 80%, transparent 100%);
-    background-size: 200% 100%;
-}
+
 .stTabs [data-baseweb="tab"] {
     border-radius: 0 !important;
     color: var(--text-dim) !important;
@@ -756,21 +725,11 @@ div[data-testid="stMetricDelta"] {
     position: relative;
     overflow: hidden;
 }
-.avatar-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent);
-    opacity: 0;
-}
 .avatar-card:hover {
     border-color: rgba(56,189,248,0.45);
     background: rgba(8,24,60,0.80);
-
     box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 16px rgba(56,189,248,0.15);
 }
-.avatar-card:hover::before { opacity: 1; }
 .avatar-card.selected {
     border-color: var(--cyan);
     background: rgba(14,60,140,0.35);
@@ -904,12 +863,7 @@ div[data-testid="stMetricDelta"] {
     overflow: hidden !important;
     backdrop-filter: blur(8px) !important;
 }
-.stButton button::before {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%; right: 100%; bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.15), transparent);
-}
+
 .stButton button:hover {
     background: linear-gradient(135deg, rgba(14,80,180,0.85), rgba(8,52,140,0.75)) !important;
     border-color: rgba(56,189,248,0.70) !important;
@@ -920,7 +874,7 @@ div[data-testid="stMetricDelta"] {
         0 0 20px rgba(56,189,248,0.20),
         inset 0 1px 0 rgba(255,255,255,0.12) !important;
 }
-.stButton button:hover::before { left: 100%; right: -100%; }
+
 .stButton button:active {
 
     box-shadow: 0 1px 6px rgba(56,189,248,0.18) !important;
@@ -942,14 +896,7 @@ div[data-testid="stMetricDelta"] {
     position: relative !important;
     overflow: hidden !important;
 }
-.stForm::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1.5px;
-    background: linear-gradient(90deg, transparent, var(--cyan), var(--cyan-bright), var(--cyan), transparent);
-    background-size: 200% 100%;
-}
+
 /* Hide submit hint */
 .stForm small, .stForm [data-testid="InputInstructions"],
 div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
@@ -971,8 +918,8 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
     background: linear-gradient(90deg, var(--cyan-dim), var(--cyan), var(--cyan-bright)) !important;
     border-radius: 6px !important;
     box-shadow: 0 0 12px rgba(56,189,248,0.7), 0 0 24px rgba(56,189,248,0.3) !important;
-    background-size: 200% 100% !important;
 }
+
 
 /* ═══════════════════════════════════════════════════════════
    SLIDERS
@@ -1111,20 +1058,13 @@ hr {
     overflow: hidden;
     box-shadow: var(--shadow-card);
 }
-.lb-card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: linear-gradient(180deg, var(--cyan), transparent);
-    opacity: 0;
-}
+
 .lb-card:hover {
     border-color: var(--border-mid);
 
     box-shadow: var(--shadow-deep), 0 0 22px rgba(56,189,248,0.12);
 }
-.lb-card:hover::before { opacity: 1; }
+
 
 /* ═══════════════════════════════════════════════════════════
    STAT PILLS
@@ -1153,20 +1093,11 @@ hr {
     text-align: center;
     padding: 36px 0 18px;
 }
-.brand-logo .icon {
-    font-size: 56px;
-    filter: drop-shadow(0 0 24px rgba(56,189,248,0.7));
-    display: inline-block;
-}
 .brand-title {
     font-family: var(--font-display) !important;
     font-size: 30px !important;
     font-weight: 900 !important;
-    background: linear-gradient(135deg, var(--cyan), var(--cyan-bright), #FFFFFF, var(--cyan), var(--cyan-bright));
-    background-size: 300% auto;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    background-clip: text !important;
+    color: var(--cyan-bright) !important;
     letter-spacing: -0.5px !important;
     line-height: 1.1 !important;
 }
@@ -1206,15 +1137,7 @@ hr {
     border-color: var(--border-mid);
     box-shadow: var(--shadow-deep), var(--glow-sm);
 }
-.subj-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 10%; right: 10%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-    opacity: 0;
-}
-.subj-card:hover::after { opacity: 1; }
+
 
 /* ═══════════════════════════════════════════════════════════
    TOPIC ROW CARDS — in revision tracker
@@ -2481,7 +2404,6 @@ def auth_page():
     with col2:
         st.markdown("""
         <div class="brand-logo">
-            <div class="icon">🎓</div>
             <div class="brand-title">CA FINAL TRACKER</div>
             <div class="brand-tagline">Track · Analyse · Conquer</div>
         </div>
@@ -3051,7 +2973,6 @@ def dashboard(log, tst, rev, rev_sess, pend):
                         border:1px solid {_bar_clr_44}">
                 <div style="width:{_overall}%;height:100%;border-radius:8px;
                             background:linear-gradient(90deg,{_bar_clr_44},{_bar_clr_88},{_bar_clr},#FFFFFF88,{_bar_clr},{_bar_clr_88},{_bar_clr_44});
-                            background-size:300% 100%;
                             box-shadow:0 0 14px {_bar_clr_88},0 0 28px {_bar_clr_44}"></div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#7BA7CC">
@@ -4208,11 +4129,7 @@ else:
     # sitting invisibly over the SVG circle so the circle IS the button.
     st.markdown(f"""
     <style>
-    /* XP bar animation — runs for 10 seconds then stops */
-    @keyframes xp-shimmer {{
-        0%   {{ background-position: 300% center; }}
-        100% {{ background-position: -300% center; }}
-    }}
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -4257,10 +4174,8 @@ else:
         <div style="padding:4px 0 0 4px">
             <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1px">
                 <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
-                            background:linear-gradient(135deg,#7B61FF,#38BDF8,#7B61FF);
-                            background-size:200% auto;
-                            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                            background-clip:text;
+                            color:#7DD3FC;
+                            text-shadow:0 0 18px rgba(56,189,248,0.7);
                             letter-spacing:-0.5px;line-height:1.1">{name}</div>
                 <div style="font-size:10px;color:#7BA7CC;align-self:center">@{profile.get("username","")}</div>
             </div>
@@ -4279,15 +4194,8 @@ else:
                         height:12px;overflow:hidden;position:relative;
                         border:1px solid rgba({_glow_rgb},0.15)">
                 <div style="width:{_lvl_pct:.1f}%;height:100%;border-radius:8px;
-                            background:linear-gradient(90deg,
-                                #0EA5E9 0%, #38BDF8 30%,
-                                #FFFFFF 50%,
-                                #38BDF8 70%, #7DD3FC 100%);
-                            background-size:300% 100%;
-                            animation:xp-shimmer 2.5s linear 4 forwards;
-                            box-shadow:0 0 18px rgba(56,189,248,1.0),
-                                       0 0 36px rgba(56,189,248,0.7),
-                                       0 0 60px rgba(14,165,233,0.4)">
+                            background:linear-gradient(90deg,#0EA5E9,#38BDF8,#7DD3FC);
+                            box-shadow:0 0 14px rgba(56,189,248,0.9),0 0 28px rgba(56,189,248,0.4)">
                 </div>
             </div>
             <div style="font-size:9px;color:#7BA7CC;margin-top:3px">
@@ -4302,8 +4210,7 @@ else:
                     border-radius:14px;padding:8px 10px;text-align:center;
                     position:relative;overflow:hidden;margin-top:4px;
                     box-shadow:0 0 20px rgba(56,189,248,0.18),var(--shadow-card)">
-            <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
-                        background:linear-gradient(90deg,transparent,#38BDF8,#7DD3FC,transparent)"></div>
+
             <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:800;
                         color:#FFFFFF;line-height:1;
                         text-shadow:0 0 20px rgba(56,189,248,0.9),0 0 40px rgba(56,189,248,0.5)">{days_left}</div>
