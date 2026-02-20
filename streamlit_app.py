@@ -3119,7 +3119,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story.append(air_table)
     story.append(Spacer(1, 4))
 
-    # ─── RPI + ANALYTICS ROW ──────────────────────────────────────────────────
+    # ─── RPI FLAT TABLE (no nested tables — avoids ReportLab invalid data type error)
     story.append(Paragraph("Readiness Probability Index (RPI)", S_SECTION))
 
     rpi_val   = rpi["rpi"]
@@ -3127,64 +3127,74 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     rcomp     = rpi["components"]
     rden      = rpi["rden_actual"]
     rmile     = rpi["rden_milestone"]
+    cons_color = colors.HexColor(cons["color"])
+    ov_color   = RED if overdue_count > 0 else GREEN
 
-    rpi_left = [
-        [Paragraph("RPI SCORE", S_LABEL)],
-        [Paragraph(f"{rpi_val:.0f} / 100", ParagraphStyle("rpiV",
-            fontName="Helvetica-Bold", fontSize=26, textColor=rpi_color, leading=28))],
-        [Paragraph(rpi["label"], ParagraphStyle("rpiL",
-            fontName="Helvetica-Bold", fontSize=9, textColor=rpi_color))],
-        [Spacer(1, 6)],
-        [Paragraph(f"Retention Density: {rden:.2f} touches/topic", S_BODY)],
-        [Paragraph(f"Milestone — {rmile[0]}: need >= {rmile[1]:.1f}", S_CAPTION)],
-    ]
-    rpi_right = [
-        [Paragraph("Component", S_LABEL), Paragraph("Score", S_LABEL)],
-        [Paragraph("Coverage",         S_BODY), Paragraph(f"{rcomp['coverage']:.0f}%",         S_MONO)],
-        [Paragraph("Revision Depth",   S_BODY), Paragraph(f"{rcomp['revision_depth']:.0f}%",   S_MONO)],
-        [Paragraph("Retention Density",S_BODY), Paragraph(f"{rden:.2f}",                        S_MONO)],
-        [Paragraph("Consistency",      S_BODY), Paragraph(f"{rcomp['consistency']:.0f}%",       S_MONO)],
-        [Paragraph("Exposure Risk",    S_BODY), Paragraph(f"{rcomp['exposure_risk']:.0f}%",     S_MONO)],
+    S_RPI_BIG  = ParagraphStyle("rpibig",  fontName="Helvetica-Bold", fontSize=24,
+                                 textColor=rpi_color, leading=26)
+    S_RPI_LBL  = ParagraphStyle("rpilbl",  fontName="Helvetica-Bold", fontSize=9,
+                                 textColor=rpi_color)
+    S_CONS_BIG = ParagraphStyle("consbig", fontName="Helvetica-Bold", fontSize=18,
+                                 textColor=cons_color, leading=20)
+    S_FRP_BIG  = ParagraphStyle("frpbig",  fontName="Helvetica-Bold", fontSize=18,
+                                 textColor=CYAN_LIGHT, leading=20)
+    S_OV_BIG   = ParagraphStyle("ovbig",   fontName="Helvetica-Bold", fontSize=18,
+                                 textColor=ov_color, leading=20)
+
+    # Row 1: headers
+    rpi_table_data = [
+        [
+            Paragraph("RPI SCORE", S_LABEL),
+            Paragraph("COMPONENT BREAKDOWN", S_LABEL),
+            Paragraph("CONSISTENCY", S_LABEL),
+            Paragraph("SYLLABUS FRP", S_LABEL),
+            Paragraph("OVERDUE", S_LABEL),
+        ],
+        # Row 2: big values
+        [
+            Paragraph(f"{rpi_val:.0f}/100", S_RPI_BIG),
+            Paragraph(
+                f"Coverage: {rcomp['coverage']:.0f}%<br/>"
+                f"Rev Depth: {rcomp['revision_depth']:.0f}%<br/>"
+                f"Retention: {rden:.2f}<br/>"
+                f"Consistency: {rcomp['consistency']:.0f}%<br/>"
+                f"Exp Risk: {rcomp['exposure_risk']:.0f}%",
+                ParagraphStyle("rc", fontName="Helvetica", fontSize=8,
+                               textColor=TEXT_BODY, leading=13)
+            ),
+            Paragraph(f"{cons['pct']:.0f}%", S_CONS_BIG),
+            Paragraph(f"{frp*100:.0f}%", S_FRP_BIG),
+            Paragraph(str(overdue_count), S_OV_BIG),
+        ],
+        # Row 3: sublabels
+        [
+            Paragraph(rpi["label"], S_RPI_LBL),
+            Paragraph(
+                f"Milestone: {rmile[0]} >= {rmile[1]:.1f}",
+                S_CAPTION
+            ),
+            Paragraph(f"{cons['days_studied']}d / {cons['elapsed']}d elapsed", S_CAPTION),
+            Paragraph("First read progress", S_CAPTION),
+            Paragraph("need attention" if overdue_count > 0 else "all on track", S_CAPTION),
+        ],
     ]
 
-    analytics_cols = [
-        [Paragraph("Execution Consistency", S_LABEL),
-         Paragraph(f"{cons['pct']:.0f}%",
-                   ParagraphStyle("cv", fontName="Helvetica-Bold", fontSize=18,
-                                  textColor=colors.HexColor(cons['color']))),
-         Paragraph(f"{cons['days_studied']}d studied / {cons['elapsed']}d elapsed", S_CAPTION),
-        ],
-        [Paragraph("Syllabus FRP", S_LABEL),
-         Paragraph(f"{frp*100:.0f}%",
-                   ParagraphStyle("fv", fontName="Helvetica-Bold", fontSize=18,
-                                  textColor=CYAN_LIGHT)),
-         Paragraph("First read progress ratio", S_CAPTION),
-        ],
-        [Paragraph("Overdue Revisions", S_LABEL),
-         Paragraph(str(overdue_count),
-                   ParagraphStyle("ov", fontName="Helvetica-Bold", fontSize=18,
-                                  textColor=RED if overdue_count > 0 else GREEN)),
-         Paragraph("need attention now" if overdue_count > 0 else "all on track", S_CAPTION),
-        ],
-    ]
-
-    combined_data = [[
-        Table(rpi_left,  colWidths=[W*0.22]),
-        Table(rpi_right, colWidths=[W*0.22, W*0.10]),
-        Table([c] for c in analytics_cols[0]),
-        Table([c] for c in analytics_cols[1]),
-        Table([c] for c in analytics_cols[2]),
-    ]]
-    outer = Table(combined_data, colWidths=[W*0.22, W*0.32, W*0.15, W*0.15, W*0.16])
-    outer.setStyle(TableStyle([
-        ("BACKGROUND",   (0,0), (-1,-1), NAVY_CARD),
-        ("GRID",         (0,0), (-1,-1), 0.5, BORDER),
-        ("VALIGN",       (0,0), (-1,-1), "TOP"),
-        ("LEFTPADDING",  (0,0), (-1,-1), 8),
-        ("TOPPADDING",   (0,0), (-1,-1), 8),
-        ("BOTTOMPADDING",(0,0), (-1,-1), 8),
+    rpi_flat = Table(rpi_table_data,
+                     colWidths=[W*0.18, W*0.30, W*0.17, W*0.17, W*0.18])
+    rpi_flat.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0), (-1,-1), NAVY_CARD),
+        ("GRID",          (0,0), (-1,-1), 0.5, BORDER),
+        ("VALIGN",        (0,0), (-1,-1), "TOP"),
+        ("LEFTPADDING",   (0,0), (-1,-1), 8),
+        ("RIGHTPADDING",  (0,0), (-1,-1), 6),
+        ("TOPPADDING",    (0,0), (-1,-1), 7),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 7),
+        # Header row tint
+        ("BACKGROUND",    (0,0), (-1,0),  colors.HexColor("#0A1F55")),
+        # RPI score cell — left border accent
+        ("LINEAFTER",     (0,0), (0,-1),  1.5, CYAN),
     ]))
-    story.append(outer)
+    story.append(rpi_flat)
     story.append(Spacer(1, 10))
 
     # ─── REVISION OVERVIEW ────────────────────────────────────────────────────
