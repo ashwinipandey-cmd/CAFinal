@@ -1093,6 +1093,11 @@ hr {
     text-align: center;
     padding: 36px 0 18px;
 }
+.brand-logo .icon {
+    font-size: 56px;
+    filter: drop-shadow(0 0 24px rgba(56,189,248,0.7));
+    display: inline-block;
+}
 .brand-title {
     font-family: var(--font-display) !important;
     font-size: 30px !important;
@@ -2404,6 +2409,7 @@ def auth_page():
     with col2:
         st.markdown("""
         <div class="brand-logo">
+            <div class="icon">🎓</div>
             <div class="brand-title">CA FINAL TRACKER</div>
             <div class="brand-tagline">Track · Analyse · Conquer</div>
         </div>
