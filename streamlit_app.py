@@ -696,6 +696,36 @@ div[data-testid="stMetricDelta"] {
         inset 0 1px 0 rgba(255,255,255,0.12) !important;
 }
 
+/* Form submit buttons — themed, not white */
+.stFormSubmitButton button {
+    background: linear-gradient(135deg, rgba(14,165,233,0.90), rgba(6,80,180,0.80)) !important;
+    border: 1.5px solid rgba(56,189,248,0.70) !important;
+    border-radius: 8px !important;
+    color: #FFFFFF !important;
+    font-family: var(--font-ui) !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    letter-spacing: 0.5px !important;
+    box-shadow: 0 0 20px rgba(56,189,248,0.30), 0 4px 16px rgba(0,0,0,0.4) !important;
+}
+.stFormSubmitButton button:hover {
+    background: linear-gradient(135deg, rgba(56,189,248,0.95), rgba(14,80,200,0.90)) !important;
+    border-color: #38BDF8 !important;
+    box-shadow: 0 0 28px rgba(56,189,248,0.50), 0 4px 20px rgba(0,0,0,0.45) !important;
+    color: #020B18 !important;
+}
+
+/* Autofill — override browser default (yellow/white) with themed dark */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px rgba(4,16,48,0.95) inset !important;
+    -webkit-text-fill-color: #E8F4FF !important;
+    border-color: rgba(56,189,248,0.50) !important;
+    transition: background-color 5000s ease-in-out 0s !important;
+}
+
 .stButton button:active {
 
     box-shadow: 0 1px 6px rgba(56,189,248,0.18) !important;
@@ -1002,6 +1032,94 @@ hr {
 .badge-overdue  { background: rgba(248,113,113,0.14); color: var(--red);   border-color: rgba(248,113,113,0.35); }
 .badge-due-today{ background: rgba(251,191,36,0.14);  color: var(--gold);  border-color: rgba(251,191,36,0.35); }
 
+/* ═══════════════════════════════════════════════════════════
+   DOWNLOAD BUTTONS — match neon theme
+═══════════════════════════════════════════════════════════ */
+.stDownloadButton button {
+    background: linear-gradient(135deg, rgba(6,30,100,0.80), rgba(4,20,70,0.70)) !important;
+    border: 1.5px solid rgba(56,189,248,0.45) !important;
+    border-radius: 8px !important;
+    color: #7DD3FC !important;
+    font-family: var(--font-ui) !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4), 0 0 16px rgba(56,189,248,0.10), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+}
+.stDownloadButton button:hover {
+    background: linear-gradient(135deg, rgba(10,50,160,0.88), rgba(6,30,120,0.78)) !important;
+    border-color: rgba(56,189,248,0.75) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 24px rgba(56,189,248,0.25) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ACCOUNT/PROFILE — replace white glow with lite cyan blue
+═══════════════════════════════════════════════════════════ */
+/* Expander headers */
+.streamlit-expanderHeader {
+    background: rgba(4,16,48,0.88) !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
+    border-radius: 10px !important;
+    color: #E8F4FF !important;
+}
+.streamlit-expanderHeader:hover {
+    border-color: rgba(56,189,248,0.55) !important;
+    box-shadow: 0 0 16px rgba(56,189,248,0.18) !important;
+}
+.streamlit-expanderContent {
+    background: rgba(3,12,36,0.85) !important;
+    border: 1px solid rgba(56,189,248,0.18) !important;
+    border-radius: 0 0 10px 10px !important;
+}
+
+/* Form containers in Account — replace generic white box-shadow */
+.stForm {
+    background: rgba(4,14,44,0.85) !important;
+    border: 1.5px solid rgba(56,189,248,0.22) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(32px) saturate(160%) !important;
+    padding: 24px !important;
+    box-shadow:
+        0 8px 40px rgba(0,0,0,0.70),
+        0 0 30px rgba(56,189,248,0.07),
+        inset 0 1px 0 rgba(56,189,248,0.08) !important;
+}
+
+/* Mobile: increase tap target sizes */
+@media (max-width: 768px) {
+    .stButton button, .stDownloadButton button {
+        min-height: 44px !important;
+        font-size: 14px !important;
+        padding: 10px 16px !important;
+    }
+    .stTextInput input, .stNumberInput input,
+    .stTextArea textarea, .stDateInput input {
+        font-size: 16px !important; /* prevents iOS zoom */
+        min-height: 44px !important;
+    }
+    .stSelectbox > div > div {
+        min-height: 44px !important;
+        font-size: 16px !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 12px !important;
+        padding: 6px 8px !important;
+    }
+    h1 { font-size: 22px !important; }
+    h2 { font-size: 18px !important; }
+    .neon-header { font-size: 13px !important; }
+    [data-testid="column"] { min-width: 0 !important; }
+}
+/* Metric cards on mobile */
+@media (max-width: 600px) {
+    [data-testid="stMetric"] {
+        padding: 8px !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 18px !important;
+    }
+}
+
 </style>
 """
 
@@ -1144,6 +1262,9 @@ def do_login(email, password):
         st.session_state.logged_in  = True
         st.session_state.user_id    = uid_val
         st.session_state.profile    = profile_data
+        # Show How-to-Use guide on first login
+        if "show_how_to_use" not in st.session_state:
+            st.session_state.show_how_to_use = True
         return True, "Login successful"
 
     except Exception as e:
@@ -2509,11 +2630,12 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
 
     st.divider()
 
-    # ── Profile tabs — 3 clean tabs (Sign Out is now global strip button) ─────
-    ptab1, ptab2, ptab3 = st.tabs([
+    # ── Profile tabs — 4 tabs including How to Use ───────────────────────────
+    ptab1, ptab2, ptab3, ptab4 = st.tabs([
         "⚙️  Settings",
         "🏅  Achievements",
         "🥇  Leaderboard",
+        "ℹ️  How to Use",
     ])
 
     # ════════════════════════════════
@@ -2908,6 +3030,88 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
 
 
 
+    # ════════════════════════════════
+    # TAB 4 — How to Use
+    # ════════════════════════════════
+    with ptab4:
+        st.markdown('<div class="neon-header neon-header-glow">ℹ️ How to Use CA Final Tracker</div>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:12px;color:#7BA7CC;margin-bottom:20px">Complete guide to getting the most out of every feature. Bookmark this tab!</p>', unsafe_allow_html=True)
+
+        steps = [
+            ("⚙️", "STEP 1 — Account Setup", "#38BDF8",
+             "Go to <b style='color:#7DD3FC'>Settings</b> (this tab) and set your exam month & year. "
+             "The countdown timer starts immediately. Customize daily study hour targets per subject if needed. "
+             "Your username appears on the dashboard header — make it something motivating!"),
+            ("📝", "STEP 2 — Log Study Hours", "#FBBF24",
+             "Every study session → <b style='color:#7DD3FC'>📝 Log Study</b> tab. Select subject, topic, hours, "
+             "difficulty, and session type. Logging earns XP and advances your level. "
+             "Mark topics as <b>Completed</b> when done — this unlocks revision scheduling."),
+            ("🔄", "STEP 3 — Track Revisions", "#34D399",
+             "After completing topics, go to <b style='color:#7DD3FC'>🔄 Revision</b> tab. "
+             "Your daily revision agenda shows overdue and upcoming topics. Log revision sessions to build memory strength. "
+             "The Memory Strength chart shows which topics need re-revision most urgently."),
+            ("🏆", "STEP 4 — Add Test Scores", "#818CF8",
+             "After every mock test → <b style='color:#7DD3FC'>🏆 Add Score</b>. Log subject, score, and action plan. "
+             "The Dashboard shows score trends so you can see if preparation translates into marks. "
+             "Note weak and strong areas for targeted revision."),
+            ("📊", "STEP 5 — Read Your Dashboard", "#F87171",
+             "Check the Dashboard daily. The AIR Index, RPI, and PWDAM scores are your overall health indicators. "
+             "Subject progress rings show hours vs target. Donut charts in Revision tab show coverage at a glance. "
+             "Use 🔄 Refresh button to sync latest data."),
+            ("📤", "STEP 6 — Export & Backup", "#60A5FA",
+             "Go to <b style='color:#7DD3FC'>Settings → Export My Data</b> for CSV downloads of all study logs, "
+             "test scores, and revision data. Export regularly to back up your progress. "
+             "All data is also stored securely in the cloud (Supabase on AWS)."),
+        ]
+
+        for i, (icon, title, clr, desc) in enumerate(steps):
+            st.markdown(f"""
+            <div style="background:rgba(4,14,44,0.88);border:1.5px solid rgba(56,189,248,0.22);
+                        border-left:4px solid {clr};border-radius:14px;padding:18px 20px;margin-bottom:12px;
+                        box-shadow:0 2px 12px rgba(0,0,0,0.30)">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                    <span style="font-size:24px">{icon}</span>
+                    <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;
+                                color:{clr};letter-spacing:1px">{title}</div>
+                </div>
+                <div style="font-size:13px;color:#C8E5F8;line-height:1.7;padding-left:34px">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+        st.markdown("""
+        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.25);
+                    border-radius:14px;padding:16px 20px">
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#38BDF8;
+                        letter-spacing:1.5px;font-weight:700;margin-bottom:12px">❓ FREQUENTLY ASKED QUESTIONS</div>
+            <div style="font-size:13px;color:#C8E5F8;line-height:1.8">
+                <b style="color:#7DD3FC">Q: Can I use CA Final Tracker on mobile?</b><br>
+                A: Yes — the app is mobile-responsive and works in any browser. Just open it on your phone.<br><br>
+                <b style="color:#7DD3FC">Q: Is my data secure?</b><br>
+                A: All data is stored securely on Supabase (hosted on AWS). Private to your account only.<br><br>
+                <b style="color:#7DD3FC">Q: Can I log hours retroactively?</b><br>
+                A: Yes — enable backdating in Settings to log sessions for past dates.<br><br>
+                <b style="color:#7DD3FC">Q: How are XP levels calculated?</b><br>
+                A: XP = total study + revision hours. Level 25 (Legend) = 890h — the full CA Final target.<br><br>
+                <b style="color:#7DD3FC">Q: What if I preparing for both groups?</b><br>
+                A: Log all 5 subjects — the app is designed for the full CA Final curriculum simultaneously.<br><br>
+                <b style="color:#7DD3FC">Q: How to reset if I start over?</b><br>
+                A: Go to Settings → Danger Zone → Reset Account Data. Profile and login are preserved.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="text-align:center;padding:16px 0">
+            <span style="font-size:32px;filter:drop-shadow(0 0 14px rgba(56,189,248,0.9))">🎓</span>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:#7DD3FC;margin-top:8px;font-weight:700">
+                CA Final Tracker — Your exam. Your data. Your win.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
 def auth_page():
     # Use st.empty() so the entire auth screen is wiped instantly on st.rerun()
     # preventing the 3-4 second overlap between auth screen and dashboard
@@ -2917,6 +3121,10 @@ def auth_page():
         with col2:
             st.markdown("""
             <div class="brand-logo">
+                <div style="font-size:52px;margin-bottom:8px;line-height:1;
+                            filter:drop-shadow(0 0 18px rgba(56,189,248,0.90)) drop-shadow(0 0 36px rgba(56,189,248,0.55));">
+                    🎓
+                </div>
                 <div class="brand-title">CA FINAL TRACKER</div>
                 <div class="brand-tagline">Track · Analyse · Conquer</div>
             </div>
@@ -3777,11 +3985,15 @@ def dashboard(log, tst, rev, rev_sess, pend):
     total_rev_hrs = float(rev_sess["hours"].sum()) if not rev_sess.empty and "hours" in rev_sess.columns else 0.0
     rev_sh    = rev_sess.groupby("subject")["hours"].sum() if not rev_sess.empty and "subject" in rev_sess.columns else pd.Series(dtype=float)
 
-    # ── Dashboard header — PDF export (Refresh/Logout now in global strip above tabs) ──
-    h1, h3 = st.columns([6.3, 0.6])
+    # ── Dashboard header — Refresh · PDF · Logout ───────────────────────────
+    h1, h_refresh, h_pdf, h_logout = st.columns([5.5, 0.6, 0.6, 0.6])
     with h1:
         st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
-    with h3:
+    with h_refresh:
+        if st.button("🔄", key="dash_refresh", help="Refresh all data"):
+            st.cache_data.clear()
+            st.rerun()
+    with h_pdf:
         if st.button("🖨️", key="dash_pdf", help="Export Dashboard as PDF"):
             try:
                 pdf_bytes = generate_dashboard_pdf(
@@ -3799,6 +4011,10 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 )
             except Exception as _pdf_err:
                 st.error(f"PDF error: {_pdf_err}")
+    with h_logout:
+        if st.button("🚪", key="dash_logout", help="Sign Out"):
+            do_logout()
+            st.rerun()
 
     # KPIs
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -4941,23 +5157,8 @@ def revision(log_df, rev_df, rev_sess_df, pend):
 
     st.markdown("---")
 
-    if "rev_subj" not in st.session_state:
-        st.session_state.rev_subj = "ALL"
-
-    # ── Subject selector ──────────────────────────────────────────────────────
-    subj_opts = ["ALL"] + SUBJECTS
-    btn_cols  = st.columns(len(subj_opts))
-    for i, s in enumerate(subj_opts):
-        clr = "#38BDF8" if s == "ALL" else COLORS[s]
-        with btn_cols[i]:
-            if st.button("🌐 ALL" if s == "ALL" else s,
-                         key=f"rev_subj_btn_{s}", use_container_width=True):
-                st.session_state.rev_subj = s
-                st.rerun()
-
-    subj             = st.session_state.rev_subj
-    display_subjects = SUBJECTS if subj == "ALL" else [subj]
-    st.markdown("---")
+    subj = "ALL"
+    display_subjects = SUBJECTS
 
     # ── Build lookup maps from log ────────────────────────────────────────────
     from collections import defaultdict
@@ -5079,164 +5280,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
 
     st.markdown("---")
 
-    # ── Topic Status inline (no sub-tabs) ────────────────────────────────────
-    if True:  # always show (was tab1)
-
-        st.markdown('<div class="neon-header">📋 Topic Status Overview</div>', unsafe_allow_html=True)
-
-        for ds in display_subjects:
-            if subj == "ALL":
-                clr = COLORS[ds]
-                st.markdown(f"<div style='font-family:'DM Mono',monospace;font-size:12px;"
-                            f"color:{clr};letter-spacing:1px;margin:14px 0 6px'>"
-                            f"{ds} — {SUBJ_FULL[ds]}</div>", unsafe_allow_html=True)
-
-            for topic in TOPICS.get(ds, []):
-                key     = (ds, topic)
-                info    = completion_info.get(key, {"status":"not_started","tfr":0,"comp_date":None})
-                t_stat  = info["status"]
-                tfr     = info["tfr"] or reading_hrs.get(key, 0)
-                comp_d  = info["comp_date"]
-
-                # Compute revisions done
-                revs_done     = len(set(rev_dates_map.get(key, [])))
-                last_rev_date = max(rev_dates_map[key]) if rev_dates_map.get(key) else None
-
-                # Status colours
-                stat_map = {
-                    "not_started": ("⬜", "#94A3B8"),
-                    "reading":     ("📖", "#38BDF8"),
-                    "completed":   ("✅", "#34D399"),
-                }
-                s_icon, s_clr = stat_map.get(t_stat, ("⬜", "#94A3B8"))
-                subj_clr = COLORS.get(ds, "#38BDF8")
-
-                # Next due from pendency
-                next_due_str = "—"
-                days_ov      = None
-                if t_stat == "completed":
-                    pend_row = pend
-                    if not pend_row.empty:
-                        pr = pend_row[(pend_row["subject"]==ds) & (pend_row["topic"]==topic)]
-                        if not pr.empty:
-                            r0 = pr.iloc[0]
-                            next_due_str = str(r0["due_date"])
-                            days_ov      = int(r0["days_overdue"])
-
-                # Memory strength
-                ms_pct, ms_lbl, ms_clr = memory_strength(revs_done, last_rev_date, num_rev)
-
-                # ── Summary card ──
-                due_badge = ""
-                if days_ov is not None:
-                    if days_ov > 0:
-                        due_badge = f'<span style="background:#F87171;color:#fff;padding:2px 7px;border-radius:6px;font-size:9px;font-family:&quot;DM Mono&quot;,monospace">+{days_ov}d OVERDUE</span>'
-                    elif days_ov == 0:
-                        due_badge = f'<span style="background:#FBBF24;color:#000;padding:2px 7px;border-radius:6px;font-size:9px;font-family:&quot;DM Mono&quot;,monospace">DUE TODAY</span>'
-                    else:
-                        due_badge = f'<span style="background:#34D39944;color:#34D399;padding:2px 7px;border-radius:6px;font-size:9px">in {abs(days_ov)}d</span>'
-
-                with st.expander(
-                    f"{s_icon} {ds} · {topic[:60]}{'…' if len(topic)>60 else ''}  "
-                    f"   TFR:{tfr:.1f}h  R:{revs_done}/{num_rev}",
-                    expanded=False
-                ):
-                    # ── Full schedule R1→RN ──
-                    if t_stat == "completed" and comp_d:
-                        comp_date_obj = date.fromisoformat(str(comp_d)[:10]) if isinstance(comp_d, str) else comp_d
-                        schedule = compute_revision_schedule(tfr, r1_ratio, r2_ratio, num_rev, comp_date_obj)
-
-                        # Header row
-                        st.markdown(f"""
-                        <div style="display:flex;gap:16px;align-items:center;margin-bottom:8px">
-                            <div>
-                                <span style="font-size:11px;color:#93C8E8">TFR: </span>
-                                <b style="color:#FFFFFF">{tfr:.1f}h</b>
-                            </div>
-                            <div>
-                                <span style="font-size:11px;color:#93C8E8">Completed: </span>
-                                <b style="color:#FFFFFF">{str(comp_d)[:10]}</b>
-                            </div>
-                            <div>
-                                <span style="font-size:11px;color:#93C8E8">Memory: </span>
-                                <b style="color:{ms_clr}">{ms_lbl} ({ms_pct:.0f}%)</b>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        # Schedule table
-                        rev_done_set = set(rev_dates_map.get(key, []))
-                        for rnd in schedule:
-                            rn        = rnd["round"]
-                            is_done   = rn <= revs_done
-                            is_next   = rn == revs_done + 1
-                            due_d     = rnd["due_date"]
-                            diff      = (today - due_d).days
-                            dur       = rnd["duration_hrs"]
-
-                            if is_done:
-                                row_bg  = "rgba(52,211,153,0.08)"
-                                row_bdr = "rgba(52,211,153,0.30)"
-                                status_badge = '✅ Done'
-                                rn_clr  = "#34D399"
-                            elif is_next and diff > 0:
-                                row_bg  = "rgba(248,113,113,0.08)"
-                                row_bdr = "rgba(248,113,113,0.40)"
-                                status_badge = f'⚠️ +{diff}d overdue'
-                                rn_clr  = "#F87171"
-                            elif is_next and diff == 0:
-                                row_bg  = "rgba(251,191,36,0.08)"
-                                row_bdr = "rgba(251,191,36,0.40)"
-                                status_badge = '🟡 Due Today'
-                                rn_clr  = "#FBBF24"
-                            elif is_next:
-                                row_bg  = "rgba(56,189,248,0.06)"
-                                row_bdr = "rgba(56,189,248,0.25)"
-                                status_badge = f'⏳ in {abs(diff)}d'
-                                rn_clr  = "#38BDF8"
-                            else:
-                                row_bg  = "rgba(6,14,38,0.50)"
-                                row_bdr = "rgba(56,189,248,0.10)"
-                                status_badge = f'📅 {due_d}'
-                                rn_clr  = "#7BA7CC"
-
-                            st.markdown(f"""
-                            <div style="display:flex;align-items:center;gap:10px;
-                                        background:{row_bg};border:1px solid {row_bdr};
-                                        border-left:3px solid {rn_clr};
-                                        border-radius:8px;padding:8px 12px;margin:3px 0">
-                                <div style="font-family:'DM Mono',monospace;font-size:11px;
-                                            font-weight:800;color:{rn_clr};min-width:28px">R{rn}</div>
-                                <div style="flex:1;font-size:11px;color:#C8E5F8">
-                                    <b style="color:#FFFFFF">{dur:.2f}h</b>
-                                    <span style="color:#7BA7CC;margin-left:6px">
-                                        ({rnd['ratio']*100:.0f}% of TFR · after {rnd['interval_days']}d)
-                                    </span>
-                                </div>
-                                <div style="font-size:10px;color:{rn_clr};font-weight:600">{status_badge}</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-
-                    elif t_stat == "reading":
-                        read_h = reading_hrs.get(key, 0)
-                        ratios = get_revision_ratios(r1_ratio, r2_ratio, num_rev)
-                        st.markdown(f"""
-                        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.20);
-                                    border-radius:8px;padding:10px 14px">
-                            <div style="font-size:11px;color:#93C8E8;margin-bottom:6px">
-                                📖 In Progress — TFR so far: <b style="color:#FFFFFF">{read_h:.1f}h</b>
-                            </div>
-                            <div style="font-size:10px;color:#7BA7CC">
-                                When completed → R1 will be <b style="color:#38BDF8">{read_h*r1_ratio:.2f}h</b>,
-                                R2: <b style="color:#38BDF8">{read_h*r2_ratio:.2f}h</b>
-                                (mark as Complete in Study Log)
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.caption("Not started yet.")
-
-    # ── Pending Revisions (inline, no sub-tab) ───────────────────────────────
+    # ── Pending Revisions ────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown('<div class="neon-header neon-header-glow">⏰ Pending Revisions</div>', unsafe_allow_html=True)
     if True:  # was tab2
@@ -5792,26 +5836,97 @@ else:
     st.markdown("<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>",
                 unsafe_allow_html=True)
 
-    # ── Global action strip — Refresh · Logout (always visible above all tabs) ──
-    _gstrip_l, _gstrip_mid, _gstrip_r, _gstrip_lo = st.columns([7.5, 0.55, 0.55, 0.55])
-    with _gstrip_mid:
-        if st.button("🔄", key="global_refresh", help="Refresh all data"):
-            st.cache_data.clear()
-            st.rerun()
-    with _gstrip_r:
-        pass  # PDF button lives inside Dashboard tab (data-specific)
-    with _gstrip_lo:
-        if st.button("🚪", key="global_logout", help="Sign Out"):
-            do_logout()
-            st.rerun()
+    # ── HOW TO USE — shown on first login ────────────────────────────────────
+    if st.session_state.get("show_how_to_use", False):
+        st.markdown("---")
+        with st.container():
+            st.markdown("""
+            <div style="background:rgba(4,20,64,0.95);border:2px solid rgba(56,189,248,0.50);
+                        border-radius:20px;padding:28px 32px;margin-bottom:24px;
+                        box-shadow:0 0 40px rgba(56,189,248,0.20),0 8px 40px rgba(0,0,0,0.60)">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+                    <span style="font-size:32px;filter:drop-shadow(0 0 12px rgba(56,189,248,0.8))">🎓</span>
+                    <div>
+                        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:900;
+                                    color:#7DD3FC;letter-spacing:-0.3px">Welcome to CA Final Tracker!</div>
+                        <div style="font-size:12px;color:#7BA7CC;margin-top:2px">Quick start guide — read once, track forever</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            _how_cols = st.columns(2)
+            with _how_cols[0]:
+                st.markdown("""
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
+                            border-radius:14px;padding:18px 20px;height:100%">
+                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#38BDF8;
+                                letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 1 — SETUP</div>
+                    <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
+                        Go to <b style="color:#7DD3FC">👤 Account → Settings</b> and set your exam month &amp; year.
+                        The countdown timer will start immediately. Set your target hours per subject if they differ from defaults.
+                    </div>
+                </div>""", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("""
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
+                            border-radius:14px;padding:18px 20px;height:100%">
+                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#34D399;
+                                letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 3 — LOG REVISION</div>
+                    <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
+                        After completing a topic, go to <b style="color:#7DD3FC">📝 Log Study</b> and mark it as
+                        <b>Completed</b>. Then use <b style="color:#7DD3FC">🔄 Revision</b> tab to track each revision session.
+                        The pendency engine will alert you when topics are due for revision.
+                    </div>
+                </div>""", unsafe_allow_html=True)
+            with _how_cols[1]:
+                st.markdown("""
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
+                            border-radius:14px;padding:18px 20px;height:100%">
+                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#FBBF24;
+                                letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 2 — LOG STUDY HOURS</div>
+                    <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
+                        Every study session → <b style="color:#7DD3FC">📝 Log Study</b> tab.
+                        Select subject, topic, hours studied, and difficulty. Logging earns XP and advances your level.
+                        The Dashboard updates in real time to show progress rings and hours remaining per subject.
+                    </div>
+                </div>""", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("""
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
+                            border-radius:14px;padding:18px 20px;height:100%">
+                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#818CF8;
+                                letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 4 — TRACK SCORES</div>
+                    <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
+                        After every mock test → <b style="color:#7DD3FC">🏆 Add Score</b> tab. Log marks, subject,
+                        weak/strong areas, and action plan. The Dashboard shows score trends so you can see
+                        if your preparation is translating into marks.
+                    </div>
+                </div>""", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.25);
+                        border-radius:12px;padding:14px 18px;margin-bottom:14px">
+                <div style="font-size:12px;color:#93C8E8;line-height:1.7">
+                    💡 <b style="color:#38BDF8">Daily habit tip:</b> Check Dashboard every morning · Log each session immediately after studying ·
+                    Review Revision tab weekly · Never let more than 20 topics go unrevised ·
+                    Use 🔄 Refresh (top of Dashboard) to sync latest data.
+                </div>
+            </div>
+            <div style="font-size:11px;color:#7BA7CC;text-align:center">
+                📖 Full guide available anytime in <b style="color:#38BDF8">👤 Account → How to Use</b>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("✅ Got it! Let's go →", key="dismiss_how_to_use", use_container_width=True):
+                st.session_state.show_how_to_use = False
+                st.rerun()
+        st.markdown("---")
 
     # ── MAIN NAV TABS — ordered by daily usage frequency ────────────────────
-    tab_dashboard, tab_log, tab_revision, tab_score, tab_data, tab_profile = st.tabs([
+    tab_dashboard, tab_log, tab_revision, tab_score, tab_profile = st.tabs([
         "📊  Dashboard",
         "📝  Log Study",
         "🔄  Revision",
         "🏆  Add Score",
-        "📋  My Data",
         "👤  Account",
     ])
 
@@ -5826,9 +5941,6 @@ else:
 
     with tab_score:
         add_test_score(_tst_h)
-
-    with tab_data:
-        my_data(_log_h, _tst_h, _revt_h)
 
     with tab_profile:
         profile_page(_log_h, _revt_h, _rev_h, _tst_h)
