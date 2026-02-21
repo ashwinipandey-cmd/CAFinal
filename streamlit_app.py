@@ -1033,6 +1033,151 @@ hr {
 .badge-due-today{ background: rgba(251,191,36,0.14);  color: var(--gold);  border-color: rgba(251,191,36,0.35); }
 
 /* ═══════════════════════════════════════════════════════════
+   MOBILE BOTTOM NAVIGATION — CA Final Tracker
+   Replaces st.tabs() on screens ≤ 768px
+═══════════════════════════════════════════════════════════ */
+
+/* Hide Streamlit tab list on mobile */
+@media (max-width: 768px) {
+    div[data-baseweb="tab-list"] {
+        display: none !important;
+    }
+
+    /* Add padding so content never hides behind bottom nav */
+    .block-container {
+        padding-bottom: 90px !important;
+        padding-top: 12px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    /* Compact header on mobile */
+    h1 {
+        font-size: 20px !important;
+        margin-bottom: 8px !important;
+    }
+    h2 { font-size: 16px !important; }
+    .neon-header { font-size: 12px !important; letter-spacing: 1px !important; }
+
+    /* Inputs: 16px prevents iOS zoom */
+    .stTextInput input, .stNumberInput input,
+    .stTextArea textarea, .stDateInput input {
+        font-size: 16px !important;
+        min-height: 44px !important;
+    }
+    .stSelectbox > div > div {
+        font-size: 16px !important;
+        min-height: 44px !important;
+    }
+    .stButton button, .stDownloadButton button {
+        min-height: 44px !important;
+        font-size: 14px !important;
+    }
+
+    /* Metric cards: smaller on mobile */
+    [data-testid="stMetric"] { padding: 6px 4px !important; }
+    [data-testid="stMetricValue"] { font-size: 16px !important; }
+    [data-testid="stMetricLabel"] { font-size: 10px !important; }
+
+    /* Column gaps tighter */
+    [data-testid="column"] { gap: 4px !important; min-width: 0 !important; }
+
+    /* Plotly charts fill width */
+    .js-plotly-plot { width: 100% !important; }
+
+    /* Header avatar area — compact on mobile */
+    .stColumns > div:first-child { max-width: 58px !important; }
+}
+
+/* ─── Bottom Nav Bar Shell ─── */
+.ca-bottom-nav {
+    display: none;  /* hidden on desktop */
+}
+
+@media (max-width: 768px) {
+    .ca-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 99999;
+        background: rgba(2, 8, 28, 0.98);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        border-top: 1.5px solid rgba(56, 189, 248, 0.30);
+        box-shadow:
+            0 -4px 30px rgba(0, 0, 0, 0.70),
+            0 -1px 0 rgba(56, 189, 248, 0.15),
+            inset 0 1px 0 rgba(56, 189, 248, 0.08);
+        padding: 0;
+        height: 64px;
+        align-items: stretch;
+        justify-content: stretch;
+    }
+
+    .ca-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 2px 8px;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        position: relative;
+        transition: background 0.15s ease;
+        gap: 3px;
+        -webkit-tap-highlight-color: rgba(56,189,248,0.12);
+    }
+
+    .ca-nav-item:active {
+        background: rgba(56, 189, 248, 0.08);
+    }
+
+    .ca-nav-icon {
+        font-size: 20px;
+        line-height: 1;
+        transition: transform 0.18s ease, filter 0.18s ease;
+    }
+
+    .ca-nav-label {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        color: rgba(123, 167, 204, 0.75);
+        transition: color 0.18s ease;
+        line-height: 1;
+    }
+
+    /* Active state — glowing neon indicator */
+    .ca-nav-item.active::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 15%;
+        right: 15%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #38BDF8, transparent);
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.90), 0 0 20px rgba(56, 189, 248, 0.50);
+        border-radius: 0 0 3px 3px;
+    }
+
+    .ca-nav-item.active .ca-nav-icon {
+        transform: translateY(-2px);
+        filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.95));
+    }
+
+    .ca-nav-item.active .ca-nav-label {
+        color: #38BDF8;
+        text-shadow: 0 0 10px rgba(56, 189, 248, 0.70);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
    DOWNLOAD BUTTONS — match neon theme
 ═══════════════════════════════════════════════════════════ */
 .stDownloadButton button {
@@ -1130,6 +1275,8 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = None
 if "profile" not in st.session_state:
     st.session_state.profile = {}
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = "dashboard"
 
 def get_exam_date():
     return st.session_state.get("exam_date", date(2027, 1, 1))
@@ -5921,7 +6068,78 @@ else:
                 st.rerun()
         st.markdown("---")
 
-    # ── MAIN NAV TABS — ordered by daily usage frequency ────────────────────
+    # ── MOBILE BOTTOM NAV — fixed bar (visible only on mobile via CSS) ────────
+    # Uses session_state.active_tab to control content rendering
+    # On desktop: hidden by CSS, st.tabs() controls layout as normal
+    # On mobile:  st.tabs() tab-list is hidden by CSS, this bar is visible
+
+    _nav_pages = [
+        ("dashboard",  "📊", "Dashboard"),
+        ("log",        "📝", "Log Study"),
+        ("revision",   "🔄", "Revision"),
+        ("score",      "🏆", "Add Score"),
+        ("account",    "👤", "Account"),
+    ]
+
+    # Build the HTML for the bottom nav (active state driven by session_state)
+    _active = st.session_state.get("active_tab", "dashboard")
+    _nav_items_html = ""
+    for _page_key, _icon, _label in _nav_pages:
+        _active_class = "active" if _active == _page_key else ""
+        _nav_items_html += f"""
+        <button class="ca-nav-item {_active_class}"
+                onclick="window.parent.postMessage({{type:'streamlit:setComponentValue', value:'{_page_key}'}}, '*')">
+            <span class="ca-nav-icon">{_icon}</span>
+            <span class="ca-nav-label">{_label}</span>
+        </button>"""
+
+    st.markdown(f"""
+    <div class="ca-bottom-nav">
+        {_nav_items_html}
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Mobile nav buttons — hidden on desktop via CSS, handle click via Streamlit buttons
+    # These render as invisible buttons behind the HTML nav (Streamlit handles state)
+    st.markdown("""
+    <style>
+    /* Mobile nav Streamlit button layer — invisible, sits under HTML nav */
+    .mobile-nav-btns { display: none; }
+    @media (max-width: 768px) {
+        .mobile-nav-btns {
+            display: flex;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 64px;
+            z-index: 100000;
+            opacity: 0;
+            pointer-events: auto;
+        }
+        .mobile-nav-btns .stButton { flex: 1; }
+        .mobile-nav-btns .stButton button {
+            width: 100%; height: 64px !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown('<div class="mobile-nav-btns">', unsafe_allow_html=True)
+        _mnav_cols = st.columns(5)
+        _mnav_keys = ["dashboard", "log", "revision", "score", "account"]
+        for _i, (_col, _key) in enumerate(zip(_mnav_cols, _mnav_keys)):
+            with _col:
+                if st.button("​", key=f"mnav_{_key}",  # zero-width space label
+                             use_container_width=True):
+                    st.session_state.active_tab = _key
+                    st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── MAIN NAV TABS (desktop) + content routing (both desktop & mobile) ────
     tab_dashboard, tab_log, tab_revision, tab_score, tab_profile = st.tabs([
         "📊  Dashboard",
         "📝  Log Study",
@@ -5929,6 +6147,17 @@ else:
         "🏆  Add Score",
         "👤  Account",
     ])
+
+    # Map active_tab → which tab to programmatically show on mobile
+    # On desktop st.tabs() handles it natively via click
+    # On mobile we render the correct content based on active_tab state
+    _tab_map = {
+        "dashboard": tab_dashboard,
+        "log":       tab_log,
+        "revision":  tab_revision,
+        "score":     tab_score,
+        "account":   tab_profile,
+    }
 
     with tab_dashboard:
         dashboard(_log_h, _tst_h, _revt_h, _rev_h, _pend_h)
