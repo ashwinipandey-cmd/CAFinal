@@ -1230,40 +1230,7 @@ hr {
         inset 0 1px 0 rgba(56,189,248,0.08) !important;
 }
 
-/* Mobile: increase tap target sizes */
-@media (max-width: 768px) {
-    .stButton button, .stDownloadButton button {
-        min-height: 44px !important;
-        font-size: 14px !important;
-        padding: 10px 16px !important;
-    }
-    .stTextInput input, .stNumberInput input,
-    .stTextArea textarea, .stDateInput input {
-        font-size: 16px !important; /* prevents iOS zoom */
-        min-height: 44px !important;
-    }
-    .stSelectbox > div > div {
-        min-height: 44px !important;
-        font-size: 16px !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        font-size: 12px !important;
-        padding: 6px 8px !important;
-    }
-    h1 { font-size: 22px !important; }
-    h2 { font-size: 18px !important; }
-    .neon-header { font-size: 13px !important; }
-    [data-testid="column"] { min-width: 0 !important; }
-}
-/* Metric cards on mobile */
-@media (max-width: 600px) {
-    [data-testid="stMetric"] {
-        padding: 8px !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 18px !important;
-    }
-}
+/* Mobile responsive — handled in bottom nav CSS block above */
 
 </style>
 """
@@ -4132,10 +4099,62 @@ def dashboard(log, tst, rev, rev_sess, pend):
     total_rev_hrs = float(rev_sess["hours"].sum()) if not rev_sess.empty and "hours" in rev_sess.columns else 0.0
     rev_sh    = rev_sess.groupby("subject")["hours"].sum() if not rev_sess.empty and "subject" in rev_sess.columns else pd.Series(dtype=float)
 
-    # ── Dashboard header — Refresh · PDF · Logout ───────────────────────────
-    h1, h_refresh, h_pdf, h_logout = st.columns([5.5, 0.6, 0.6, 0.6])
+    # ── Dashboard header — title + compact action buttons (inline on mobile too) ──
+    st.markdown("""
+    <style>
+    /* Wrap the dashboard header row so title + buttons share one flex line */
+    .dash-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+    .dash-header-title {
+        font-family: 'DM Mono', monospace;
+        font-size: 22px;
+        font-weight: 900;
+        color: #FFFFFF;
+        letter-spacing: -0.3px;
+        line-height: 1;
+    }
+    .dash-header-btns-placeholder {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+    }
+    /* Hide the real h1 that Streamlit renders (we render our own via markdown) */
+    @media (max-width: 768px) {
+        .dash-action-cols h1 { display: none; }
+        /* Shrink the action button columns on mobile */
+        .dash-action-cols [data-testid="column"]:not(:first-child) {
+            max-width: 38px !important;
+            min-width: 34px !important;
+            flex: 0 0 38px !important;
+        }
+        .dash-action-cols .stButton button {
+            min-height: 32px !important;
+            height: 32px !important;
+            width: 32px !important;
+            padding: 4px !important;
+            font-size: 14px !important;
+            border-radius: 8px !important;
+        }
+        /* Title col fills remaining space */
+        .dash-action-cols [data-testid="column"]:first-child {
+            flex: 1 !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Render header as a tight flex row — title left, 3 mini buttons right
+    st.markdown('<div class="dash-action-cols">', unsafe_allow_html=True)
+    h1, h_refresh, h_pdf, h_logout = st.columns([5.5, 0.55, 0.55, 0.55])
     with h1:
-        st.markdown("<h1>📊 Dashboard</h1>", unsafe_allow_html=True)
+        st.markdown(
+            "<div style='display:flex;align-items:center;height:100%'>"
+            "<h1 style='margin:0;line-height:1'>📊 Dashboard</h1>"
+            "</div>", unsafe_allow_html=True)
     with h_refresh:
         if st.button("🔄", key="dash_refresh", help="Refresh all data"):
             st.cache_data.clear()
@@ -4162,6 +4181,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
         if st.button("🚪", key="dash_logout", help="Sign Out"):
             do_logout()
             st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # KPIs
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -6068,76 +6088,117 @@ else:
                 st.rerun()
         st.markdown("---")
 
-    # ── MOBILE BOTTOM NAV — fixed bar (visible only on mobile via CSS) ────────
-    # Uses session_state.active_tab to control content rendering
-    # On desktop: hidden by CSS, st.tabs() controls layout as normal
-    # On mobile:  st.tabs() tab-list is hidden by CSS, this bar is visible
+    # ── MOBILE BOTTOM NAV — pure Streamlit buttons styled via CSS ────────────
+    # Desktop: nav container hidden by CSS (@media max-width 768px display:none inverse)
+    # Mobile:  fixed bottom bar shown, Streamlit buttons styled as nav items
+    # NO HTML onclick/postMessage — uses Streamlit button state only (reliable)
 
+    _active = st.session_state.get("active_tab", "dashboard")
     _nav_pages = [
-        ("dashboard",  "📊", "Dashboard"),
-        ("log",        "📝", "Log Study"),
-        ("revision",   "🔄", "Revision"),
-        ("score",      "🏆", "Add Score"),
-        ("account",    "👤", "Account"),
+        ("dashboard", "📊", "Dashboard"),
+        ("log",       "📝", "Log"),
+        ("revision",  "🔄", "Revision"),
+        ("score",     "🏆", "Score"),
+        ("account",   "👤", "Account"),
     ]
 
-    # Build the HTML for the bottom nav (active state driven by session_state)
-    _active = st.session_state.get("active_tab", "dashboard")
-    _nav_items_html = ""
-    for _page_key, _icon, _label in _nav_pages:
-        _active_class = "active" if _active == _page_key else ""
-        _nav_items_html += f"""
-        <button class="ca-nav-item {_active_class}"
-                onclick="window.parent.postMessage({{type:'streamlit:setComponentValue', value:'{_page_key}'}}, '*')">
-            <span class="ca-nav-icon">{_icon}</span>
-            <span class="ca-nav-label">{_label}</span>
-        </button>"""
+    # Inject per-render active-state CSS so active button glows correctly
+    _active_css = ""
+    for _idx, (_key, _icon, _label) in enumerate(_nav_pages):
+        if _key == _active:
+            _active_css += f"""
+            .ca-mobile-nav .stColumn:nth-child({_idx+1}) button {{
+                color: #38BDF8 !important;
+                text-shadow: 0 0 10px rgba(56,189,248,0.80) !important;
+                border-top: 2px solid #38BDF8 !important;
+                box-shadow: 0 -3px 14px rgba(56,189,248,0.35) !important;
+            }}"""
+        else:
+            _active_css += f"""
+            .ca-mobile-nav .stColumn:nth-child({_idx+1}) button {{
+                color: rgba(123,167,204,0.70) !important;
+                border-top: 2px solid transparent !important;
+            }}"""
 
     st.markdown(f"""
-    <div class="ca-bottom-nav">
-        {_nav_items_html}
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Mobile nav buttons — hidden on desktop via CSS, handle click via Streamlit buttons
-    # These render as invisible buttons behind the HTML nav (Streamlit handles state)
-    st.markdown("""
     <style>
-    /* Mobile nav Streamlit button layer — invisible, sits under HTML nav */
-    .mobile-nav-btns { display: none; }
-    @media (max-width: 768px) {
-        .mobile-nav-btns {
+    /* ── Mobile Nav Container ── */
+    .ca-mobile-nav {{
+        display: none;
+    }}
+    @media (max-width: 768px) {{
+        .ca-mobile-nav {{
             display: flex;
             position: fixed;
             bottom: 0; left: 0; right: 0;
-            height: 64px;
-            z-index: 100000;
-            opacity: 0;
-            pointer-events: auto;
-        }
-        .mobile-nav-btns .stButton { flex: 1; }
-        .mobile-nav-btns .stButton button {
-            width: 100%; height: 64px !important;
+            z-index: 99999;
+            background: rgba(2,8,28,0.97);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-top: 1.5px solid rgba(56,189,248,0.28);
+            box-shadow: 0 -4px 28px rgba(0,0,0,0.70), inset 0 1px 0 rgba(56,189,248,0.08);
+            height: 62px;
+            padding: 0 2px;
+            align-items: stretch;
+        }}
+        /* Each column fills evenly */
+        .ca-mobile-nav > div[data-testid="column"] {{
+            flex: 1 !important;
+            min-width: 0 !important;
+            padding: 0 !important;
+        }}
+        .ca-mobile-nav .stButton {{
+            width: 100%;
+            height: 100%;
+        }}
+        /* All nav buttons base style */
+        .ca-mobile-nav .stButton button {{
+            width: 100% !important;
+            height: 62px !important;
             background: transparent !important;
             border: none !important;
-            box-shadow: none !important;
+            border-top: 2px solid transparent !important;
             border-radius: 0 !important;
-        }
-    }
+            box-shadow: none !important;
+            font-family: 'DM Sans', sans-serif !important;
+            font-size: 9px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.3px !important;
+            text-transform: uppercase !important;
+            line-height: 1.2 !important;
+            padding: 4px 2px 8px !important;
+            color: rgba(123,167,204,0.70) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 2px !important;
+            cursor: pointer !important;
+            transition: color 0.15s ease, border-color 0.15s ease !important;
+        }}
+        .ca-mobile-nav .stButton button:hover {{
+            background: rgba(56,189,248,0.06) !important;
+            box-shadow: none !important;
+        }}
+        .ca-mobile-nav .stButton button:active {{
+            background: rgba(56,189,248,0.12) !important;
+        }}
+        /* Active state */
+        {_active_css}
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-    with st.container():
-        st.markdown('<div class="mobile-nav-btns">', unsafe_allow_html=True)
-        _mnav_cols = st.columns(5)
-        _mnav_keys = ["dashboard", "log", "revision", "score", "account"]
-        for _i, (_col, _key) in enumerate(zip(_mnav_cols, _mnav_keys)):
-            with _col:
-                if st.button("​", key=f"mnav_{_key}",  # zero-width space label
-                             use_container_width=True):
-                    st.session_state.active_tab = _key
-                    st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    # Render the nav bar (hidden on desktop by CSS)
+    st.markdown('<div class="ca-mobile-nav">', unsafe_allow_html=True)
+    _mnav_cols = st.columns(5)
+    for (_col, (_key, _icon, _label)) in zip(_mnav_cols, _nav_pages):
+        with _col:
+            if st.button(f"{_icon}\n{_label}", key=f"mnav_{_key}",
+                         use_container_width=True):
+                st.session_state.active_tab = _key
+                st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── MAIN NAV TABS (desktop) + content routing (both desktop & mobile) ────
     tab_dashboard, tab_log, tab_revision, tab_score, tab_profile = st.tabs([
