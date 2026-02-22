@@ -3273,7 +3273,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
             self.radius    = radius
 
         def draw(self):
-            c = self._canvas
+            c = self.canv
             # Track (background)
             c.setFillColor(self.track_clr)
             c.roundRect(0, 0, self.bar_width, self.height,
