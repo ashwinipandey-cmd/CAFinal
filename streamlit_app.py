@@ -1230,6 +1230,8 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
         for i in range(0, len(rows), 50):
             sb.table("revision_tracker").insert(rows[i:i+50]).execute()
 
+        # Flag for first-login guide — shown once after account creation
+        st.session_state["show_how_to_use"] = True
         return True, "Account created! Please log in now."
 
     except Exception as e:
@@ -1262,9 +1264,6 @@ def do_login(email, password):
         st.session_state.logged_in  = True
         st.session_state.user_id    = uid_val
         st.session_state.profile    = profile_data
-        # Show How-to-Use guide on first login
-        if "show_how_to_use" not in st.session_state:
-            st.session_state.show_how_to_use = True
         return True, "Login successful"
 
     except Exception as e:
@@ -1284,6 +1283,8 @@ def do_logout():
     st.session_state.logged_in = False
     st.session_state.user_id   = None
     st.session_state.profile   = {}
+    # Clear first-login guide flag on logout
+    st.session_state.pop("show_how_to_use", None)
     st.rerun()
 
 
@@ -3187,7 +3188,7 @@ def auth_page():
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PDF EXPORT — generate_dashboard_pdf()
-# Pure ReportLab — no matplotlib needed. Webpage-style layout, no overlaps.
+# ReportLab with real graphical progress bars, accurate data, rich layout
 # ══════════════════════════════════════════════════════════════════════════════
 def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
                             prof, days_left, total_reading_hrs,
@@ -3203,7 +3204,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     )
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.graphics.shapes import Drawing, Rect, Circle, String, Line
+    from reportlab.graphics.shapes import Drawing, Rect, Circle, String, Line, RoundRect
     from reportlab.graphics import renderPDF
     from reportlab.platypus.flowables import Flowable
 
@@ -3227,10 +3228,9 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     DKRED  = colors.HexColor("#2A0808")
     DKRED2 = colors.HexColor("#180606")
     LTRED  = colors.HexColor("#FFB3B3")
+    TRACK  = colors.HexColor("#0E2040")   # progress bar background track
 
     SUBJ_CLR = {"FR": CYAN_L, "AFM": GREEN, "AA": GOLD, "DT": RED, "IDT": BLUE}
-
-    def hx(clr): return clr.hexval()[2:]   # strip leading "0x" if present
 
     # ── Page setup ─────────────────────────────────────────────────────────────
     PW, PH = A4
@@ -3260,9 +3260,38 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
 
     def sp(h=5): return Spacer(1, h)
 
-    def bar_str(pct, width=10, fg_char="█", bg_char="░"):
-        filled = max(0, min(int(pct / (100 / width)), width))
-        return fg_char * filled + bg_char * (width - filled)
+    # ── Real graphical progress bar (Flowable) ─────────────────────────────────
+    class ProgressBar(Flowable):
+        """Renders a real filled rect progress bar, not ASCII art."""
+        def __init__(self, pct, width, height=7, clr=None, track_clr=None, radius=3):
+            Flowable.__init__(self)
+            self.pct       = max(0.0, min(pct, 100.0))
+            self.bar_width = width
+            self.height    = height
+            self.clr       = clr or CYAN
+            self.track_clr = track_clr or TRACK
+            self.radius    = radius
+
+        def draw(self):
+            c = self._canvas
+            # Track (background)
+            c.setFillColor(self.track_clr)
+            c.roundRect(0, 0, self.bar_width, self.height,
+                        self.radius, fill=1, stroke=0)
+            # Fill
+            fill_w = max(self.bar_width * self.pct / 100, self.height if self.pct > 0 else 0)
+            if fill_w > 0:
+                c.setFillColor(self.clr)
+                c.roundRect(0, 0, fill_w, self.height,
+                            self.radius, fill=1, stroke=0)
+            # Percentage label
+            c.setFillColor(WHITE)
+            c.setFont("Helvetica-Bold", 5.5)
+            lbl = f"{self.pct:.0f}%"
+            c.drawCentredString(self.bar_width / 2, 1.3, lbl)
+
+        def wrap(self, *args):
+            return (self.bar_width, self.height)
 
     # ── Section header helper ──────────────────────────────────────────────────
     def sec(title):
@@ -3286,11 +3315,11 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         ]
         if extras:
             base.extend(extras)
-        t = Table(data, colWidths=cw)
+        t = Table(data, cw)
         t.setStyle(TableStyle(base))
         return t
 
-    # ── Pre-compute ────────────────────────────────────────────────────────────
+    # ── Pre-compute accurate stats ─────────────────────────────────────────────
     name_str  = prof.get("full_name", "Student")
     uname_str = prof.get("username", "")
     exam_date = get_exam_date()
@@ -3299,20 +3328,49 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     prof_tgt  = {s: int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s]))
                  for s in SUBJECTS}
 
+    # Reading hours (exclude revision sessions)
     rlog = (log[log["session_type"] != "revision"]
             if not log.empty and "session_type" in log.columns else log)
     sh   = (rlog.groupby("subject")["hours"].sum()
             if not rlog.empty else pd.Series(dtype=float))
 
-    comp_by_s = {}
+    # Topics studied (unique topics in reading log per subject)
+    topics_studied_by_subj = {}
+    if not rlog.empty:
+        for s in SUBJECTS:
+            topics_studied_by_subj[s] = rlog[rlog["subject"] == s]["topic"].nunique()
+    else:
+        topics_studied_by_subj = {s: 0 for s in SUBJECTS}
+
+    # Completed topics per subject (from revision_tracker)
+    comp_by_s = {s: 0 for s in SUBJECTS}
     if not rev.empty and "topic_status" in rev.columns:
         for s in SUBJECTS:
             comp_by_s[s] = int(
-                ((rev["subject"]==s)&(rev["topic_status"]=="completed")).sum())
+                ((rev["subject"]==s) & (rev["topic_status"]=="completed")).sum())
 
     comp_total = sum(comp_by_s.values())
     all_topics = sum(len(v) for v in TOPICS.values())
-    ov_cnt     = int((pend["days_overdue"]>0).sum()) if not pend.empty else 0
+    ov_cnt     = int((pend["days_overdue"] > 0).sum()) if not pend.empty else 0
+
+    # Unique topics revised per subject (from pend / rev_sess)
+    topics_revised_by_subj = {s: 0 for s in SUBJECTS}
+    if not pend.empty and "revisions_done" in pend.columns:
+        for s in SUBJECTS:
+            s_pend = pend[pend["subject"] == s]
+            topics_revised_by_subj[s] = int((s_pend["revisions_done"] > 0).sum())
+    elif not rev_sess.empty and "subject" in rev_sess.columns:
+        for s in SUBJECTS:
+            topics_revised_by_subj[s] = rev_sess[rev_sess["subject"] == s]["topic"].nunique()
+
+    # Revision depth per subject: avg(revisions_done / num_rev) across completed topics
+    rev_depth_by_subj = {s: 0.0 for s in SUBJECTS}
+    if not pend.empty and "revisions_done" in pend.columns:
+        for s in SUBJECTS:
+            s_pend = pend[(pend["subject"] == s) & (pend["revisions_done"] > 0)]
+            if len(s_pend) > 0 and num_rev > 0:
+                avg_rounds = s_pend["revisions_done"].mean()
+                rev_depth_by_subj[s] = min(avg_rounds / num_rev * 100, 100)
 
     air  = compute_air_index(log, rev, rev_sess, pend, prof)
     rpi  = compute_rpi(log, rev, rev_sess, pend, prof)
@@ -3332,9 +3390,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     rmile    = rpi["rden_milestone"]
     cons_clr = colors.HexColor(cons["color"]) if isinstance(cons["color"], str) else cons["color"]
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # PAGE BACKGROUND
-    # ══════════════════════════════════════════════════════════════════════════
+    # ── Page background ────────────────────────────────────────────────────────
     def dark_page(cv, doc_obj):
         cv.saveState()
         cv.setFillColor(BG)
@@ -3354,11 +3410,9 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story = []
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 1. HEADER — Avatar + Name + Days Left
+    # 1. HEADER
     # ══════════════════════════════════════════════════════════════════════════
     initial = name_str[0].upper() if name_str else "S"
-
-    # Avatar as a tiny Drawing
     av = Drawing(44, 44)
     av.add(Circle(22, 22, 21, fillColor=colors.HexColor("#1A4E8A"),
                   strokeColor=CYAN, strokeWidth=2))
@@ -3402,9 +3456,9 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 2. KPI METRIC CARDS
+    # 2. KPI CARDS
     # ══════════════════════════════════════════════════════════════════════════
-    story += sec("Key Metrics")
+    story += sec("Key Performance Metrics")
 
     sc_clr = (GREEN if avg_score >= 60 else GOLD if avg_score >= 40 else RED)
     kpi_row = [[
@@ -3417,12 +3471,12 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         [Paragraph("Revision Hours", S_LBL),
          Paragraph(f"{total_rev_hrs:.1f}h", PS("kv3",fontName="Helvetica-Bold",fontSize=18,textColor=GREEN,leading=22)),
          Paragraph("logged", S_SML)],
-        [Paragraph("Avg Score", S_LBL),
+        [Paragraph("Avg Test Score", S_LBL),
          Paragraph(f"{avg_score:.1f}%", PS("kv4",fontName="Helvetica-Bold",fontSize=18,textColor=sc_clr,leading=22)),
          Paragraph("Target 60%+", S_SML)],
-        [Paragraph("Days Active", S_LBL),
-         Paragraph(str(days_studied), PS("kv5",fontName="Helvetica-Bold",fontSize=18,textColor=CYAN_L,leading=22)),
-         Paragraph("unique study days", S_SML)],
+        [Paragraph("Topics Completed", S_LBL),
+         Paragraph(f"{comp_total}", PS("kv5",fontName="Helvetica-Bold",fontSize=18,textColor=CYAN_L,leading=22)),
+         Paragraph(f"of {all_topics} total", S_SML)],
     ]]
     kpi_t = Table(kpi_row, colWidths=[W/5]*5)
     kpi_t.setStyle(TableStyle([
@@ -3439,35 +3493,40 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 3. SUBJECT READING PROGRESS
+    # 3. SUBJECT READING PROGRESS — with real graphical progress bars
     # ══════════════════════════════════════════════════════════════════════════
     story += sec("First Reading Progress by Subject")
 
     sub_hdr = [[
-        Paragraph("Subject",  PS("sh1",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Done",     PS("sh2",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Target",   PS("sh3",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Progress Bar",PS("sh4",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Topics",   PS("sh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("%",        PS("sh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Subject",         PS("sh1",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Hours Done",      PS("sh2",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Target",          PS("sh3",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Reading Progress",PS("sh4",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Topics",          PS("sh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Completed",       PS("sh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
     ]]
-    sub_cw = [W*0.28, W*0.09, W*0.09, W*0.33, W*0.10, W*0.11]
+    BAR_W_SUB = W * 0.30  # width available for the progress bar column
+    sub_cw  = [W*0.25, W*0.09, W*0.08, BAR_W_SUB, W*0.12, W*0.16]
     sub_rows = []
+
     for s in SUBJECTS:
-        done = float(sh.get(s, 0)) if hasattr(sh,"get") else 0.0
-        tgt  = prof_tgt[s]
-        pct  = min(done/tgt*100, 100) if tgt > 0 else 0
-        n_c  = comp_by_s.get(s, 0)
-        n_t  = len(TOPICS.get(s, []))
-        clr  = SUBJ_CLR[s]
+        done   = float(sh.get(s, 0)) if hasattr(sh, "get") else 0.0
+        tgt    = prof_tgt[s]
+        hrs_pct = min(done / tgt * 100, 100) if tgt > 0 else 0
+        n_c    = comp_by_s.get(s, 0)
+        n_t    = len(TOPICS.get(s, []))
+        n_stud = topics_studied_by_subj.get(s, 0)
+        clr    = SUBJ_CLR[s]
+        # Dual bar: hours % in bar, show studied topics count as context
         sub_rows.append([
             Paragraph(f'<b>{SUBJ_FULL[s]}</b>', PS(f"sn{s}", fontSize=8.5, textColor=clr)),
-            Paragraph(f"{done:.0f}h", S_BODY),
-            Paragraph(f"{tgt}h",      S_BODY),
-            Paragraph(bar_str(pct, 20),
-                      PS(f"sb{s}", fontName="Courier", fontSize=8, textColor=clr, leading=10)),
-            Paragraph(f"{n_c}/{n_t}", S_BODY),
-            Paragraph(f"{pct:.0f}%",  PS(f"sp{s}", fontName="Helvetica-Bold", fontSize=9, textColor=clr)),
+            Paragraph(f"{done:.0f}h",   S_BODY),
+            Paragraph(f"{tgt}h",        S_BODY),
+            ProgressBar(hrs_pct, BAR_W_SUB - 14, height=9, clr=clr),
+            Paragraph(f"{n_stud}/{n_t}", S_BODY),
+            Paragraph(f"{n_c} done",
+                      PS(f"sc{s}", fontName="Helvetica-Bold", fontSize=8.5,
+                         textColor=GREEN if n_c == n_t else (GOLD if n_c > 0 else MUTED))),
         ])
 
     sub_t = Table(sub_hdr + sub_rows, colWidths=sub_cw)
@@ -3485,6 +3544,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         ("TOPPADDING",    (0,0),(-1,-1), 7),
         ("BOTTOMPADDING", (0,0),(-1,-1), 7),
         ("ALIGN",         (1,0),(-1,-1), "CENTER"),
+        ("LINEABOVE",     (0,0),(-1,0),  2, CYAN),
     ]))
     story.append(sub_t)
     story.append(sp(8))
@@ -3498,20 +3558,18 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     ov_air   = air["overall"]
     ov_air_clr = (GREEN if ov_air>=80 else GOLD if ov_air>=60 else ORANGE if ov_air>=40 else RED)
 
-    # 5 subject cards in a row
     air_cells = []
     for s in SUBJECTS:
         s_air = air["per_subject"].get(s, 0)
         clr   = (GREEN if s_air>=80 else GOLD if s_air>=60 else ORANGE if s_air>=40 else RED)
         sl    = ("STRONG" if s_air>=80 else "MODERATE" if s_air>=60 else "AT RISK" if s_air>=40 else "CRITICAL")
         air_cells.append([
-            Paragraph(s,    PS(f"as{s}", fontName="Helvetica-Bold", fontSize=11, textColor=clr, alignment=TA_CENTER)),
+            Paragraph(s, PS(f"as{s}", fontName="Helvetica-Bold", fontSize=11, textColor=clr, alignment=TA_CENTER)),
             Paragraph(f"{s_air:.0f}",
                       PS(f"av{s}", fontName="Helvetica-Bold", fontSize=22, textColor=WHITE, leading=26, alignment=TA_CENTER)),
-            Paragraph(sl,   PS(f"al{s}", fontName="Helvetica-Bold", fontSize=7, textColor=clr, alignment=TA_CENTER)),
-            sp(2),
-            Paragraph(bar_str(s_air, 10),
-                      PS(f"ab{s}", fontName="Courier", fontSize=8, textColor=clr, alignment=TA_CENTER)),
+            Paragraph(sl,  PS(f"al{s}", fontName="Helvetica-Bold", fontSize=7, textColor=clr, alignment=TA_CENTER)),
+            sp(3),
+            ProgressBar(s_air, W/5 - 14, height=8, clr=clr),
         ])
 
     air_row = Table([air_cells], colWidths=[W/5]*5)
@@ -3520,9 +3578,9 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
         ("VALIGN",        (0,0),(-1,-1), "TOP"),
         ("TOPPADDING",    (0,0),(-1,-1), 8),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 8),
-        ("LEFTPADDING",   (0,0),(-1,-1), 4),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 10),
+        ("LEFTPADDING",   (0,0),(-1,-1), 7),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 7),
     ]
     for i, s in enumerate(SUBJECTS):
         air_row_ts.append(("LINEABOVE", (i,0),(i,0), 3, SUBJ_CLR[s]))
@@ -3530,29 +3588,40 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story.append(air_row)
     story.append(sp(4))
 
-    # Overall AIR + components summary
+    # Overall AIR summary with bars
+    AIR_BAR_W = W * 0.13
     air_sum = [[
         Paragraph("OVERALL AIR", PS("oa_lbl",fontName="Helvetica-Bold",fontSize=7.5,textColor=MUTED)),
-        Paragraph("Coverage",    PS("oa_c1",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
-        Paragraph("Rev Depth",   PS("oa_c2",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
-        Paragraph("Consistency", PS("oa_c3",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
-        Paragraph("Balance",     PS("oa_c4",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
-        Paragraph("Label",       PS("oa_c5",fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Coverage",    PS("oa_c1", fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Rev Depth",   PS("oa_c2", fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Consistency", PS("oa_c3", fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Balance",     PS("oa_c4", fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
+        Paragraph("Label",       PS("oa_c5", fontName="Helvetica-Bold",fontSize=7,textColor=MUTED)),
     ],[
-        Paragraph(f"{ov_air:.0f}/100",
+        [Paragraph(f"{ov_air:.0f}/100",
                   PS("oa_v",fontName="Helvetica-Bold",fontSize=14,textColor=ov_air_clr)),
-        Paragraph(f"{air_comp['coverage']:.0f}%",
-                  PS("oa_cv",fontName="Helvetica-Bold",fontSize=12,textColor=CYAN_L)),
-        Paragraph(f"{air_comp['revision_depth']:.0f}%",
-                  PS("oa_rv",fontName="Helvetica-Bold",fontSize=12,textColor=GREEN)),
-        Paragraph(f"{air_comp['consistency']:.0f}%",
-                  PS("oa_cs",fontName="Helvetica-Bold",fontSize=12,textColor=GOLD)),
-        Paragraph(f"{air_comp.get('balance',0):.0f}%",
-                  PS("oa_bl",fontName="Helvetica-Bold",fontSize=12,textColor=PURPLE)),
+         sp(3),
+         ProgressBar(ov_air, W*0.16, height=8, clr=ov_air_clr)],
+        [Paragraph(f"{air_comp['coverage']:.0f}%",
+                  PS("oa_cv",fontName="Helvetica-Bold",fontSize=11,textColor=CYAN_L)),
+         sp(3),
+         ProgressBar(air_comp['coverage'], AIR_BAR_W, height=7, clr=CYAN_L)],
+        [Paragraph(f"{air_comp['revision_depth']:.0f}%",
+                  PS("oa_rv",fontName="Helvetica-Bold",fontSize=11,textColor=GREEN)),
+         sp(3),
+         ProgressBar(air_comp['revision_depth'], AIR_BAR_W, height=7, clr=GREEN)],
+        [Paragraph(f"{air_comp['consistency']:.0f}%",
+                  PS("oa_cs",fontName="Helvetica-Bold",fontSize=11,textColor=GOLD)),
+         sp(3),
+         ProgressBar(air_comp['consistency'], AIR_BAR_W, height=7, clr=GOLD)],
+        [Paragraph(f"{air_comp.get('balance',0):.0f}%",
+                  PS("oa_bl",fontName="Helvetica-Bold",fontSize=11,textColor=PURPLE)),
+         sp(3),
+         ProgressBar(air_comp.get('balance',0), AIR_BAR_W, height=7, clr=PURPLE)],
         Paragraph(air["label"],
                   PS("oa_ll",fontName="Helvetica-Bold",fontSize=9,textColor=ov_air_clr)),
     ]]
-    air_sum_t = Table(air_sum, colWidths=[W*0.18,W*0.14,W*0.14,W*0.14,W*0.14,W*0.26])
+    air_sum_t = Table(air_sum, colWidths=[W*0.18,W*0.15,W*0.15,W*0.15,W*0.15,W*0.22])
     air_sum_t.setStyle(TableStyle([
         ("BACKGROUND",    (0,0),(-1,0),  NAVY2),
         ("BACKGROUND",    (0,1),(-1,1),  CARD2),
@@ -3561,19 +3630,20 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
         ("LEFTPADDING",   (0,0),(-1,-1), 8),
         ("TOPPADDING",    (0,0),(-1,-1), 7),
-        ("BOTTOMPADDING", (0,0),(-1,-1), 7),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 10),
         ("LINEABOVE",     (0,0),(-1,0),  2, ov_air_clr),
     ]))
     story.append(air_sum_t)
     story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 5. RPI + ANALYTICS (4 cards)
+    # 5. RPI + ANALYTICS with graphical bars
     # ══════════════════════════════════════════════════════════════════════════
     story += sec("Readiness Probability Index (RPI) & Analytics")
 
     frp_pct = frp * 100
     ov_clr  = RED if ov_cnt > 0 else GREEN
+    COMP_BAR_W = W * 0.24
 
     rpi_data = [[
         # Card A: RPI score
@@ -3582,37 +3652,32 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
             Paragraph(f"{rpi_val:.0f}",
                       PS("rv",fontName="Helvetica-Bold",fontSize=30,textColor=WHITE,leading=34)),
             Paragraph("/ 100", PS("r100",fontSize=8,textColor=MUTED)),
+            sp(4),
+            ProgressBar(rpi_val, W*0.20, height=10, clr=rpi_clr),
             sp(3),
-            Paragraph(bar_str(rpi_val),
-                      PS("rb",fontName="Courier",fontSize=9,textColor=rpi_clr)),
-            sp(2),
             Paragraph(rpi["label"],
                       PS("rl",fontName="Helvetica-Bold",fontSize=8,textColor=rpi_clr)),
             Paragraph(f"Ret Density: {rden:.2f}  target: {rmile[1]:.1f}", S_SML),
         ],
-        # Card B: components
+        # Card B: components with bars
         [
             Paragraph("COMPONENTS", S_LBL),
             sp(4),
-            Paragraph(f"Coverage:     {rcomp['coverage']:.0f}%",
+            Paragraph(f"Coverage:    {rcomp['coverage']:.0f}%",
                       PS("rc1",fontName="Courier",fontSize=8,textColor=CYAN_L)),
-            Paragraph(bar_str(rcomp['coverage']),
-                      PS("rb1",fontName="Courier",fontSize=7,textColor=CYAN_L)),
-            sp(2),
-            Paragraph(f"Rev Depth:    {rcomp['revision_depth']:.0f}%",
+            ProgressBar(rcomp['coverage'], COMP_BAR_W, height=7, clr=CYAN_L),
+            sp(3),
+            Paragraph(f"Rev Depth:   {rcomp['revision_depth']:.0f}%",
                       PS("rc2",fontName="Courier",fontSize=8,textColor=GREEN)),
-            Paragraph(bar_str(rcomp['revision_depth']),
-                      PS("rb2",fontName="Courier",fontSize=7,textColor=GREEN)),
-            sp(2),
-            Paragraph(f"Consistency:  {rcomp['consistency']:.0f}%",
+            ProgressBar(rcomp['revision_depth'], COMP_BAR_W, height=7, clr=GREEN),
+            sp(3),
+            Paragraph(f"Consistency: {rcomp['consistency']:.0f}%",
                       PS("rc3",fontName="Courier",fontSize=8,textColor=GOLD)),
-            Paragraph(bar_str(rcomp['consistency']),
-                      PS("rb3",fontName="Courier",fontSize=7,textColor=GOLD)),
-            sp(2),
-            Paragraph(f"Exp Risk:     {rcomp['exposure_risk']:.0f}%",
+            ProgressBar(rcomp['consistency'], COMP_BAR_W, height=7, clr=GOLD),
+            sp(3),
+            Paragraph(f"Exp Risk:    {rcomp['exposure_risk']:.0f}%",
                       PS("rc4",fontName="Courier",fontSize=8,textColor=RED)),
-            Paragraph(bar_str(rcomp['exposure_risk']),
-                      PS("rb4",fontName="Courier",fontSize=7,textColor=RED)),
+            ProgressBar(rcomp['exposure_risk'], COMP_BAR_W, height=7, clr=RED),
         ],
         # Card C: consistency
         [
@@ -3620,10 +3685,9 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
             Paragraph(f"{cons['pct']:.0f}%",
                       PS("cv",fontName="Helvetica-Bold",fontSize=26,textColor=cons_clr,leading=30)),
             Paragraph("Execution Rate", PS("cle",fontSize=7,textColor=MUTED)),
-            sp(3),
-            Paragraph(bar_str(cons['pct']),
-                      PS("cb",fontName="Courier",fontSize=9,textColor=cons_clr)),
             sp(4),
+            ProgressBar(cons['pct'], W*0.20, height=10, clr=cons_clr),
+            sp(5),
             Paragraph(f"{cons['days_studied']} days studied", S_SML),
             Paragraph(f"of {cons['elapsed']} days elapsed",  S_SML),
         ],
@@ -3634,8 +3698,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
             Paragraph(f"{frp_pct:.0f}%",
                       PS("fv",fontName="Helvetica-Bold",fontSize=22,textColor=CYAN_L,leading=26)),
             Paragraph("First Read Progress", PS("fl",fontSize=7,textColor=MUTED)),
-            Paragraph(bar_str(frp_pct),
-                      PS("fb",fontName="Courier",fontSize=9,textColor=CYAN_L)),
+            ProgressBar(frp_pct, W*0.22, height=9, clr=CYAN_L),
             sp(5),
             Paragraph(str(ov_cnt),
                       PS("ov",fontName="Helvetica-Bold",fontSize=22,textColor=ov_clr,leading=26)),
@@ -3665,49 +3728,50 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story.append(sp(8))
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 6. REVISION PROGRESS
+    # 6. REVISION PROGRESS — accurate: topics revised / topics completed
     # ══════════════════════════════════════════════════════════════════════════
     story += sec("Revision Progress by Subject")
 
     rv_hdr = [[
-        Paragraph("Subject",      PS("rvh1",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Done Topics",  PS("rvh2",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Sessions",     PS("rvh3",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Max Rounds",   PS("rvh4",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Depth %",      PS("rvh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Overdue",      PS("rvh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-        Paragraph("Progress",     PS("rvh7",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Subject",        PS("rvh1",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Completed",      PS("rvh2",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Revised ≥1×",   PS("rvh3",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Revision Depth", PS("rvh4",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Overdue",        PS("rvh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+        Paragraph("Coverage",       PS("rvh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
     ]]
-    rv_cw = [W*0.24,W*0.12,W*0.11,W*0.12,W*0.10,W*0.10,W*0.21]
+    REV_BAR_W = W * 0.22
+    rv_cw = [W*0.22, W*0.10, W*0.11, W*0.10, W*0.10, REV_BAR_W + W*0.02]
     rv_rows = []
+
     for s in SUBJECTS:
-        s_comp = comp_by_s.get(s,0)
-        s_rev  = (len(rev_sess[rev_sess["subject"]==s])
-                  if not rev_sess.empty and "subject" in rev_sess.columns else 0)
-        s_max  = s_comp * num_rev
-        s_pct  = min(s_rev/s_max*100,100) if s_max>0 else 0
-        s_ov   = (int((pend[pend["subject"]==s]["days_overdue"]>0).sum())
-                  if not pend.empty else 0)
-        clr    = SUBJ_CLR[s]
-        ov_c   = RED if s_ov>0 else GREEN
+        s_comp    = comp_by_s.get(s, 0)
+        s_revised = topics_revised_by_subj.get(s, 0)
+        s_depth   = rev_depth_by_subj.get(s, 0.0)
+        # coverage = how many completed topics have been revised at least once
+        s_cov_pct = min(s_revised / s_comp * 100, 100) if s_comp > 0 else 0
+        s_ov      = int((pend[pend["subject"]==s]["days_overdue"] > 0).sum()) if not pend.empty else 0
+        clr       = SUBJ_CLR[s]
+        ov_c      = RED if s_ov > 0 else GREEN
+
         rv_rows.append([
-            Paragraph(f'<b>{SUBJ_FULL[s]}</b>', PS(f"rvs{s}",fontSize=8.5,textColor=clr)),
-            Paragraph(str(s_comp), S_BODY),
-            Paragraph(str(s_rev),  S_BODY),
-            Paragraph(str(s_max),  S_BODY),
-            Paragraph(f"{s_pct:.0f}%",
-                      PS(f"rvd{s}",fontName="Helvetica-Bold",fontSize=8,textColor=clr)),
+            Paragraph(f'<b>{SUBJ_FULL[s]}</b>', PS(f"rvs{s}", fontSize=8.5, textColor=clr)),
+            Paragraph(f"{s_comp}", S_BODY),
+            Paragraph(f"{s_revised}/{s_comp}",
+                      PS(f"rvr{s}", fontName="Helvetica-Bold", fontSize=8,
+                         textColor=GREEN if s_revised == s_comp and s_comp > 0 else BODY)),
+            Paragraph(f"{s_depth:.0f}%",
+                      PS(f"rvd{s}", fontName="Helvetica-Bold", fontSize=8, textColor=clr)),
             Paragraph(f"{'⚠ ' if s_ov>0 else ''}{s_ov}",
-                      PS(f"rvo{s}",fontName="Helvetica-Bold",fontSize=8,textColor=ov_c)),
-            Paragraph(bar_str(s_pct,10),
-                      PS(f"rvb{s}",fontName="Courier",fontSize=8,textColor=GREEN)),
+                      PS(f"rvo{s}", fontName="Helvetica-Bold", fontSize=8, textColor=ov_c)),
+            ProgressBar(s_cov_pct, REV_BAR_W, height=9, clr=clr),
         ])
 
-    rv_all = Table(rv_hdr+rv_rows, colWidths=rv_cw)
+    rv_all = Table(rv_hdr + rv_rows, colWidths=rv_cw)
     rv_all.setStyle(TableStyle([
         ("BACKGROUND",    (0,0),(-1,0),  NAVY2),
         ("BACKGROUND",    (0,1),(-1,-1), CARD),
-        ("ROWBACKGROUNDS",(0,1),(-1,-1), [CARD,CARD2]),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1), [CARD, CARD2]),
         ("GRID",          (0,0),(-1,-1), 0.5, BORDER),
         ("FONTNAME",      (0,0),(-1,0),  "Helvetica-Bold"),
         ("TEXTCOLOR",     (0,0),(-1,0),  CYAN),
@@ -3717,7 +3781,8 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         ("RIGHTPADDING",  (0,0),(-1,-1), 7),
         ("TOPPADDING",    (0,0),(-1,-1), 7),
         ("BOTTOMPADDING", (0,0),(-1,-1), 7),
-        ("ALIGN",         (1,0),(-1,-1), "CENTER"),
+        ("ALIGN",         (1,0),(4,-1),  "CENTER"),
+        ("LINEABOVE",     (0,0),(-1,0),  2, GREEN),
     ]))
     story.append(rv_all)
     story.append(sp(8))
@@ -3728,13 +3793,13 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story += sec("Danger Zone — Needs Immediate Attention")
 
     if not pend.empty:
-        overdue_df = pend[pend["days_overdue"]>0].nlargest(10,"days_overdue")
+        overdue_df = pend[pend["days_overdue"] > 0].nlargest(10, "days_overdue")
     else:
         overdue_df = pd.DataFrame()
 
     never_rev = pd.DataFrame()
     if not rev.empty and "revision_count" in rev.columns and "topic_status" in rev.columns:
-        never_rev = rev[(rev["topic_status"]=="completed")&(rev["revision_count"]==0)]
+        never_rev = rev[(rev["topic_status"]=="completed") & (rev["revision_count"]==0)]
 
     if overdue_df.empty and never_rev.empty:
         story.append(ctable(
@@ -3745,28 +3810,28 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
             story.append(Paragraph("Overdue Revisions", S_H3))
             story.append(sp(3))
             dz_hdr = [[
-                Paragraph("Topic",      PS("dzh1",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
-                Paragraph("Subject",    PS("dzh2",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
-                Paragraph("Round",      PS("dzh3",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
-                Paragraph("Days Late",  PS("dzh4",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
-                Paragraph("Urgency",    PS("dzh5",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Topic",     PS("dzh1",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Subject",   PS("dzh2",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Round",     PS("dzh3",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Days Late", PS("dzh4",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+                Paragraph("Urgency",   PS("dzh5",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
             ]]
             dz_cw = [W*0.44,W*0.13,W*0.12,W*0.14,W*0.17]
             dz_rows = []
             for _, row in overdue_df.iterrows():
-                dov  = int(row["days_overdue"])
-                urg  = ("CRITICAL" if dov>14 else "HIGH" if dov>7 else "MEDIUM")
-                uc   = (RED if dov>14 else GOLD if dov>7 else ORANGE)
-                sc   = SUBJ_CLR.get(str(row["subject"]), BODY)
+                dov = int(row["days_overdue"])
+                urg = ("CRITICAL" if dov>14 else "HIGH" if dov>7 else "MEDIUM")
+                uc  = (RED if dov>14 else GOLD if dov>7 else ORANGE)
+                sc  = SUBJ_CLR.get(str(row["subject"]), BODY)
                 dz_rows.append([
                     Paragraph(str(row["topic"])[:55], S_BODY),
                     Paragraph(str(row["subject"]),
-                              PS(f"dzs{dov}",fontName="Helvetica-Bold",fontSize=8,textColor=sc)),
+                              PS(f"dzs{dov}", fontName="Helvetica-Bold", fontSize=8, textColor=sc)),
                     Paragraph(str(row["round_label"]), S_BODY),
                     Paragraph(f"{dov}d",
-                              PS(f"dzd{dov}",fontName="Helvetica-Bold",fontSize=9,textColor=uc)),
+                              PS(f"dzd{dov}", fontName="Helvetica-Bold", fontSize=9, textColor=uc)),
                     Paragraph(urg,
-                              PS(f"dzu{dov}",fontName="Helvetica-Bold",fontSize=7.5,textColor=uc)),
+                              PS(f"dzu{dov}", fontName="Helvetica-Bold", fontSize=7.5, textColor=uc)),
                 ])
             dz_t = Table(dz_hdr+dz_rows, colWidths=dz_cw)
             dz_t.setStyle(TableStyle([
@@ -3800,7 +3865,8 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
                 nr_rows.append([
                     Paragraph(str(row.get("topic",""))[:65], S_BODY),
                     Paragraph(str(row.get("subject","")),
-                              PS(f"nrs_{row.get('subject','')}",fontName="Helvetica-Bold",fontSize=8,textColor=sc)),
+                              PS(f"nrs_{row.get('subject','')}", fontName="Helvetica-Bold",
+                                 fontSize=8, textColor=sc)),
                 ])
             nr_t = Table(nr_hdr+nr_rows, colWidths=[W*0.72,W*0.28])
             nr_t.setStyle(TableStyle([
@@ -3832,26 +3898,25 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
             Paragraph("Subject",   PS("tsh2",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
             Paragraph("Test Name", PS("tsh3",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
             Paragraph("Marks",     PS("tsh4",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-            Paragraph("Score %",   PS("tsh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
-            Paragraph("Result",    PS("tsh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+            Paragraph("Score",     PS("tsh5",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
+            Paragraph("Bar",       PS("tsh6",fontName="Helvetica-Bold",fontSize=8,textColor=CYAN)),
         ]]
-        ts_cw = [W*0.13,W*0.10,W*0.37,W*0.15,W*0.12,W*0.13]
+        SCORE_BAR_W = W * 0.14
+        ts_cw = [W*0.11, W*0.09, W*0.34, W*0.13, W*0.11, SCORE_BAR_W + W*0.02]
         ts_rows = []
         for _, row in tst.sort_values("date", ascending=False).iterrows():
-            sc  = float(row.get("score_pct",0))
-            sc_c = (GREEN if sc>=60 else GOLD if sc>=40 else RED)
-            res  = ("PASS" if sc>=60 else "BORDERLINE" if sc>=40 else "FAIL")
+            sc   = float(row.get("score_pct", 0))
+            sc_c = (GREEN if sc >= 60 else GOLD if sc >= 40 else RED)
             sc2  = SUBJ_CLR.get(str(row.get("subject","")), BODY)
             ts_rows.append([
                 Paragraph(str(row["date"])[:10], S_BODY),
                 Paragraph(str(row.get("subject","")),
-                          PS(f"tss{sc:.0f}",fontName="Helvetica-Bold",fontSize=8,textColor=sc2)),
-                Paragraph(str(row.get("test_name",""))[:42], S_BODY),
+                          PS(f"tss{sc:.0f}", fontName="Helvetica-Bold", fontSize=8, textColor=sc2)),
+                Paragraph(str(row.get("test_name",""))[:40], S_BODY),
                 Paragraph(f"{row.get('marks','')}/{row.get('max_marks','')}", S_BODY),
                 Paragraph(f"{sc:.0f}%",
-                          PS(f"tsv{sc:.0f}",fontName="Helvetica-Bold",fontSize=9,textColor=sc_c)),
-                Paragraph(res,
-                          PS(f"tsr{sc:.0f}",fontName="Helvetica-Bold",fontSize=7.5,textColor=sc_c)),
+                          PS(f"tsv{sc:.0f}", fontName="Helvetica-Bold", fontSize=9, textColor=sc_c)),
+                ProgressBar(sc, SCORE_BAR_W, height=8, clr=sc_c),
             ])
         ts_t = Table(ts_hdr+ts_rows, colWidths=ts_cw)
         ts_t.setStyle(TableStyle([
@@ -3867,19 +3932,19 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
             ("RIGHTPADDING",  (0,0),(-1,-1), 7),
             ("TOPPADDING",    (0,0),(-1,-1), 6),
             ("BOTTOMPADDING", (0,0),(-1,-1), 6),
-            ("ALIGN",         (1,0),(-1,-1), "CENTER"),
+            ("ALIGN",         (1,0),(4,-1),  "CENTER"),
             ("LINEABOVE",     (0,0),(-1,0),  2, CYAN),
         ]))
         story.append(ts_t)
         story.append(sp(4))
 
         scores_list = [float(r.get("score_pct",0)) for _,r in tst.iterrows()]
-        best  = max(scores_list); worst = min(scores_list)
+        best   = max(scores_list); worst = min(scores_list)
         passed = sum(1 for s in scores_list if s>=60)
         stat_data = [[
             Paragraph(f"Tests: {len(ts_rows)}", PS("st1",fontName="Helvetica-Bold",fontSize=8,textColor=BODY)),
-            Paragraph(f"Best: {best:.0f}%",     PS("st2",fontName="Helvetica-Bold",fontSize=8,textColor=GREEN)),
-            Paragraph(f"Worst: {worst:.0f}%",   PS("st3",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
+            Paragraph(f"Best: {best:.0f}%",    PS("st2",fontName="Helvetica-Bold",fontSize=8,textColor=GREEN)),
+            Paragraph(f"Worst: {worst:.0f}%",  PS("st3",fontName="Helvetica-Bold",fontSize=8,textColor=RED)),
             Paragraph(f"Passed: {passed}/{len(ts_rows)}",
                       PS("st4",fontName="Helvetica-Bold",fontSize=8,
                          textColor=(GREEN if passed==len(ts_rows) else GOLD))),
@@ -3905,10 +3970,10 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story += sec("CGSM Revision Gap Schedule")
 
     cfg_data = [[
-        Paragraph(f"R1 Gap: {g1}d",       S_MONO),
-        Paragraph(f"R2 Gap: {g2}d",       S_MONO),
-        Paragraph(f"Growth: {gf}x",       S_MONO),
-        Paragraph(f"Max Cap: {mgap}d",    S_MONO),
+        Paragraph(f"R1 Gap: {g1}d",      S_MONO),
+        Paragraph(f"R2 Gap: {g2}d",      S_MONO),
+        Paragraph(f"Growth: {gf}x",      S_MONO),
+        Paragraph(f"Max Cap: {mgap}d",   S_MONO),
         Paragraph(f"Mode: {prof.get('prep_mode','clearance').upper()}", S_MONO),
     ]]
     cfg_t = Table(cfg_data, colWidths=[W/5]*5)
@@ -3924,12 +3989,15 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     story.append(sp(5))
 
     gap_clrs = [CYAN if g<30 else GOLD if g<60 else ORANGE for g in gaps]
+    GAP_BAR_W = W / max(len(gaps), 1) - 14
     gap_cells = []
     for i,(g,gc) in enumerate(zip(gaps,gap_clrs)):
         gap_cells.append([
             Paragraph(f"R{i+1}", PS(f"gr{i}",fontName="Helvetica-Bold",fontSize=9,textColor=gc,alignment=TA_CENTER)),
             Paragraph(str(g),    PS(f"gv{i}",fontName="Helvetica-Bold",fontSize=20,textColor=WHITE,leading=24,alignment=TA_CENTER)),
-            Paragraph("days",   PS(f"gd{i}",fontSize=7,textColor=MUTED,alignment=TA_CENTER)),
+            Paragraph("days",    PS(f"gd{i}",fontSize=7,textColor=MUTED,alignment=TA_CENTER)),
+            sp(2),
+            ProgressBar(min(g/mgap*100,100), GAP_BAR_W, height=6, clr=gc),
         ])
 
     gap_t = Table([gap_cells], colWidths=[W/len(gaps)]*len(gaps))
@@ -3939,8 +4007,8 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         ("VALIGN",        (0,0),(-1,-1), "TOP"),
         ("TOPPADDING",    (0,0),(-1,-1), 9),
         ("BOTTOMPADDING", (0,0),(-1,-1), 9),
-        ("LEFTPADDING",   (0,0),(-1,-1), 4),
-        ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+        ("LEFTPADDING",   (0,0),(-1,-1), 7),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 7),
     ]
     for i,gc in enumerate(gap_clrs):
         gap_ts.append(("LINEABOVE",(i,0),(i,0),3,gc))
