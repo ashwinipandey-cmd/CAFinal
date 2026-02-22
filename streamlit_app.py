@@ -299,6 +299,22 @@ def get_referral_stats(user_id: str) -> dict:
 PAYMENT_WHATSAPP = "918700428090"   # with country code, no +
 PAYMENT_EMAIL    = "ashwanipandey673@gmail.com"
 
+# ══════════════════════════════════════════════════════════════════════════════
+# RAZORPAY INTEGRATION CONFIG
+# ══════════════════════════════════════════════════════════════════════════════
+# Step 1: Create Payment Links in Razorpay Dashboard → Payment Links
+#         For each link add Notes: key=plan, value=3mo / 1yr / life
+#         Enable "Email" as a mandatory prefill field on each link.
+# Step 2: Paste the 3 link URLs below
+# Step 3: Set RAZORPAY_ENABLED = True
+# ─────────────────────────────────────────────────────────────────────────────
+RAZORPAY_LINKS = {
+    "3mo":  "https://rzp.io/l/REPLACE_3MO",    # ← paste your 3-month payment link
+    "1yr":  "https://rzp.io/l/REPLACE_1YR",    # ← paste your 1-year payment link
+    "life": "https://rzp.io/l/REPLACE_LIFE",   # ← paste your lifetime payment link
+}
+RAZORPAY_ENABLED = False   # ← flip to True after pasting real links above
+
 # ── DB-backed pricing config (admin can override via app_config table) ────────
 _DEFAULT_PRICING_CONFIG = {
     "free_trial_days": 7,
@@ -4344,27 +4360,50 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
         </div>
         """
 
-    full_html = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{
-    background: transparent;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    padding: 4px 2px 8px;
-  }}
-  a {{ text-decoration: none; }}
-  a:hover {{ opacity: 0.85; }}
-</style>
-</head>
-<body>
-  {heading_html}
-  {fomo_html}
-  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;padding-top:14px">
-    {cards}
+    # ── Payment section: Razorpay buttons OR WhatsApp fallback ──────────────
+    if RAZORPAY_ENABLED:
+        _btn_colors = {"3mo": "#34D399", "1yr": "#38BDF8", "life": "#FBBF24"}
+        _rzp_buttons = ""
+        for _pk in ["3mo", "1yr", "life"]:
+            _p     = plans.get(_pk, {})
+            _label = _p.get("label", _pk)
+            _price = int(_p.get("price", 0))
+            _color = _btn_colors.get(_pk, "#38BDF8")
+            _base  = RAZORPAY_LINKS.get(_pk, "#")
+            # Append email + plan into URL so webhook knows who paid and which plan
+            _email_param = wa_email if (wa_email and wa_email != "YOUR_EMAIL") else ""
+            _rzp_url = (
+                f"{_base}?prefill[email]={_email_param}&notes[email]={_email_param}&notes[plan]={_pk}"
+                if _email_param else f"{_base}?notes[plan]={_pk}"
+            )
+            _rzp_buttons += f"""
+            <a href="{_rzp_url}" target="_blank" style="
+                display:block;background:{_color};color:#020B18;
+                font-weight:800;font-size:13px;text-align:center;
+                padding:13px 0;border-radius:10px;margin-bottom:10px;
+                letter-spacing:0.3px;transition:opacity 0.15s">
+                &#9889; Pay &#8377;{_price} &mdash; {_label} &nbsp;(Instant Access)
+            </a>"""
+        _payment_html = f"""
+  <div style="background:rgba(52,211,153,0.07);border:1.5px solid rgba(52,211,153,0.30);
+              border-radius:14px;padding:18px;margin-top:6px">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
+                color:#34D399;letter-spacing:1.5px;margin-bottom:14px">
+      &#9889; SECURE ONLINE PAYMENT &mdash; ACCESS IN SECONDS
+    </div>
+    {_rzp_buttons}
+    <div style="font-size:11px;color:#7BA7CC;text-align:center;margin-top:4px;line-height:1.7">
+      Powered by <b>Razorpay</b> &middot; UPI / Card / NetBanking / Wallets<br>
+      Access is granted <b style="color:#34D399">automatically</b> within seconds of payment.
+    </div>
   </div>
+  <div style="font-size:10px;color:#3A5A7A;text-align:center;margin-top:8px">
+    Pay using the same email as your CA Tracker account:
+    <b style="color:#38BDF8">{wa_email}</b>
+  </div>"""
+    else:
+        # Original WhatsApp manual flow — shown until RAZORPAY_ENABLED = True
+        _payment_html = f"""
   <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.28);
               border-radius:12px;padding:14px 16px;margin-top:4px">
     <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
@@ -4382,7 +4421,30 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
   </div>
   <div style="font-size:10px;color:#3A5A7A;text-align:center;margin-top:8px">
     Message format: &ldquo;Approve {wa_email} &mdash; [3 Months / 1 Year / Lifetime]&rdquo;
+  </div>"""
+
+    full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 4px 2px 8px;
+  }}
+  a {{ text-decoration: none; }}
+  a:hover {{ opacity: 0.82; }}
+</style>
+</head>
+<body>
+  {heading_html}
+  {fomo_html}
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;padding-top:14px">
+    {cards}
   </div>
+  {_payment_html}
 </body>
 </html>"""
     return full_html
@@ -7278,6 +7340,10 @@ else:
     _trial_days    = st.session_state.get("trial_days_left", get_free_trial_days())
     _sub_info      = st.session_state.get("sub_info", {})
     _wa_sub_link   = f"https://wa.me/{PAYMENT_WHATSAPP}?text=Hi%2C+I+want+to+subscribe+to+CA+Final+Tracker.+Please+approve+my+email%3A+{_user_email_ss}"
+    # Smart subscribe link: Razorpay 1yr link (most popular) if enabled, else WhatsApp
+    _subscribe_link  = RAZORPAY_LINKS.get("1yr", _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
+    _subscribe_label = "💳 Subscribe Now →" if RAZORPAY_ENABLED else "📱 WhatsApp to Subscribe"
+    _renew_label     = "💳 Renew now via Razorpay" if RAZORPAY_ENABLED else "📱 Renew now on WhatsApp"
 
     if _in_trial and _trial_days <= 3:
         # 🔴 Urgent: trial ending soon
@@ -7292,8 +7358,8 @@ else:
                 </div>
                 <div style="font-size:11px;color:#B8D4F0;margin-top:2px">
                     Subscribe now to keep all your progress. Plans from ₹149.
-                    &nbsp;<a href="{_wa_sub_link}" target="_blank"
-                       style="color:#25D366;font-weight:700;text-decoration:none">📱 WhatsApp to Subscribe</a>
+                    &nbsp;<a href="{_subscribe_link}" target="_blank"
+                       style="color:#25D366;font-weight:700;text-decoration:none">{_subscribe_label}</a>
                 </div>
             </div>
         </div>
@@ -7308,7 +7374,7 @@ else:
             <span style="font-size:14px">🎁</span>
             <span style="font-size:11px;color:#7BA7CC">
                 Free trial: <b style="color:#34D399">{_trial_days} days remaining</b> · 
-                Enjoying it? <a href="{_wa_sub_link}" target="_blank"
+                Enjoying it? <a href="{_subscribe_link}" target="_blank"
                    style="color:#38BDF8;font-weight:600;text-decoration:none">Subscribe from ₹149 →</a>
             </span>
         </div>
@@ -7322,6 +7388,8 @@ else:
         _is_life     = _sub_info.get("is_lifetime", False)
         _days_rem    = _sub_info.get("days_remaining", 0)
         _end_str     = _sub_info.get("plan_end","")
+        # Renewal link: use matching plan's Razorpay link if enabled
+        _renew_link  = RAZORPAY_LINKS.get(_pk, _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
 
         if _is_life:
             _sub_badge_html = f"""
@@ -7344,9 +7412,9 @@ else:
                     <span style="font-size:11px;color:#F87171;font-weight:700">
                         {_plan_lbl} — Expires in {_days_rem} day{'s' if _days_rem!=1 else ''} ({_end_str})
                     </span><br>
-                    <a href="{_wa_sub_link}" target="_blank"
+                    <a href="{_renew_link}" target="_blank"
                        style="font-size:10px;color:#25D366;font-weight:700;text-decoration:none">
-                       📱 Renew now on WhatsApp</a>
+                       {_renew_label}</a>
                 </div>
             </div>"""
         else:
