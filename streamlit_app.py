@@ -1286,6 +1286,7 @@ def apply_theme(fig, title="", height=None, extra_layout=None):
 
 # ── AUTH FUNCTIONS ────────────────────────────────────────────────────────────
 def do_signup(email, password, username, full_name, exam_month, exam_year):
+    import time as _time
     if not is_approved_email(email):
         return False, "🔒 Access not yet approved. Please contact the admin and share your email to request access."
     try:
@@ -1299,19 +1300,43 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
 
         uid_val = res.user.id
 
-        # Use admin client (service role) to bypass RLS on profiles insert
-        sb_admin.table("profiles").insert({
-            "id":         uid_val,
-            "username":   username,
-            "full_name":  full_name,
-            "exam_month": exam_month,
-            "exam_year":  exam_year
-        }).execute()
+        # Supabase auth.sign_up() returns before the user row is fully committed
+        # to auth.users. Retry the profile insert up to 5x with a short delay
+        # to avoid the foreign key violation (profiles.id → auth.users.id).
+        _last_err = None
+        for _attempt in range(5):
+            try:
+                sb_admin.table("profiles").insert({
+                    "id":         uid_val,
+                    "username":   username,
+                    "full_name":  full_name,
+                    "exam_month": exam_month,
+                    "exam_year":  exam_year
+                }).execute()
+                _last_err = None
+                break  # success
+            except Exception as _ie:
+                _last_err = _ie
+                _time.sleep(1.2)  # wait 1.2s then retry
+
+        if _last_err:
+            # Auth user was created but profile insert failed — surface error
+            return False, f"Account partially created. Please contact admin. (Detail: {_last_err})"
 
         rows = [{"user_id": uid_val, "subject": s, "topic": t}
                 for s, tlist in TOPICS.items() for t in tlist]
-        for i in range(0, len(rows), 50):
-            sb_admin.table("revision_tracker").insert(rows[i:i+50]).execute()
+        _last_err2 = None
+        for _attempt2 in range(5):
+            try:
+                for i in range(0, len(rows), 50):
+                    sb_admin.table("revision_tracker").insert(rows[i:i+50]).execute()
+                _last_err2 = None
+                break
+            except Exception as _ie2:
+                _last_err2 = _ie2
+                _time.sleep(1.2)
+        if _last_err2:
+            return False, f"Account created but tracker setup failed. Please contact admin. (Detail: {_last_err2})"
 
         # Flag for first-login guide — shown once after account creation
         st.session_state["show_how_to_use"] = True
