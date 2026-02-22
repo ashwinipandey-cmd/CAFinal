@@ -1287,65 +1287,81 @@ def apply_theme(fig, title="", height=None, extra_layout=None):
 # ── AUTH FUNCTIONS ────────────────────────────────────────────────────────────
 def do_signup(email, password, username, full_name, exam_month, exam_year):
     import time as _time
-    if not is_approved_email(email):
-        return False, "🔒 Access not yet approved. Please contact the admin and share your email to request access."
-    try:
-        chk = sb.table("profiles").select("username").eq("username", username).execute()
-        if chk.data:
-            return False, "Username already taken"
+    email_clean = email.strip().lower()
 
-        res = sb.auth.sign_up({"email": email, "password": password})
+    # Gate: approved list
+    if not is_approved_email(email_clean):
+        return False, "🔒 Access not yet approved. Please contact the admin and share your email to request access."
+
+    try:
+        # ── Check 1: username uniqueness ──────────────────────────────────────
+        # Only flag taken if the username belongs to a DIFFERENT email
+        chk = sb_admin.table("profiles").select("id, username, email").eq("username", username.strip()).execute()
+        if chk.data:
+            existing_email = (chk.data[0].get("email") or "").strip().lower()
+            if existing_email != email_clean:
+                return False, "❌ Username already taken — please choose a different username."
+            # Same email = previous partial signup; allow retry with same username
+
+        # ── Check 2: profile already fully created ────────────────────────────
+        existing_profile = sb_admin.table("profiles").select("id").eq("email", email_clean).execute()
+        if existing_profile.data:
+            return False, "✅ Account already exists — please Log In instead."
+
+        # ── Auth signup ───────────────────────────────────────────────────────
+        res = sb.auth.sign_up({"email": email_clean, "password": password})
         if not res.user:
-            return False, "Signup failed"
+            return False, "Signup failed — please try again."
 
         uid_val = res.user.id
 
-        # Supabase auth.sign_up() returns before the user row is fully committed
-        # to auth.users. Retry the profile insert up to 5x with a short delay
-        # to avoid the foreign key violation (profiles.id → auth.users.id).
+        # ── Profile insert with retry (FK race condition workaround) ─────────
+        # Supabase auth.sign_up() returns BEFORE auth.users row is fully committed.
+        # Retry up to 6x with increasing delay.
         _last_err = None
-        for _attempt in range(5):
+        for _attempt in range(6):
             try:
-                sb_admin.table("profiles").insert({
+                sb_admin.table("profiles").upsert({
                     "id":         uid_val,
-                    "username":   username,
-                    "full_name":  full_name,
+                    "username":   username.strip(),
+                    "full_name":  full_name.strip(),
+                    "email":      email_clean,
                     "exam_month": exam_month,
                     "exam_year":  exam_year
                 }).execute()
                 _last_err = None
-                break  # success
+                break
             except Exception as _ie:
                 _last_err = _ie
-                _time.sleep(1.2)  # wait 1.2s then retry
+                _time.sleep(1.5 + _attempt * 0.5)  # 1.5s, 2s, 2.5s, 3s...
 
         if _last_err:
-            # Auth user was created but profile insert failed — surface error
-            return False, f"Account partially created. Please contact admin. (Detail: {_last_err})"
+            return False, f"Profile setup failed. Please try again or contact admin. ({_last_err})"
 
+        # ── Revision tracker rows — skip if already exist (upsert) ───────────
         rows = [{"user_id": uid_val, "subject": s, "topic": t}
                 for s, tlist in TOPICS.items() for t in tlist]
         _last_err2 = None
-        for _attempt2 in range(5):
+        for _attempt2 in range(6):
             try:
                 for i in range(0, len(rows), 50):
-                    sb_admin.table("revision_tracker").insert(rows[i:i+50]).execute()
+                    sb_admin.table("revision_tracker")                         .upsert(rows[i:i+50], on_conflict="user_id,subject,topic")                         .execute()
                 _last_err2 = None
                 break
             except Exception as _ie2:
                 _last_err2 = _ie2
-                _time.sleep(1.2)
-        if _last_err2:
-            return False, f"Account created but tracker setup failed. Please contact admin. (Detail: {_last_err2})"
+                _time.sleep(1.5 + _attempt2 * 0.5)
 
-        # Flag for first-login guide — shown once after account creation
+        if _last_err2:
+            return False, f"Account created but tracker setup failed. Please contact admin. ({_last_err2})"
+
         st.session_state["show_how_to_use"] = True
-        return True, "Account created! Please log in now."
+        return True, "✅ Account created! Please log in now."
 
     except Exception as e:
         err = str(e)
         if "already registered" in err.lower():
-            return False, "Email already registered — try logging in"
+            return False, "Email already registered — please Log In instead."
         return False, f"Error: {err}"
 
 
