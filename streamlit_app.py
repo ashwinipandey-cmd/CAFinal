@@ -3814,7 +3814,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 # Preview
                 st.markdown("---")
                 st.markdown("**👁 Live Preview of Pricing Cards**")
-                st.markdown(get_pricing_cfg() and _pricing_cards_html(show_heading=True) or "", unsafe_allow_html=True)
+                _render_pricing(height=660)
 
             # ══════════════════════════════════════════
             # ADMIN SUB-TAB 2 — USER MANAGEMENT
@@ -4127,106 +4127,142 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                     st.info("No referral uses recorded yet. Share the app and referral codes to get started!")
 
 def _pricing_cards_html(show_heading=True, user_email="") -> str:
-    """Return HTML for pricing plan cards — fully dynamic from DB config."""
-    cfg   = get_pricing_cfg()
-    plans = cfg.get("plans", _DEFAULT_PRICING_CONFIG["plans"])
-    fomo  = cfg.get("fomo_message", "")
+    """
+    Return a FULL self-contained HTML document for use with st.components.v1.html().
+    This bypasses Streamlit's markdown sanitizer which strips complex nested divs.
+    """
+    cfg     = get_pricing_cfg()
+    plans   = cfg.get("plans", _DEFAULT_PRICING_CONFIG["plans"])
+    fomo    = cfg.get("fomo_message", "")
     fomo_on = cfg.get("fomo_enabled", True)
 
-    wa_email = user_email or "YOUR_EMAIL_HERE"
-    wa_msg   = f"https://wa.me/{PAYMENT_WHATSAPP}?text=Hi%2C+I+want+to+subscribe+to+CA+Final+Tracker.+Plan%3A+[PLAN].+Please+approve+my+email%3A+{wa_email}"
-    mail_to  = f"mailto:{PAYMENT_EMAIL}?subject=CA%20Final%20Tracker%20Subscription&body=Hi%2C%20I%20want%20to%20subscribe.%20Plan%3A%20[PLAN].%20Please%20approve%20my%20email%3A%20{wa_email}"
+    wa_email = user_email or "YOUR_EMAIL"
+    wa_msg   = f"https://wa.me/{PAYMENT_WHATSAPP}?text=Hi%2C+I+want+to+subscribe+to+CA+Final+Tracker.+Please+approve+my+email%3A+{wa_email}"
+    mail_to  = f"mailto:{PAYMENT_EMAIL}?subject=CA+Final+Tracker+Subscription&body=Hi%2C+I+want+to+subscribe.+Please+approve%3A+{wa_email}"
 
-    heading = f"""
-    <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:900;
-                color:#E8F4FF;text-align:center;margin-bottom:6px;letter-spacing:-0.3px">
-        Choose Your Plan
-    </div>
-    <div style="font-size:12px;color:#7BA7CC;text-align:center;margin-bottom:{'4' if fomo_on and fomo else '20'}px">
-        One-time payment · No auto-renewal · Lifetime access stays forever
-    </div>
+    heading_html = f"""
+      <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:900;
+                  color:#E8F4FF;text-align:center;margin-bottom:6px">Choose Your Plan</div>
+      <div style="font-size:12px;color:#7BA7CC;text-align:center;
+                  margin-bottom:{'6' if fomo_on and fomo else '20'}px">
+        One-time payment &middot; No auto-renewal &middot; Lifetime access stays forever
+      </div>
     """ if show_heading else ""
 
     fomo_html = f"""
-    <div style="background:linear-gradient(135deg,rgba(248,113,113,0.18),rgba(251,191,36,0.12));
-                border:1.5px solid rgba(248,113,113,0.50);border-radius:10px;
-                padding:8px 14px;text-align:center;margin-bottom:16px;
-                animation:pulse 2s infinite">
+      <div style="background:linear-gradient(135deg,rgba(248,113,113,0.22),rgba(251,191,36,0.14));
+                  border:1.5px solid rgba(248,113,113,0.55);border-radius:10px;
+                  padding:9px 14px;text-align:center;margin-bottom:16px">
         <span style="font-size:13px;font-weight:700;color:#FCA5A5">{fomo}</span>
-    </div>
+      </div>
     """ if (fomo_on and fomo) else ""
 
     plan_order = ["3mo", "1yr", "life"]
-    cards_html = ""
+    cards = ""
     for pk in plan_order:
-        if pk not in plans:
-            continue
-        p = plans[pk]
+        p            = plans.get(pk, {})
         label        = p.get("label", pk)
         price        = int(p.get("price", 0))
-        orig_price   = int(p.get("original_price", price))
+        orig         = int(p.get("original_price", price))
         badge        = p.get("badge", "")
         color        = p.get("color", "#38BDF8")
-        disc_pct     = int(p.get("discount_pct", 0))
-        is_popular   = pk == "1yr"
-        popular_tag  = f'<div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#0EA5E9,#38BDF8);color:#020B18;font-size:9px;font-weight:800;padding:3px 12px;border-radius:20px;letter-spacing:1px;white-space:nowrap">⭐ MOST POPULAR</div>' if is_popular else ""
-        disc_badge   = f'<div style="position:absolute;top:-10px;right:10px;background:#F87171;color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px">{disc_pct}% OFF</div>' if disc_pct > 0 else ""
-        strikethrough = f'<span style="text-decoration:line-through;color:#6B91B8;font-size:14px;margin-right:6px">₹{orig_price}</span>' if orig_price > price else ""
-        border_style  = f"2px solid rgba{_hex_to_rgba(color, 0.70)}" if is_popular else f"1.5px solid rgba{_hex_to_rgba(color, 0.40)}"
-        shadow_style  = f"box-shadow:0 0 28px rgba{_hex_to_rgba(color, 0.25)};" if is_popular else ""
-        mt = "margin-top:6px;" if is_popular else ""
-        # per-month rate
-        rate_map = {"3mo": f"₹{price//3}/month", "1yr": f"₹{price//12}/month — Save {round((1-price/orig_price)*100) if orig_price>price else 34}%", "life": "Pay once · Use forever"}
-        rate_text = rate_map.get(pk, "")
-        cards_html += f"""
-        <div style="flex:1;min-width:180px;max-width:210px;background:rgba(4,20,52,0.85);
-                    border:{border_style};border-radius:16px;
-                    padding:20px 16px;text-align:center;position:relative;{shadow_style}">
-            {popular_tag}
-            {disc_badge}
-            <div style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;
-                        color:{color};letter-spacing:2px;margin-bottom:10px;{mt}">{badge}</div>
-            <div style="font-size:28px;font-weight:900;color:#E8F4FF;line-height:1">
-                {strikethrough}₹{price}
-            </div>
-            <div style="font-size:11px;color:#7BA7CC;margin:4px 0 14px">{label}</div>
-            <div style="font-size:11px;color:#B8D4F0;line-height:1.7;margin-bottom:16px">
-                ✓ Full Dashboard Access<br>
-                ✓ Revision Tracker<br>
-                ✓ Score Analytics<br>
-                ✓ PDF Export{'<br>✓ Priority Support' if pk in ("1yr","life") else ''}{'<br>✓ All Future Updates' if pk == "life" else ''}
-            </div>
-            <div style="font-size:10px;color:{color};font-weight:600">{rate_text}</div>
+        disc         = int(p.get("discount_pct", 0))
+        is_pop       = (pk == "1yr")
+        border       = f"2px solid {color}b3" if is_pop else f"1.5px solid {color}66"
+        shadow       = f"box-shadow:0 0 28px {color}40;" if is_pop else ""
+        pop_tag      = f"""<div style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+                            background:linear-gradient(90deg,#0EA5E9,#38BDF8);color:#020B18;
+                            font-size:9px;font-weight:800;padding:3px 13px;border-radius:20px;
+                            letter-spacing:1px;white-space:nowrap">&#11088; MOST POPULAR</div>""" if is_pop else ""
+        disc_tag     = f"""<div style="position:absolute;top:-10px;right:10px;background:#F87171;
+                            color:#fff;font-size:9px;font-weight:800;padding:2px 8px;
+                            border-radius:10px">{disc}% OFF</div>""" if disc > 0 else ""
+        strike       = f"""<span style="text-decoration:line-through;color:#6B91B8;
+                            font-size:14px;margin-right:6px">&#8377;{orig}</span>""" if orig > price else ""
+        mt           = "margin-top:6px;" if is_pop else ""
+        extras       = ""
+        if pk in ("1yr", "life"):
+            extras += "<br>&#10003; Priority Support"
+        if pk == "life":
+            extras += "<br>&#10003; All Future Updates"
+        if pk == "3mo":
+            rate = f"&#8377;{price//3}/month"
+        elif pk == "1yr":
+            saved = round((1 - price/orig)*100) if orig > price else 0
+            rate  = f"&#8377;{price//12}/month &mdash; Save {saved}%" if saved else f"&#8377;{price//12}/month"
+        else:
+            rate = "Pay once &middot; Use forever"
+
+        cards += f"""
+        <div style="flex:1;min-width:175px;max-width:210px;background:rgba(4,20,52,0.90);
+                    border:{border};border-radius:16px;padding:22px 16px 18px;
+                    text-align:center;position:relative;{shadow}">
+          {pop_tag}
+          {disc_tag}
+          <div style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;
+                      color:{color};letter-spacing:2px;margin-bottom:10px;{mt}">{badge}</div>
+          <div style="font-size:28px;font-weight:900;color:#E8F4FF;line-height:1.1">
+            {strike}&#8377;{price}
+          </div>
+          <div style="font-size:11px;color:#7BA7CC;margin:5px 0 14px">{label}</div>
+          <div style="font-size:11px;color:#B8D4F0;line-height:1.8;margin-bottom:14px;text-align:left;padding:0 4px">
+            &#10003; Full Dashboard Access<br>
+            &#10003; Revision Tracker<br>
+            &#10003; Score Analytics<br>
+            &#10003; PDF Export{extras}
+          </div>
+          <div style="font-size:10px;color:{color};font-weight:600">{rate}</div>
         </div>
         """
 
-    return f"""
-    {heading}
-    {fomo_html}
-    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
-        {cards_html}
+    full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 4px 2px 8px;
+  }}
+  a {{ text-decoration: none; }}
+  a:hover {{ opacity: 0.85; }}
+</style>
+</head>
+<body>
+  {heading_html}
+  {fomo_html}
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;padding-top:14px">
+    {cards}
+  </div>
+  <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.28);
+              border-radius:12px;padding:14px 16px;margin-top:4px">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
+                color:#38BDF8;letter-spacing:1.5px;margin-bottom:10px">HOW TO SUBSCRIBE</div>
+    <div style="font-size:12px;color:#C8E5F8;line-height:2.0">
+      <b style="color:#34D399">Step 1:</b> Pay via UPI / GPay / PhonePe to <b style="color:#FBBF24">8700428090</b><br>
+      <b style="color:#34D399">Step 2:</b> Screenshot the payment confirmation<br>
+      <b style="color:#34D399">Step 3:</b> Send screenshot + your email to:<br>
+      &nbsp;&nbsp;&#128241; <a href="{wa_msg}" target="_blank"
+           style="color:#25D366;font-weight:700">WhatsApp: +91 8700428090</a><br>
+      &nbsp;&nbsp;&#128231; <a href="{mail_to}"
+           style="color:#38BDF8;font-weight:700">{PAYMENT_EMAIL}</a><br>
+      <b style="color:#34D399">Step 4:</b> Admin approves &mdash; you get instant access!
     </div>
-    <div style="margin-top:20px;background:rgba(56,189,248,0.06);
-                border:1px solid rgba(56,189,248,0.25);border-radius:12px;padding:14px 16px">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
-                    color:#38BDF8;letter-spacing:1.5px;margin-bottom:10px">HOW TO SUBSCRIBE</div>
-        <div style="font-size:12px;color:#C8E5F8;line-height:1.9">
-            <b style="color:#34D399">Step 1:</b> Pay via UPI / GPay / PhonePe to <b style="color:#FBBF24">8700428090</b><br>
-            <b style="color:#34D399">Step 2:</b> Take a <b>screenshot</b> of the payment<br>
-            <b style="color:#34D399">Step 3:</b> Send it with your email address to:<br>
-            &nbsp;&nbsp;📱 <a href="{wa_msg}" target="_blank"
-                 style="color:#25D366;font-weight:700;text-decoration:none">
-                 WhatsApp: +91 8700428090</a><br>
-            &nbsp;&nbsp;📧 <a href="{mail_to}"
-                 style="color:#38BDF8;font-weight:700;text-decoration:none">
-                 {PAYMENT_EMAIL}</a><br>
-            <b style="color:#34D399">Step 4:</b> Admin approves within a few hours — instant access!
-        </div>
-    </div>
-    <div style="font-size:10px;color:#3A5A7A;text-align:center;margin-top:8px">
-        Message: "Approve {wa_email} — [3 Months / 1 Year / Lifetime]"
-    </div>
-    """
+  </div>
+  <div style="font-size:10px;color:#3A5A7A;text-align:center;margin-top:8px">
+    Message format: &ldquo;Approve {wa_email} &mdash; [3 Months / 1 Year / Lifetime]&rdquo;
+  </div>
+</body>
+</html>"""
+    return full_html
+
+
+def _render_pricing(user_email="", height=620):
+    """Render pricing cards using st.components.v1.html — bypasses Streamlit's HTML sanitizer."""
+    import streamlit.components.v1 as _components
+    _components.html(_pricing_cards_html(show_heading=True, user_email=user_email), height=height, scrolling=False)
 
 def _hex_to_rgba(hex_color: str, alpha: float) -> str:
     """Convert #RRGGBB to (r,g,b,a) string for inline CSS rgba()."""
@@ -4255,8 +4291,8 @@ def _trial_expired_screen(email: str):
       </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(_pricing_cards_html(show_heading=True, user_email=email), unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
+    _render_pricing(user_email=email, height=660)
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔄 I've paid — Check my access", use_container_width=True):
@@ -4383,7 +4419,7 @@ def auth_page():
                                 st.error(msg)
 
             with tab3:
-                st.markdown(_pricing_cards_html(show_heading=True), unsafe_allow_html=True)
+                _render_pricing(height=660)
 
     if st.session_state.get("show_paywall_email"):
         _trial_expired_screen(st.session_state["show_paywall_email"])
