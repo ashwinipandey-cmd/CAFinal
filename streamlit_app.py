@@ -20,8 +20,22 @@ def init_supabase():
     key = st.secrets["SUPABASE_KEY"]
     return create_client(url, key)
 
+@st.cache_resource
+def init_supabase_admin():
+    """Service-role client — bypasses RLS for admin inserts (signup profile creation).
+    Add SUPABASE_SERVICE_ROLE_KEY to st.secrets. Falls back to anon key if not set."""
+    from supabase import create_client
+    url = st.secrets["SUPABASE_URL"]
+    # Try service role key first; fall back to anon key
+    try:
+        key = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
+    except Exception:
+        key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
+
 try:
-    sb = init_supabase()
+    sb       = init_supabase()
+    sb_admin = init_supabase_admin()
 
 except Exception as e:
     st.error(f"Database connection failed: {e}")
@@ -44,7 +58,7 @@ def get_admin_email() -> str:
 def fetch_approved_emails() -> list[str]:
     """Fetch approved emails from Supabase approved_emails table."""
     try:
-        rows = sb.table("approved_emails").select("email, status").eq("status", "approved").execute()
+        rows = sb_admin.table("approved_emails").select("email, status").eq("status", "approved").execute()
         return [r["email"].strip().lower() for r in (rows.data or [])]
     except Exception as _e:
         return []  # fail open if DB unreachable (prevents lockout)
@@ -65,15 +79,15 @@ def approve_email(email: str, note: str = "") -> tuple[bool, str]:
     try:
         fetch_approved_emails.clear()  # invalidate cache
         email_clean = email.strip().lower()
-        existing = sb.table("approved_emails").select("id,status").eq("email", email_clean).execute()
+        existing = sb_admin.table("approved_emails").select("id,status").eq("email", email_clean).execute()
         if existing.data:
-            sb.table("approved_emails").update({
+            sb_admin.table("approved_emails").update({
                 "status": "approved", "note": note,
                 "approved_at": date.today().isoformat()
             }).eq("email", email_clean).execute()
             return True, f"✅ {email_clean} approved (updated)"
         else:
-            sb.table("approved_emails").insert({
+            sb_admin.table("approved_emails").insert({
                 "email": email_clean, "status": "approved",
                 "note": note, "approved_at": date.today().isoformat()
             }).execute()
@@ -86,7 +100,7 @@ def revoke_email(email: str) -> tuple[bool, str]:
     try:
         fetch_approved_emails.clear()
         email_clean = email.strip().lower()
-        sb.table("approved_emails").update({"status": "revoked"}).eq("email", email_clean).execute()
+        sb_admin.table("approved_emails").update({"status": "revoked"}).eq("email", email_clean).execute()
         return True, f"🚫 {email_clean} access revoked"
     except Exception as _e:
         return False, f"Error: {_e}"
@@ -1285,7 +1299,8 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
 
         uid_val = res.user.id
 
-        sb.table("profiles").insert({
+        # Use admin client (service role) to bypass RLS on profiles insert
+        sb_admin.table("profiles").insert({
             "id":         uid_val,
             "username":   username,
             "full_name":  full_name,
@@ -1296,7 +1311,7 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
         rows = [{"user_id": uid_val, "subject": s, "topic": t}
                 for s, tlist in TOPICS.items() for t in tlist]
         for i in range(0, len(rows), 50):
-            sb.table("revision_tracker").insert(rows[i:i+50]).execute()
+            sb_admin.table("revision_tracker").insert(rows[i:i+50]).execute()
 
         # Flag for first-login guide — shown once after account creation
         st.session_state["show_how_to_use"] = True
@@ -1310,22 +1325,28 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
 
 
 def do_login(email, password):
+    # Gate 1 — approved list check (before hitting Supabase auth)
     if not is_approved_email(email):
-        return False, "🔒 Access not yet approved. Please contact the admin and share your email to request access."
+        return False, "Lock Access not yet approved. Please contact the admin and share your email to request access."
     try:
         res = sb.auth.sign_in_with_password({"email": email, "password": password})
         if not res.user:
-            return False, "Login failed"
+            return False, "Wrong email or password."
 
         uid_val = res.user.id
-        prof    = sb.table("profiles").select("*").eq("id", uid_val).execute()
 
-        profile_data = prof.data[0] if prof.data else {
-            "username":   email.split("@")[0],
-            "full_name":  email.split("@")[0],
-            "exam_month": "January",
-            "exam_year":  2027
-        }
+        # Gate 2 — profile existence check
+        # A profile row is ONLY created during do_signup().
+        # No profile row = account was never created through this app = block access.
+        prof = sb.table("profiles").select("*").eq("id", uid_val).execute()
+        if not prof.data:
+            try:
+                sb.auth.sign_out()
+            except Exception:
+                pass
+            return False, "No account found for this email. Please complete Sign Up first."
+
+        profile_data = prof.data[0]
 
         month_map = {"January": 1, "May": 5, "September": 9}
         exam_m    = month_map.get(profile_data.get("exam_month", "January"), 1)
@@ -1339,9 +1360,9 @@ def do_login(email, password):
     except Exception as e:
         err = str(e)
         if "invalid" in err.lower():
-            return False, "Wrong email or password"
+            return False, "Wrong email or password."
         if "confirmed" in err.lower():
-            return False, "Please verify your email first"
+            return False, "Please verify your email first."
         return False, f"Error: {err}"
 
 
@@ -3233,7 +3254,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 st.rerun()
 
             try:
-                _all_rows = sb.table("approved_emails").select("*").order("approved_at", desc=True).execute()
+                _all_rows = sb_admin.table("approved_emails").select("*").order("approved_at", desc=True).execute()
                 _rows     = _all_rows.data or []
             except Exception as _e:
                 _rows = []
