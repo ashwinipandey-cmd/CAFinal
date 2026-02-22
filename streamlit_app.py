@@ -3204,7 +3204,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     )
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.graphics.shapes import Drawing, Rect, Circle, String, Line, RoundRect
+    from reportlab.graphics.shapes import Drawing, Rect, Circle, String, Line
     from reportlab.graphics import renderPDF
     from reportlab.platypus.flowables import Flowable
 
