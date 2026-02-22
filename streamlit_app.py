@@ -3719,24 +3719,355 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
 
 
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ADMIN PANEL — fully rewritten for speed and correct functionality
+#
+# Performance fixes:
+#   • User list cached in session_state — fetched once, not on every rerun
+#   • _days_since_signup() called once per batch via approved_at from the row itself
+#     (no extra DB query per user in a loop)
+#   • get_plans() called ONCE at top, stored in _P — not called inside loops
+#   • _render_pricing() preview is behind an expander — heavy iframe not always rendered
+#   • st.cache_data.clear() replaced with targeted clears (only admin + email caches)
+#
+# Functional fixes:
+#   • Quick-approve now includes plan + start date selector — no more planless approvals
+#   • Re-approve button now includes plan selector — no more planless re-approvals
+#   • "Extend plan" option added for active subscribers
+#   • lambda closure bug fixed — get_plans() result bound at def time via default arg
+#   • import pandas moved to top-level (already imported as pd in main file)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _admin_clear_user_cache():
+    """Targeted cache clear — only resets admin user list and email approval cache."""
+    fetch_approved_emails.clear()
+    if "_admin_users" in st.session_state:
+        del st.session_state["_admin_users"]
+
+
+def _admin_get_users(force_refresh: bool = False):
+    """Fetch all approved_emails rows, cached in session_state for fast tab switching."""
+    if force_refresh or "_admin_users" not in st.session_state:
+        try:
+            rows = sb_admin.table("approved_emails").select("*").order("approved_at", desc=True).execute()
+            st.session_state["_admin_users"] = rows.data or []
+        except Exception as _e:
+            st.session_state["_admin_users"] = []
+            st.error(f"Could not fetch users: {_e}")
+    return st.session_state.get("_admin_users", [])
+
+
+def _days_since_row(row: dict) -> int:
+    """Compute days since signup using the row's own approved_at — zero extra DB queries."""
+    from datetime import datetime as _dt
+    val = (row.get("approved_at") or "")
+    if not val:
+        return 0
+    try:
+        return (_dt.today() - _dt.fromisoformat(str(val)[:10])).days
+    except Exception:
+        return 0
+
+
+_PLAN_DUR = {"3mo": 90, "1yr": 365, "life": None}
+
+
+def _end_date(plan_key: str, start):
+    dur = _PLAN_DUR.get(plan_key)
+    return None if dur is None else start + timedelta(days=dur)
+
+
+def _expire_label(plan_key: str, end_date_val) -> str:
+    if _PLAN_DUR.get(plan_key) is None:
+        return "♾️ Lifetime"
+    return end_date_val.strftime("%d %b %Y") if end_date_val else "—"
+
+
 def _render_admin_panel():
-    """Admin Control Panel — standalone function called from top-level Admin tab.
-    Requires sb_admin, get_pricing_cfg, _DEFAULT_PRICING_CONFIG, get_plans, approve_email,
-    revoke_email, fetch_approved_emails, auto_validate_referral, _days_since_signup,
-    get_free_trial_days, parse_subscription, save_pricing_config, fetch_pricing_config,
-    _render_pricing — all defined in this same file.
-    """
-    st.markdown('<div class="neon-header neon-header-glow">🔐 Admin Control Panel</div>', unsafe_allow_html=True)
-    _adm_tab1, _adm_tab2, _adm_tab3 = st.tabs(["💰 Pricing Manager", "👥 User Management", "🎁 Referral Analytics"])
+    """Admin Control Panel — fast, fully functional."""
 
-    # ══════════════════════════════════════════
-    # ADMIN SUB-TAB 1 — PRICING MANAGER
-    # ══════════════════════════════════════════
+    st.markdown('<div class="neon-header neon-header-glow">🔐 Admin Control Panel</div>',
+                unsafe_allow_html=True)
+
+    _adm_tab1, _adm_tab2, _adm_tab3 = st.tabs([
+        "👥 User Management",
+        "💰 Pricing Manager",
+        "🎁 Referral Analytics",
+    ])
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TAB 1 — USER MANAGEMENT
+    # ══════════════════════════════════════════════════════════════════════════
     with _adm_tab1:
-        st.markdown("### 💰 Live Pricing Configuration")
-        st.markdown('<p style="font-size:12px;color:#7BA7CC">Changes take effect immediately for all new visitors. Existing subscribers are not affected.</p>', unsafe_allow_html=True)
+        st.markdown("### 👥 User Management")
 
-        _cfg_now = get_pricing_cfg()
+        # Refresh button at the top
+        if st.button("🔄 Refresh List", key="admin_refresh", use_container_width=False):
+            _admin_clear_user_cache()
+            st.rerun()
+
+        # ── Fetch user list ONCE (cached in session_state) ─────────────────
+        _rows = _admin_get_users()
+        _P    = get_plans()   # fetched once, bound to local var — never called inside loops
+        _plan_keys = list(_P.keys())
+
+        _pending_rows  = [r for r in _rows if r.get("status") == "pending"]
+        _approved_rows = [r for r in _rows if r.get("status") == "approved"]
+        _revoked_rows  = [r for r in _rows if r.get("status") == "revoked"]
+
+        _m1, _m2, _m3 = st.columns(3)
+        _m1.metric("⏳ Pending",  len(_pending_rows))
+        _m2.metric("✅ Active",   len(_approved_rows))
+        _m3.metric("🚫 Revoked",  len(_revoked_rows))
+
+        st.markdown("---")
+
+        # ── Quick-add user (with full plan selection — FIXED) ───────────────
+        with st.expander("➕ Manually Add / Approve a User", expanded=False):
+            _qa1, _qa2 = st.columns([2, 1.5])
+            with _qa1:
+                _new_email = st.text_input("Email", placeholder="student@gmail.com", key="admin_new_email")
+                _new_note  = st.text_input("Payment note (optional)", placeholder="GPay ₹399 received", key="admin_new_note")
+            with _qa2:
+                # Plan selector — plan_key bound via default arg (no closure bug)
+                _qa_plan  = st.selectbox("Plan", _plan_keys,
+                    format_func=lambda k, p=_P: f"{p[k]['label']} — ₹{p[k]['price']}",
+                    key="admin_qa_plan")
+                _qa_start = st.date_input("Start date", value=date.today(), key="admin_qa_start")
+                _qa_end   = _end_date(_qa_plan, _qa_start)
+                _qa_exp   = _expire_label(_qa_plan, _qa_end)
+                st.caption(f"Expires: **{_qa_exp}**")
+            if st.button("✅ Approve User", key="admin_approve_btn", use_container_width=True):
+                if _new_email.strip():
+                    _ok, _msg = approve_email(
+                        _new_email.strip(),
+                        note=_new_note.strip(),
+                        plan_key=_qa_plan,
+                        plan_start_date=_qa_start,
+                        plan_end_date=_qa_end,
+                    )
+                    if _ok:
+                        st.success(f"{_msg} · Plan: {_P[_qa_plan]['label']} · Expires: {_qa_exp}")
+                        _admin_clear_user_cache()
+                        st.rerun()
+                    else:
+                        st.error(_msg)
+                else:
+                    st.warning("Enter an email address first.")
+
+        st.markdown("---")
+
+        # ══════════════════════════════════════════════════════════════════
+        # PENDING REQUESTS
+        # ══════════════════════════════════════════════════════════════════
+        st.markdown("### 🕐 Pending Requests")
+        if not _pending_rows:
+            st.info("No pending requests right now.")
+        else:
+            st.warning(f"⚠️ {len(_pending_rows)} user(s) waiting for approval")
+            for _row in _pending_rows:
+                _em    = _row.get("email", "")
+                _at    = str(_row.get("approved_at", ""))[:10]
+                # Use row's own approved_at — ZERO extra DB queries per user
+                _tdays = max(0, get_free_trial_days() - _days_since_row(_row))
+                _tc    = "34D399" if _tdays > 0 else "F87171"
+
+                st.markdown(f"""
+                <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);
+                            border-radius:10px;padding:10px 14px;margin-bottom:6px">
+                  <span style="color:#FBBF24;font-size:13px;font-weight:700">{_em}</span>
+                  <span style="color:#7BA7CC;font-size:11px;margin-left:10px">📅 Signed up: {_at}</span>
+                  <span style="color:#{_tc};font-size:11px;margin-left:10px">🕐 Trial: {_tdays}d left</span>
+                </div>""", unsafe_allow_html=True)
+
+                _pa1, _pa2, _pa3 = st.columns([1.6, 1.4, 1.0])
+                with _pa1:
+                    # format_func uses default arg to capture _P at definition time
+                    _plan_sel = st.selectbox("Plan", _plan_keys,
+                        format_func=lambda k, p=_P: f"{p[k]['label']} — ₹{p[k]['price']}",
+                        key=f"plan_{_em}")
+                with _pa2:
+                    _start_sel = st.date_input("Access starts", value=date.today(),
+                        key=f"start_{_em}", help="Usually today — day payment received")
+                with _pa3:
+                    _end_v = _end_date(_plan_sel, _start_sel)
+                    _exp_p = _expire_label(_plan_sel, _end_v)
+                    st.markdown(f"""
+                    <div style="margin-top:26px;background:rgba(56,189,248,0.08);
+                                border:1px solid rgba(56,189,248,0.30);border-radius:8px;
+                                padding:8px 12px;text-align:center">
+                        <div style="font-size:9px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:2px">EXPIRES</div>
+                        <div style="font-size:13px;font-weight:800;
+                                    color:{'#FBBF24' if _PLAN_DUR.get(_plan_sel) is None else '#38BDF8'}">{_exp_p}</div>
+                    </div>""", unsafe_allow_html=True)
+
+                _note_inp = st.text_input("Payment note (optional)",
+                    placeholder="e.g. GPay ₹399 received 22 Feb 2026", key=f"note_{_em}")
+
+                _btn1, _btn2 = st.columns([1, 1])
+                with _btn1:
+                    if st.button(f"✅ Approve {_em.split('@')[0]}", key=f"approve_{_em}", use_container_width=True):
+                        _full_note = f"plan:{_plan_sel} start:{_start_sel.isoformat()} | {_note_inp}".strip()
+                        _ok2, _msg2 = approve_email(_em, note=_full_note,
+                            plan_key=_plan_sel, plan_start_date=_start_sel, plan_end_date=_end_v)
+                        if _ok2:
+                            auto_validate_referral(_em, _plan_sel)
+                            st.success(f"✅ {_em} approved — {_P.get(_plan_sel,{}).get('label',_plan_sel)} · Expires: {_exp_p}")
+                            _admin_clear_user_cache()
+                            st.rerun()
+                        else:
+                            st.error(_msg2)
+                with _btn2:
+                    if st.button("🗑 Remove", key=f"rm_pend_{_em}", use_container_width=True):
+                        try:
+                            sb_admin.table("approved_emails").delete().eq("email", _em).execute()
+                            st.warning(f"🗑 {_em} removed")
+                            _admin_clear_user_cache()
+                            st.rerun()
+                        except Exception as _de:
+                            st.error(f"Error: {_de}")
+                st.markdown("<hr style='border-color:rgba(56,189,248,0.10);margin:8px 0'>", unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # ══════════════════════════════════════════════════════════════════
+        # ACTIVE SUBSCRIBERS
+        # ══════════════════════════════════════════════════════════════════
+        st.markdown("### ✅ Active Subscribers")
+        if not _approved_rows:
+            st.info("No approved users yet.")
+        else:
+            for _row in _approved_rows:
+                _em      = _row.get("email", "")
+                _at      = str(_row.get("approved_at", ""))[:10]
+                _sub     = parse_subscription(_row)
+                _pk      = _sub.get("plan_key", "")
+                _plan_lbl = _P.get(_pk, {}).get("label", "No Plan") if _pk else "No Plan"
+                _is_life  = _sub.get("is_lifetime", False)
+                _drem     = _sub.get("days_remaining", 0)
+                _end_str  = _sub.get("plan_end", "—")
+
+                if _is_life:
+                    _ec = "#FBBF24"; _ei = "🏆"; _et = "Lifetime"
+                elif _drem <= 7:
+                    _ec = "#F87171"; _ei = "⚠️"; _et = f"Expires in {_drem}d!"
+                elif _drem <= 30:
+                    _ec = "#FBBF24"; _ei = "⏰"; _et = f"{_drem}d left"
+                else:
+                    _ec = "#34D399"; _ei = "✅"; _et = f"{_drem}d left"
+
+                st.markdown(f"""
+                <div style="background:rgba(4,14,38,0.80);border:1px solid rgba(52,211,153,0.20);
+                            border-radius:10px;padding:10px 14px;margin-bottom:4px">
+                    <span style="color:#34D399;font-size:13px;font-weight:600">{_em}</span>
+                    <span style="color:#38BDF8;font-size:11px;margin-left:10px;
+                                 background:rgba(56,189,248,0.10);padding:2px 8px;border-radius:6px">{_plan_lbl}</span>
+                    <span style="color:{_ec};font-size:11px;margin-left:8px;font-weight:700">{_ei} {_et}</span>
+                    <span style="color:#7BA7CC;font-size:10px;margin-left:8px">{f'until {_end_str}' if not _is_life else ''}</span>
+                    <span style="color:#3A5A7A;font-size:10px;margin-left:8px">approved:{_at}</span>
+                </div>""", unsafe_allow_html=True)
+
+                _ca, _cb, _cc = st.columns([1.8, 1, 1])
+                with _ca:
+                    with st.expander(f"🔁 Extend / Change plan for {_em.split('@')[0]}"):
+                        _ext_plan  = st.selectbox("New plan", _plan_keys,
+                            format_func=lambda k, p=_P: f"{p[k]['label']} — ₹{p[k]['price']}",
+                            key=f"ext_plan_{_em}")
+                        _ext_start = st.date_input("New start date", value=date.today(), key=f"ext_start_{_em}")
+                        _ext_end   = _end_date(_ext_plan, _ext_start)
+                        _ext_exp   = _expire_label(_ext_plan, _ext_end)
+                        _ext_note  = st.text_input("Note", placeholder="Renewal details", key=f"ext_note_{_em}")
+                        st.caption(f"Will expire: **{_ext_exp}**")
+                        if st.button("✅ Update Plan", key=f"ext_btn_{_em}", use_container_width=True):
+                            _ok3, _msg3 = approve_email(_em, note=_ext_note,
+                                plan_key=_ext_plan, plan_start_date=_ext_start, plan_end_date=_ext_end)
+                            if _ok3:
+                                st.success(f"✅ Updated: {_P.get(_ext_plan,{}).get('label',_ext_plan)} · Expires: {_ext_exp}")
+                                _admin_clear_user_cache()
+                                st.rerun()
+                            else:
+                                st.error(_msg3)
+                with _cb:
+                    if st.button("🚫 Revoke", key=f"revoke_{_em}", use_container_width=True):
+                        _ok2, _msg2 = revoke_email(_em)
+                        if _ok2:
+                            st.warning(_msg2)
+                            _admin_clear_user_cache()
+                            st.rerun()
+                with _cc:
+                    if st.button("🗑 Remove", key=f"rm_{_em}", use_container_width=True):
+                        try:
+                            sb_admin.table("approved_emails").delete().eq("email", _em).execute()
+                            st.warning(f"🗑 {_em} removed")
+                            _admin_clear_user_cache()
+                            st.rerun()
+                        except Exception as _de:
+                            st.error(f"Error: {_de}")
+                st.markdown("<hr style='border-color:rgba(56,189,248,0.08);margin:4px 0'>", unsafe_allow_html=True)
+
+        # ══════════════════════════════════════════════════════════════════
+        # REVOKED USERS
+        # ══════════════════════════════════════════════════════════════════
+        if _revoked_rows:
+            st.markdown("---")
+            st.markdown("### 🚫 Revoked Users")
+            for _row in _revoked_rows:
+                _em = _row.get("email", "")
+                _at = str(_row.get("approved_at", ""))[:10]
+                _cr1, _cr2, _cr3, _cr4 = st.columns([1.8, 1.2, 0.9, 0.9])
+                _cr1.markdown(
+                    f"<span style='color:#F87171;font-size:13px'>{_em}</span> "
+                    f"<span style='color:#7BA7CC;font-size:11px'>{_at}</span>",
+                    unsafe_allow_html=True)
+                with _cr2:
+                    # Re-approve WITH plan — FIXED (was approve_email(_em) with no plan)
+                    _ra_plan = st.selectbox("Plan", _plan_keys,
+                        format_func=lambda k, p=_P: p[k]["label"],
+                        key=f"ra_plan_{_em}")
+                with _cr3:
+                    if st.button("✅ Re-approve", key=f"reapprove_{_em}", use_container_width=True):
+                        _ra_end = _end_date(_ra_plan, date.today())
+                        _ok2, _msg2 = approve_email(_em,
+                            plan_key=_ra_plan, plan_start_date=date.today(), plan_end_date=_ra_end)
+                        if _ok2:
+                            st.success(f"{_msg2} · {_P.get(_ra_plan,{}).get('label',_ra_plan)}")
+                            _admin_clear_user_cache()
+                            st.rerun()
+                        else:
+                            st.error(_msg2)
+                with _cr4:
+                    if st.button("🗑 Remove", key=f"rm_rev_{_em}", use_container_width=True):
+                        try:
+                            sb_admin.table("approved_emails").delete().eq("email", _em).execute()
+                            st.warning(f"🗑 {_em} removed")
+                            _admin_clear_user_cache()
+                            st.rerun()
+                        except Exception as _de:
+                            st.error(f"Error: {_de}")
+
+        st.markdown("---")
+        st.markdown("""
+        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);
+                    border-radius:12px;padding:14px 18px">
+            <div style="font-size:12px;color:#7BA7CC;line-height:1.9">
+                ℹ️ <b style="color:#38BDF8">Workflow:</b><br>
+                1. User signs up → auto-added as <b style="color:#FBBF24">Pending</b> (free trial starts)<br>
+                2. User pays via UPI → sends payment screenshot to WhatsApp / Email<br>
+                3. You verify → select plan + date → click <b>✅ Approve</b> (referral bonus auto-applied)<br>
+                4. User gets access on next login · To suspend: <b>🚫 Revoke</b> · To renew: use 🔁 Extend
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TAB 2 — PRICING MANAGER
+    # ══════════════════════════════════════════════════════════════════════════
+    with _adm_tab2:
+        st.markdown("### 💰 Live Pricing Configuration")
+        st.caption("Changes take effect immediately for all new visitors. Existing subscribers are not affected.")
+
+        _cfg_now   = get_pricing_cfg()
         _plans_now = _cfg_now.get("plans", _DEFAULT_PRICING_CONFIG["plans"])
 
         with st.form("pricing_form"):
@@ -3746,57 +4077,55 @@ def _render_admin_panel():
                 help="Set to 0 to disable free trial")
 
             st.markdown("---")
-            st.markdown("#### 🔥 FOMO / Urgency Message")
-            _fomo_on = st.checkbox("Enable FOMO banner", value=bool(_cfg_now.get("fomo_enabled", True)))
-            _fomo_msg = st.text_input("Message text", value=_cfg_now.get("fomo_message","🔥 Limited time offer — prices go up after 100 subscribers!"))
+            st.markdown("#### 🔥 FOMO Banner")
+            _fomo_on  = st.checkbox("Enable FOMO banner", value=bool(_cfg_now.get("fomo_enabled", True)))
+            _fomo_msg = st.text_input("Banner text",
+                value=_cfg_now.get("fomo_message", "🔥 Limited time offer — prices go up after 100 subscribers!"))
 
             st.markdown("---")
             st.markdown("#### 📦 Plan Pricing")
             _plan_order = ["3mo", "1yr", "life"]
-            _plan_defaults = {"3mo":{"label":"3 Months","original_price":149},"1yr":{"label":"1 Year","original_price":499},"life":{"label":"Lifetime","original_price":999}}
-            _new_plans = {}
+            _new_plans  = {}
             for _pk in _plan_order:
-                _pp = _plans_now.get(_pk, _DEFAULT_PRICING_CONFIG["plans"].get(_pk, {}))
+                _pp  = _plans_now.get(_pk, _DEFAULT_PRICING_CONFIG["plans"].get(_pk, {}))
                 _lbl = _pp.get("label", _pk)
                 st.markdown(f"**{_lbl}**")
                 _pc1, _pc2, _pc3, _pc4 = st.columns([1.5, 1.5, 1.5, 2])
                 _p_price = _pc1.number_input(f"Price ₹ ({_pk})", min_value=0, max_value=99999,
-                    value=int(_pp.get("price",0)), key=f"price_{_pk}")
+                    value=int(_pp.get("price", 0)), key=f"price_{_pk}")
                 _p_orig  = _pc2.number_input(f"Original ₹ ({_pk})", min_value=0, max_value=99999,
                     value=int(_pp.get("original_price", _p_price)), key=f"orig_{_pk}")
                 _p_disc  = _pc3.number_input(f"Discount % ({_pk})", min_value=0, max_value=100,
                     value=int(_pp.get("discount_pct", 0)), key=f"disc_{_pk}")
-                _p_badge = _pc4.text_input(f"Badge text ({_pk})", value=_pp.get("badge",""), key=f"badge_{_pk}")
+                _p_badge = _pc4.text_input(f"Badge ({_pk})", value=_pp.get("badge", ""), key=f"badge_{_pk}")
                 _new_plans[_pk] = {
-                    "label":          _pp.get("label", _lbl),
+                    "label":          _lbl,
                     "price":          _p_price,
                     "original_price": _p_orig,
                     "discount_pct":   _p_disc,
                     "badge":          _p_badge,
-                    "color":          _pp.get("color","#38BDF8"),
+                    "color":          _pp.get("color", "#38BDF8"),
                 }
 
             st.markdown("---")
             st.markdown("#### 🎁 Referral Settings")
-            _ref_bonus = st.number_input("Bonus days per validated referral", min_value=0, max_value=365,
-                value=int(_cfg_now.get("referral_bonus_days", 30)))
-            _ref_plan_opts = {"3mo":"3 Months (minimum)","1yr":"1 Year (minimum)","life":"Lifetime only"}
-            _ref_min_plan = st.selectbox("Minimum plan to trigger bonus",
+            _ref_bonus = st.number_input("Bonus days per validated referral",
+                min_value=0, max_value=365, value=int(_cfg_now.get("referral_bonus_days", 30)))
+            _ref_plan_opts = {"3mo": "3 Months (minimum)", "1yr": "1 Year (minimum)", "life": "Lifetime only"}
+            _ref_min_plan  = st.selectbox("Minimum plan to trigger bonus",
                 options=list(_ref_plan_opts.keys()),
                 format_func=lambda x: _ref_plan_opts[x],
-                index=list(_ref_plan_opts.keys()).index(_cfg_now.get("referral_min_plan","3mo")))
+                index=list(_ref_plan_opts.keys()).index(_cfg_now.get("referral_min_plan", "3mo")))
 
-            _save_pricing = st.form_submit_button("💾 Save All Pricing Changes", use_container_width=True)
-            if _save_pricing:
-                _new_cfg = {
-                    "free_trial_days":   int(_trial_days_new),
-                    "fomo_enabled":       _fomo_on,
-                    "fomo_message":       _fomo_msg,
-                    "plans":              _new_plans,
-                    "referral_bonus_days":int(_ref_bonus),
-                    "referral_min_plan":  _ref_min_plan,
-                }
-                _sv_ok, _sv_msg = save_pricing_config(_new_cfg)
+            if st.form_submit_button("💾 Save All Pricing Changes", use_container_width=True):
+                _sv_ok, _sv_msg = save_pricing_config({
+                    "free_trial_days":    int(_trial_days_new),
+                    "fomo_enabled":        _fomo_on,
+                    "fomo_message":        _fomo_msg,
+                    "plans":               _new_plans,
+                    "referral_bonus_days": int(_ref_bonus),
+                    "referral_min_plan":   _ref_min_plan,
+                })
                 if _sv_ok:
                     st.success(_sv_msg)
                     fetch_pricing_config.clear()
@@ -3804,320 +4133,62 @@ def _render_admin_panel():
                 else:
                     st.error(_sv_msg)
 
-        # Preview
+        # Preview behind expander — avoids rendering the heavy iframe on every render
         st.markdown("---")
-        st.markdown("**👁 Live Preview of Pricing Cards**")
-        _render_pricing(height=660)
+        with st.expander("👁 Preview Pricing Cards (click to expand)", expanded=False):
+            _render_pricing(height=640)
 
-    # ══════════════════════════════════════════
-    # ADMIN SUB-TAB 2 — USER MANAGEMENT
-    # ══════════════════════════════════════════
-    with _adm_tab2:
-        st.markdown("### 👥 User Management")
-
-        # ── Quick approve manual ──────────────────────────────────────
-        st.markdown("#### ➕ Manually Approve a User")
-        _ac1, _ac2 = st.columns([2.5, 1])
-        with _ac1:
-            _new_email = st.text_input("Email to Approve", placeholder="student@gmail.com", key="admin_new_email")
-            _new_note  = st.text_input("Note (optional)", placeholder="e.g. Paid ₹399 — 1yr plan", key="admin_new_note")
-        with _ac2:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            if st.button("✅ Approve Access", key="admin_approve_btn", use_container_width=True):
-                if _new_email.strip():
-                    _ok, _msg = approve_email(_new_email.strip(), _new_note.strip())
-                    if _ok:
-                        st.success(_msg)
-                        st.cache_data.clear()
-                    else:
-                        st.error(_msg)
-                else:
-                    st.warning("Enter an email address first.")
-
-        st.markdown("---")
-
-        if st.button("🔄 Refresh User List", key="admin_refresh"):
-            fetch_approved_emails.clear()
-            st.rerun()
-
-        try:
-            _all_rows = sb_admin.table("approved_emails").select("*").order("approved_at", desc=True).execute()
-            _rows     = _all_rows.data or []
-        except Exception as _e:
-            _rows = []
-            st.error(f"Could not fetch list: {_e}")
-
-        _pending_rows  = [r for r in _rows if r.get("status") == "pending"]
-        _approved_rows = [r for r in _rows if r.get("status") == "approved"]
-        _revoked_rows  = [r for r in _rows if r.get("status") == "revoked"]
-
-        # Metrics
-        _um1, _um2, _um3 = st.columns(3)
-        _um1.metric("⏳ Pending", len(_pending_rows))
-        _um2.metric("✅ Active", len(_approved_rows))
-        _um3.metric("🚫 Revoked", len(_revoked_rows))
-
-        st.markdown("---")
-
-        # ── PENDING ─────────────────────────────────────────────────
-        st.markdown("### 🕐 Pending Requests")
-        if not _pending_rows:
-            st.info("No pending requests right now.")
-        else:
-            st.warning(f"⚠️ {len(_pending_rows)} user(s) waiting for approval")
-            for _row in _pending_rows:
-                _em    = _row.get("email","")
-                _at    = str(_row.get("approved_at",""))[:10]
-                _note  = _row.get("note","") or ""
-                _tdays = max(0, get_free_trial_days() - _days_since_signup(_em))
-                st.markdown(f"""
-                <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);
-                            border-radius:10px;padding:10px 14px;margin-bottom:6px">
-                  <span style="color:#FBBF24;font-size:13px;font-weight:700">{_em}</span>
-                  <span style="color:#7BA7CC;font-size:11px;margin-left:10px">📅 Signed up: {_at}</span>
-                  <span style="color:#{"34D399" if _tdays > 0 else "F87171"};font-size:11px;margin-left:10px">
-                    🕐 Trial: {_tdays}d left</span>
-                </div>""", unsafe_allow_html=True)
-
-                _pa1, _pa2, _pa3 = st.columns([1.6, 1.4, 1.0])
-                with _pa1:
-                    _plan_sel = st.selectbox(
-                        "Plan",
-                        list(get_plans().keys()),
-                        format_func=lambda x: f"{get_plans()[x]['label']} — ₹{get_plans()[x]['price']}",
-                        key=f"plan_{_em}"
-                    )
-                with _pa2:
-                    # Start date — default today
-                    _start_default = date.today()
-                    _start_sel = st.date_input(
-                        "Access starts",
-                        value=_start_default,
-                        key=f"start_{_em}",
-                        help="Usually today — the day payment was received"
-                    )
-                with _pa3:
-                    # Show computed end date based on plan
-                    _dur_map = {"3mo": 90, "1yr": 365, "life": None}
-                    _dur = _dur_map.get(_plan_sel)
-                    if _dur is None:
-                        _end_preview = "♾️ Lifetime"
-                        _end_date_val = None
-                    else:
-                        _end_date_val = _start_sel + timedelta(days=_dur)
-                        _end_preview  = _end_date_val.strftime("%d %b %Y")
-                    st.markdown(f"""
-                    <div style="margin-top:26px;background:rgba(56,189,248,0.08);
-                                border:1px solid rgba(56,189,248,0.30);border-radius:8px;
-                                padding:8px 12px;text-align:center">
-                        <div style="font-size:9px;color:#7BA7CC;font-weight:700;
-                                    letter-spacing:1px;margin-bottom:2px">EXPIRES</div>
-                        <div style="font-size:13px;font-weight:800;
-                                    color:{'#FBBF24' if _dur is None else '#38BDF8'}">
-                            {_end_preview}
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                _note_input = st.text_input(
-                    "Payment note (optional)",
-                    placeholder="e.g. GPay ₹399 received 22 Feb 2026",
-                    key=f"note_{_em}"
-                )
-
-                _btn1, _btn2 = st.columns([1, 1])
-                with _btn1:
-                    if st.button(f"✅ Approve {_em.split('@')[0]}", key=f"approve_{_em}", use_container_width=True):
-                        _full_note = f"plan:{_plan_sel} start:{_start_sel.isoformat()} approved:{date.today().isoformat()} | {_note_input}".strip()
-                        _ok2, _msg2 = approve_email(
-                            _em,
-                            note=_full_note,
-                            plan_key=_plan_sel,
-                            plan_start_date=_start_sel,
-                            plan_end_date=_end_date_val
-                        )
-                        if _ok2:
-                            auto_validate_referral(_em, _plan_sel)
-                            _plans_display = get_plans()
-                            _plan_lbl = _plans_display.get(_plan_sel, {}).get("label", _plan_sel)
-                            st.success(f"✅ {_em} approved! Plan: {_plan_lbl} · Expires: {_end_preview}")
-                            st.cache_data.clear()
-                            st.rerun()
-                        else:
-                            st.error(_msg2)
-                with _btn2:
-                    if st.button("🗑 Remove", key=f"rm_pend_{_em}", use_container_width=True):
-                        try:
-                            sb_admin.table("approved_emails").delete().eq("email", _em).execute()
-                            fetch_approved_emails.clear()
-                            st.warning(f"🗑 {_em} removed")
-                            st.cache_data.clear()
-                            st.rerun()
-                        except Exception as _de:
-                            st.error(f"Error: {_de}")
-                st.markdown("<hr style='border-color:rgba(56,189,248,0.10);margin:8px 0'>", unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        # ── APPROVED ────────────────────────────────────────────────
-        st.markdown("### ✅ Active Subscribers")
-        if not _approved_rows:
-            st.info("No approved users yet.")
-        else:
-            for _row in _approved_rows:
-                _em   = _row.get("email","")
-                _note = _row.get("note","") or ""
-                _at   = str(_row.get("approved_at",""))[:10]
-                _sub  = parse_subscription(_row)
-                _pk   = _sub.get("plan_key","")
-                _plans_now2 = get_plans()
-                _plan_lbl = _plans_now2.get(_pk,{}).get("label","Unknown") if _pk else "No Plan"
-                _is_life  = _sub.get("is_lifetime", False)
-                _drem     = _sub.get("days_remaining", 0)
-                _end_str  = _sub.get("plan_end","—")
-                _active   = _sub.get("active", False)
-
-                # Color code by expiry
-                if _is_life:
-                    _exp_color = "#FBBF24"; _exp_icon = "🏆"; _exp_txt = "Lifetime"
-                elif _drem <= 7:
-                    _exp_color = "#F87171"; _exp_icon = "⚠️"; _exp_txt = f"Expires in {_drem}d!"
-                elif _drem <= 30:
-                    _exp_color = "#FBBF24"; _exp_icon = "⏰"; _exp_txt = f"{_drem}d left"
-                else:
-                    _exp_color = "#34D399"; _exp_icon = "✅"; _exp_txt = f"{_drem}d left"
-
-                st.markdown(f"""
-                <div style="background:rgba(4,14,38,0.80);border:1px solid rgba(52,211,153,0.20);
-                            border-radius:10px;padding:10px 14px;margin-bottom:4px">
-                    <span style="color:#34D399;font-size:13px;font-weight:600">{_em}</span>
-                    <span style="color:#38BDF8;font-size:11px;margin-left:10px;
-                                 background:rgba(56,189,248,0.10);padding:2px 8px;border-radius:6px">
-                        {_plan_lbl}</span>
-                    <span style="color:{_exp_color};font-size:11px;margin-left:8px;font-weight:700">
-                        {_exp_icon} {_exp_txt}</span>
-                    <span style="color:#7BA7CC;font-size:10px;margin-left:8px">
-                        {f'until {_end_str}' if not _is_life else ''}</span>
-                    <span style="color:#3A5A7A;font-size:10px;margin-left:8px">approved:{_at}</span>
-                </div>
-                """, unsafe_allow_html=True)
-
-                _c3, _c4 = st.columns([1, 1])
-                with _c3:
-                    if st.button("🚫 Revoke", key=f"revoke_{_em}", use_container_width=True):
-                        _ok2, _msg2 = revoke_email(_em)
-                        if _ok2:
-                            st.warning(_msg2)
-                            st.cache_data.clear()
-                            st.rerun()
-                with _c4:
-                    if st.button("🗑 Remove", key=f"rm_{_em}", use_container_width=True):
-                        try:
-                            sb_admin.table("approved_emails").delete().eq("email", _em).execute()
-                            fetch_approved_emails.clear()
-                            st.warning(f"🗑 {_em} removed")
-                            st.cache_data.clear()
-                            st.rerun()
-                        except Exception as _de:
-                            st.error(f"Error: {_de}")
-                st.markdown("<hr style='border-color:rgba(56,189,248,0.08);margin:4px 0'>", unsafe_allow_html=True)
-
-        if _revoked_rows:
-            st.markdown("---")
-            st.markdown("### 🚫 Revoked Users")
-            for _row in _revoked_rows:
-                _em = _row.get("email","")
-                _at = str(_row.get("approved_at",""))[:10]
-                _cr1, _cr2, _cr3 = st.columns([2.5, 0.9, 0.9])
-                _cr1.markdown(f"<span style='color:#F87171;font-size:13px'>{_em}</span> <span style='color:#7BA7CC;font-size:11px'>{_at}</span>", unsafe_allow_html=True)
-                with _cr2:
-                    if st.button("Re-approve", key=f"reapprove_{_em}", use_container_width=True):
-                        _ok2, _msg2 = approve_email(_em)
-                        if _ok2:
-                            st.success(_msg2)
-                            st.cache_data.clear()
-                            st.rerun()
-                with _cr3:
-                    if st.button("🗑 Remove", key=f"rm_rev_{_em}", use_container_width=True):
-                        try:
-                            sb_admin.table("approved_emails").delete().eq("email", _em).execute()
-                            fetch_approved_emails.clear()
-                            st.warning(f"🗑 {_em} removed")
-                            st.cache_data.clear()
-                            st.rerun()
-                        except Exception as _de:
-                            st.error(f"Error: {_de}")
-
-        st.markdown("---")
-        st.markdown(f"""
-        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);
-                    border-radius:12px;padding:14px 18px">
-            <div style="font-size:12px;color:#7BA7CC;line-height:1.9">
-                ℹ️ <b style="color:#38BDF8">Workflow:</b><br>
-                1. User signs up → auto-added as <b style="color:#FBBF24">Pending</b> (free trial starts)<br>
-                2. User pays via UPI → sends screenshot to WhatsApp / Email<br>
-                3. You verify → select plan → click <b>✅ Approve</b> (referral bonus auto-applied!)<br>
-                4. User gets access on next login · To suspend: <b>🚫 Revoke</b>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ══════════════════════════════════════════
-    # ADMIN SUB-TAB 3 — REFERRAL ANALYTICS
-    # ══════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════════════
+    # TAB 3 — REFERRAL ANALYTICS
+    # ══════════════════════════════════════════════════════════════════════════
     with _adm_tab3:
         st.markdown("### 🎁 Referral Programme Analytics")
 
-        if st.button("🔄 Refresh Referral Data", key="admin_ref_refresh"):
+        if st.button("🔄 Refresh", key="admin_ref_refresh"):
             st.rerun()
 
         try:
             _all_codes = sb_admin.table("referral_codes").select("*").execute().data or []
             _all_uses  = sb_admin.table("referral_uses").select("*").order("used_at", desc=True).execute().data or []
         except Exception as _re:
-            _all_codes = []
-            _all_uses  = []
+            _all_codes = []; _all_uses = []
             st.error(f"Could not load referral data: {_re}")
 
         _ra1, _ra2, _ra3 = st.columns(3)
-        _ra1.metric("🔑 Total Codes", len(_all_codes))
-        _ra2.metric("📨 Total Uses", len(_all_uses))
-        _validated_count = sum(1 for u in _all_uses if u.get("validated"))
-        _ra3.metric("✅ Validated (paid)", _validated_count)
+        _ra1.metric("🔑 Total Codes",      len(_all_codes))
+        _ra2.metric("📨 Total Uses",        len(_all_uses))
+        _ra3.metric("✅ Validated (paid)",  sum(1 for u in _all_uses if u.get("validated")))
 
         if _all_uses:
             st.markdown("---")
             st.markdown("**📋 All Referral Uses**")
-            import pandas as _pd3
-            _ref_df = _pd3.DataFrame([{
-                "Code":          u.get("referral_code",""),
-                "Referred Email":u.get("referred_email",""),
-                "Referrer":      u.get("referrer_email",""),
-                "Used At":       str(u.get("used_at",""))[:10],
-                "Plan":          u.get("plan_used","—"),
-                "Validated":     "✅ Yes" if u.get("validated") else "⏳ Pending",
-                "Validated At":  str(u.get("validated_at",""))[:10] if u.get("validated_at") else "—",
-            } for u in _all_uses])
-            st.dataframe(_ref_df, use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame([{
+                "Code":           u.get("referral_code", ""),
+                "Referred Email": u.get("referred_email", ""),
+                "Referrer":       u.get("referrer_email", ""),
+                "Used At":        str(u.get("used_at", ""))[:10],
+                "Plan":           u.get("plan_used", "—") or "—",
+                "Status":         "✅ Validated" if u.get("validated") else "⏳ Pending",
+                "Validated At":   str(u.get("validated_at", ""))[:10] if u.get("validated_at") else "—",
+            } for u in _all_uses]), use_container_width=True, hide_index=True)
 
-            # Manual validate button (for edge cases)
             st.markdown("---")
-            st.markdown("**🔧 Manual Validate a Referral**")
+            st.markdown("**🔧 Manually Validate a Referral**")
             _pending_uses = [u for u in _all_uses if not u.get("validated")]
             if _pending_uses:
                 _mv_opts = {f"{u['referred_email']} (code: {u['referral_code']})": u for u in _pending_uses}
-                _mv_sel = st.selectbox("Select pending referral", list(_mv_opts.keys()), key="manual_val_sel")
-                _mv_plan = st.selectbox("Plan to assign", list(get_plans().keys()),
-                    format_func=lambda x: get_plans()[x]["label"], key="manual_val_plan")
+                _mv_sel  = st.selectbox("Select pending referral", list(_mv_opts.keys()), key="manual_val_sel")
+                _mv_P    = get_plans()
+                _mv_plan = st.selectbox("Plan to assign", list(_mv_P.keys()),
+                    format_func=lambda k, p=_mv_P: p[k]["label"], key="manual_val_plan")
                 if st.button("✅ Manually Validate", key="manual_val_btn"):
-                    _mv_use = _mv_opts[_mv_sel]
-                    auto_validate_referral(_mv_use["referred_email"], _mv_plan)
-                    st.success(f"✅ Referral for {_mv_use['referred_email']} validated!")
+                    auto_validate_referral(_mv_opts[_mv_sel]["referred_email"], _mv_plan)
+                    st.success(f"✅ Referral validated!")
                     st.rerun()
             else:
                 st.info("No pending referrals to validate.")
         else:
-            st.info("No referral uses recorded yet. Share the app and referral codes to get started!")
+            st.info("No referral uses recorded yet.")
 
 
 def _pricing_cards_html(show_heading=True, user_email="") -> str:
