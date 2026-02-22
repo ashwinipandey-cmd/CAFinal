@@ -70,8 +70,6 @@ def is_approved_email(email: str) -> bool:
     if admin and email_clean == admin:
         return True  # admin always has access
     approved = fetch_approved_emails()
-    if not approved:
-        return True  # no entries yet = open access (bootstrapping)
     return email_clean in approved
 
 def approve_email(email: str, note: str = "") -> tuple[bool, str]:
@@ -1289,24 +1287,11 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
     import time as _time
     email_clean = email.strip().lower()
 
-    # Gate: approved list
-    if not is_approved_email(email_clean):
-        return False, "🔒 Access not yet approved. Please contact the admin and share your email to request access."
-
     try:
         # ── Check 1: username uniqueness ──────────────────────────────────────
-        # Only flag taken if the username belongs to a DIFFERENT email
-        chk = sb_admin.table("profiles").select("id, username, email").eq("username", username.strip()).execute()
+        chk = sb_admin.table("profiles").select("id, username").eq("username", username.strip()).execute()
         if chk.data:
-            existing_email = (chk.data[0].get("email") or "").strip().lower()
-            if existing_email != email_clean:
-                return False, "❌ Username already taken — please choose a different username."
-            # Same email = previous partial signup; allow retry with same username
-
-        # ── Check 2: profile already fully created ────────────────────────────
-        existing_profile = sb_admin.table("profiles").select("id").eq("email", email_clean).execute()
-        if existing_profile.data:
-            return False, "✅ Account already exists — please Log In instead."
+            return False, "❌ Username already taken — please choose a different username."
 
         # ── Auth signup ───────────────────────────────────────────────────────
         res = sb.auth.sign_up({"email": email_clean, "password": password})
@@ -1314,6 +1299,20 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
             return False, "Signup failed — please try again."
 
         uid_val = res.user.id
+
+        # ── Auto-register in approved_emails as pending (if not already there) ─
+        try:
+            _existing = sb_admin.table("approved_emails").select("id, status").eq("email", email_clean).execute()
+            if not _existing.data:
+                sb_admin.table("approved_emails").insert({
+                    "email": email_clean,
+                    "status": "pending",
+                    "note": f"Signed up {date.today().isoformat()}",
+                    "approved_at": date.today().isoformat()
+                }).execute()
+                fetch_approved_emails.clear()
+        except Exception:
+            pass  # don't block account creation if this fails
 
         # ── Profile insert with retry (FK race condition workaround) ─────────
         # Supabase auth.sign_up() returns BEFORE auth.users row is fully committed.
@@ -1356,7 +1355,7 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
             return False, f"Account created but tracker setup failed. Please contact admin. ({_last_err2})"
 
         st.session_state["show_how_to_use"] = True
-        return True, "✅ Account created! Please log in now."
+        return True, "✅ Account created! Your access request is pending admin approval. You'll be able to log in once approved."
 
     except Exception as e:
         err = str(e)
@@ -1368,7 +1367,7 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
 def do_login(email, password):
     # Gate 1 — approved list check (before hitting Supabase auth)
     if not is_approved_email(email):
-        return False, "Lock Access not yet approved. Please contact the admin and share your email to request access."
+        return False, "🔒 Your account is pending admin approval. Please wait for the admin to approve your access."
     try:
         res = sb.auth.sign_in_with_password({"email": email, "password": password})
         if not res.user:
@@ -3288,8 +3287,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
 
             st.markdown("---")
 
-            # ── Current approved list ─────────────────────────────────────────
-            st.markdown("### 📋 All Approved Emails")
+            # ── Fetch all rows ────────────────────────────────────────────────
             if st.button("🔄 Refresh List", key="admin_refresh"):
                 fetch_approved_emails.clear()
                 st.rerun()
@@ -3301,37 +3299,101 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 _rows = []
                 st.error(f"Could not fetch list: {_e}")
 
-            if not _rows:
-                st.info("No approved emails yet. Add the first one above.")
-            else:
-                for _row in _rows:
-                    _em     = _row.get("email", "")
-                    _st     = _row.get("status", "approved")
-                    _note   = _row.get("note", "") or ""
-                    _at     = str(_row.get("approved_at", ""))[:10]
-                    _st_clr = "#34D399" if _st == "approved" else "#F87171"
-                    _st_ico = "✅" if _st == "approved" else "🚫"
+            _pending_rows  = [r for r in _rows if r.get("status") == "pending"]
+            _approved_rows = [r for r in _rows if r.get("status") == "approved"]
+            _revoked_rows  = [r for r in _rows if r.get("status") == "revoked"]
 
-                    _col_em, _col_st, _col_note, _col_date, _col_btn = st.columns([2.5, 0.8, 2.0, 1.0, 0.9])
-                    _col_em.markdown(f"<span style='color:#E8F4FF;font-size:13px'>{_em}</span>", unsafe_allow_html=True)
-                    _col_st.markdown(f"<span style='color:{_st_clr};font-size:12px;font-weight:700'>{_st_ico} {_st.upper()}</span>", unsafe_allow_html=True)
+            # ── Pending approval requests ─────────────────────────────────────
+            st.markdown("### 🕐 Pending Approval Requests")
+            if not _pending_rows:
+                st.info("No pending requests.")
+            else:
+                st.warning(f"⚠️ {len(_pending_rows)} user(s) waiting for approval")
+                for _row in _pending_rows:
+                    _em   = _row.get("email", "")
+                    _at   = str(_row.get("approved_at", ""))[:10]
+                    _note = _row.get("note", "") or ""
+                    _col_em, _col_date, _col_note, _col_a, _col_r = st.columns([2.5, 1.0, 2.0, 0.9, 0.9])
+                    _col_em.markdown(f"<span style='color:#FBBF24;font-size:13px;font-weight:600'>{_em}</span>", unsafe_allow_html=True)
+                    _col_date.markdown(f"<span style='color:#7BA7CC;font-size:11px'>{_at}</span>", unsafe_allow_html=True)
+                    _col_note.markdown(f"<span style='color:#7BA7CC;font-size:11px'>{_note[:35]}</span>", unsafe_allow_html=True)
+                    with _col_a:
+                        if st.button("✅ Approve", key=f"approve_{_em}", use_container_width=True):
+                            _ok2, _msg2 = approve_email(_em)
+                            if _ok2:
+                                st.success(_msg2)
+                                st.cache_data.clear()
+                                st.rerun()
+                    with _col_r:
+                        if st.button("🗑 Remove", key=f"remove_pending_{_em}", use_container_width=True):
+                            try:
+                                sb_admin.table("approved_emails").delete().eq("email", _em).execute()
+                                fetch_approved_emails.clear()
+                                st.warning(f"🗑 {_em} removed")
+                                st.cache_data.clear()
+                                st.rerun()
+                            except Exception as _de:
+                                st.error(f"Error: {_de}")
+
+            st.markdown("---")
+
+            # ── Approved users ────────────────────────────────────────────────
+            st.markdown("### ✅ Approved Users")
+            if not _approved_rows:
+                st.info("No approved users yet.")
+            else:
+                for _row in _approved_rows:
+                    _em   = _row.get("email", "")
+                    _note = _row.get("note", "") or ""
+                    _at   = str(_row.get("approved_at", ""))[:10]
+                    _col_em, _col_note, _col_date, _col_rv, _col_rm = st.columns([2.5, 2.0, 1.0, 0.9, 0.9])
+                    _col_em.markdown(f"<span style='color:#34D399;font-size:13px'>{_em}</span>", unsafe_allow_html=True)
                     _col_note.markdown(f"<span style='color:#7BA7CC;font-size:11px'>{_note[:35]}</span>", unsafe_allow_html=True)
                     _col_date.markdown(f"<span style='color:#7BA7CC;font-size:11px'>{_at}</span>", unsafe_allow_html=True)
-                    with _col_btn:
-                        if _st == "approved":
-                            if st.button("Revoke", key=f"revoke_{_em}", use_container_width=True):
-                                _ok2, _msg2 = revoke_email(_em)
-                                if _ok2:
-                                    st.warning(_msg2)
-                                    st.cache_data.clear()
-                                    st.rerun()
-                        else:
-                            if st.button("Re-approve", key=f"reapprove_{_em}", use_container_width=True):
-                                _ok2, _msg2 = approve_email(_em)
-                                if _ok2:
-                                    st.success(_msg2)
-                                    st.cache_data.clear()
-                                    st.rerun()
+                    with _col_rv:
+                        if st.button("🚫 Revoke", key=f"revoke_{_em}", use_container_width=True):
+                            _ok2, _msg2 = revoke_email(_em)
+                            if _ok2:
+                                st.warning(_msg2)
+                                st.cache_data.clear()
+                                st.rerun()
+                    with _col_rm:
+                        if st.button("🗑 Remove", key=f"remove_{_em}", use_container_width=True):
+                            try:
+                                sb_admin.table("approved_emails").delete().eq("email", _em).execute()
+                                fetch_approved_emails.clear()
+                                st.warning(f"🗑 {_em} removed")
+                                st.cache_data.clear()
+                                st.rerun()
+                            except Exception as _de:
+                                st.error(f"Error: {_de}")
+
+            if _revoked_rows:
+                st.markdown("---")
+                st.markdown("### 🚫 Revoked Users")
+                for _row in _revoked_rows:
+                    _em = _row.get("email", "")
+                    _at = str(_row.get("approved_at", ""))[:10]
+                    _col_em, _col_date, _col_ra, _col_rm = st.columns([2.5, 1.0, 0.9, 0.9])
+                    _col_em.markdown(f"<span style='color:#F87171;font-size:13px'>{_em}</span>", unsafe_allow_html=True)
+                    _col_date.markdown(f"<span style='color:#7BA7CC;font-size:11px'>{_at}</span>", unsafe_allow_html=True)
+                    with _col_ra:
+                        if st.button("Re-approve", key=f"reapprove_{_em}", use_container_width=True):
+                            _ok2, _msg2 = approve_email(_em)
+                            if _ok2:
+                                st.success(_msg2)
+                                st.cache_data.clear()
+                                st.rerun()
+                    with _col_rm:
+                        if st.button("🗑 Remove", key=f"remove_rev_{_em}", use_container_width=True):
+                            try:
+                                sb_admin.table("approved_emails").delete().eq("email", _em).execute()
+                                fetch_approved_emails.clear()
+                                st.warning(f"🗑 {_em} removed")
+                                st.cache_data.clear()
+                                st.rerun()
+                            except Exception as _de:
+                                st.error(f"Error: {_de}")
 
             st.markdown("---")
             st.markdown(f"""
@@ -3339,12 +3401,13 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                         border-radius:12px;padding:14px 18px">
                 <div style="font-size:12px;color:#7BA7CC;line-height:1.8">
                     ℹ️ <b style="color:#38BDF8">How approval works:</b><br>
-                    1. User pays → you receive payment confirmation<br>
-                    2. Enter their email above → click <b>Approve Access</b><br>
-                    3. They can now Sign Up or Log In immediately<br>
-                    4. To suspend: click <b>Revoke</b> — they get locked out on next login attempt<br>
+                    1. User signs up → they are added as <b style="color:#FBBF24">Pending</b> automatically<br>
+                    2. You review the request above → click <b>✅ Approve</b> to grant access<br>
+                    3. They can now Log In immediately (within 5 min cache refresh)<br>
+                    4. To suspend: click <b>🚫 Revoke</b> — locked out on next login attempt<br>
+                    5. To permanently remove: click <b>🗑 Remove</b> — deletes the entry entirely<br>
                     <br>
-                    📋 Approved list is stored in Supabase <code>approved_emails</code> table.
+                    📋 Data stored in Supabase <code>approved_emails</code> table.
                     Changes take effect within 5 minutes (cache refresh).
                 </div>
             </div>
@@ -3373,9 +3436,8 @@ def auth_page():
             <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);
                         border-radius:12px;padding:10px 16px;margin-bottom:8px;text-align:center">
                 <div style="font-size:12px;color:#7BA7CC;line-height:1.6">
-                    🔒 <b style="color:#38BDF8">Access by approval only.</b>
-                    To get access, contact the admin with your email address.
-                    Once approved, you can Sign Up below.
+                    🔒 <b style="color:#38BDF8">Approval-based access.</b>
+                    Sign up freely — your account will be activated once the admin approves it.
                 </div>
             </div>
             """, unsafe_allow_html=True)
