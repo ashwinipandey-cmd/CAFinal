@@ -1640,14 +1640,24 @@ def apply_theme(fig, title="", height=None, extra_layout=None):
 
 # ── AUTH FUNCTIONS ────────────────────────────────────────────────────────────
 def do_signup(email, password, username, full_name, exam_month, exam_year):
+    """
+    Create a new account.
+
+    KEY FIX — uses sb_admin (service-role key) for ALL database writes so that
+    Row Level Security cannot block inserts regardless of whether email
+    confirmation is ON or OFF in Supabase.
+
+    When confirmation is ON:  res.session is None → shows "check your email" message.
+    When confirmation is OFF: res.session exists  → shows "you're in, log in now" message.
+    """
     import time as _time
     email_clean = email.strip().lower()
 
     try:
         # ── Check 1: username uniqueness ──────────────────────────────────────
-        chk = sb_admin.table("profiles").select("id, username").eq("username", username.strip()).execute()
+        chk = sb_admin.table("profiles").select("id").eq("username", username.strip()).execute()
         if chk.data:
-            return False, "❌ Username already taken — please choose a different username."
+            return False, "❌ Username already taken — please choose a different one."
 
         # ── Auth signup ───────────────────────────────────────────────────────
         res = sb.auth.sign_up({"email": email_clean, "password": password})
@@ -1656,25 +1666,31 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
 
         uid_val = res.user.id
 
-        # ── Auto-register in approved_emails as pending (free trial starts now) ─
+        # Detect if Supabase requires email confirmation
+        # When confirmation is ON: res.session is None (no active session yet)
+        _email_confirmation_on = (res.session is None)
+
+        # ── Auto-register in approved_emails as pending ───────────────────────
+        # Always via sb_admin so RLS on approved_emails doesn't block it
         try:
-            _existing = sb_admin.table("approved_emails").select("id, status").eq("email", email_clean).execute()
-            if not _existing.data:
+            _ae_existing = sb_admin.table("approved_emails") \
+                .select("id").eq("email", email_clean).execute()
+            if not _ae_existing.data:
                 sb_admin.table("approved_emails").insert({
-                    "email": email_clean,
-                    "status": "pending",
-                    "note": f"trial_start:{date.today().isoformat()}",
+                    "email":       email_clean,
+                    "status":      "pending",
+                    "note":        f"trial_start:{date.today().isoformat()}",
                     "approved_at": date.today().isoformat()
                 }).execute()
                 fetch_approved_emails.clear()
         except Exception:
-            pass  # don't block account creation if this fails
+            pass  # non-fatal
 
-        # ── Profile insert with retry (FK race condition workaround) ─────────
-        # Supabase auth.sign_up() returns BEFORE auth.users row is fully committed.
-        # Retry up to 6x with increasing delay.
+        # ── Profile insert — sb_admin bypasses RLS entirely ───────────────────
+        # Retry loop handles the FK race condition where auth.sign_up() returns
+        # before the auth.users row is fully committed to the database.
         _last_err = None
-        for _attempt in range(6):
+        for _attempt in range(8):
             try:
                 sb_admin.table("profiles").upsert({
                     "id":         uid_val,
@@ -1682,25 +1698,39 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
                     "full_name":  full_name.strip(),
                     "email":      email_clean,
                     "exam_month": exam_month,
-                    "exam_year":  exam_year
+                    "exam_year":  int(exam_year),
                 }).execute()
                 _last_err = None
                 break
             except Exception as _ie:
                 _last_err = _ie
-                _time.sleep(1.5 + _attempt * 0.5)  # 1.5s, 2s, 2.5s, 3s...
+                _err_str = str(_ie)
+                # RLS error — retrying won't help, fail immediately with clear message
+                if "42501" in _err_str or "row-level security" in _err_str.lower():
+                    return False, (
+                        "❌ Database permission error (RLS policy blocked the insert).\n\n"
+                        "**To fix:** Run `fix_rls_signup.sql` in Supabase → SQL Editor, "
+                        "then try signing up again."
+                    )
+                _time.sleep(1.5 + _attempt * 0.5)  # 1.5 s → 5 s backoff
 
         if _last_err:
-            return False, f"Profile setup failed. Please try again or contact admin. ({_last_err})"
+            return False, (
+                f"Profile setup failed after retries — please contact admin. ({_last_err})"
+            )
 
-        # ── Revision tracker rows — skip if already exist (upsert) ───────────
-        rows = [{"user_id": uid_val, "subject": s, "topic": t}
-                for s, tlist in TOPICS.items() for t in tlist]
+        # ── Revision tracker rows — sb_admin bypasses RLS ────────────────────
+        _rows = [
+            {"user_id": uid_val, "subject": s, "topic": t}
+            for s, tlist in TOPICS.items() for t in tlist
+        ]
         _last_err2 = None
         for _attempt2 in range(6):
             try:
-                for i in range(0, len(rows), 50):
-                    sb_admin.table("revision_tracker")                         .upsert(rows[i:i+50], on_conflict="user_id,subject,topic")                         .execute()
+                for _i in range(0, len(_rows), 50):
+                    sb_admin.table("revision_tracker") \
+                        .upsert(_rows[_i:_i+50], on_conflict="user_id,subject,topic") \
+                        .execute()
                 _last_err2 = None
                 break
             except Exception as _ie2:
@@ -1708,19 +1738,43 @@ def do_signup(email, password, username, full_name, exam_month, exam_year):
                 _time.sleep(1.5 + _attempt2 * 0.5)
 
         if _last_err2:
-            return False, f"Account created but tracker setup failed. Please contact admin. ({_last_err2})"
+            # Non-fatal — tracker rows can be re-seeded later; don't block the user
+            pass
 
         st.session_state["show_how_to_use"] = True
-        return True, f"✅ Account created! You have {get_free_trial_days()} days free trial. Enjoy exploring!"
+
+        if _email_confirmation_on:
+            return True, (
+                f"✅ Account created!\n\n"
+                f"📧 **Check your email ({email_clean}) for a confirmation link** and "
+                f"click it to activate your account. Then come back here and Log In.\n\n"
+                f"_Didn't get it? Check your spam folder. "
+                f"If the link goes to localhost or the wrong page, ask admin to fix "
+                f"the Site URL in Supabase → Authentication → URL Configuration._"
+            )
+        else:
+            return True, (
+                f"✅ Account created! You have {get_free_trial_days()} days free. "
+                f"Switch to the **Login** tab and sign in now!"
+            )
 
     except Exception as e:
         err = str(e)
         if "already registered" in err.lower():
             return False, "Email already registered — please Log In instead."
+        if "42501" in err or "row-level security" in err.lower():
+            return False, (
+                "❌ Database permission error. Run `fix_rls_signup.sql` in "
+                "Supabase SQL Editor and try again."
+            )
         return False, f"Error: {err}"
 
 
 def do_login(email, password):
+    """
+    Sign in. Uses sb_admin for profile lookup so RLS cannot block it.
+    Returns a clear, user-friendly message when email confirmation is pending.
+    """
     email_clean = email.strip().lower()
     try:
         res = sb.auth.sign_in_with_password({"email": email_clean, "password": password})
@@ -1729,18 +1783,21 @@ def do_login(email, password):
 
         uid_val = res.user.id
 
-        # Gate 2 — profile existence check
-        prof = sb.table("profiles").select("*").eq("id", uid_val).execute()
+        # ── Profile lookup via sb_admin (bypasses RLS) ────────────────────────
+        prof = sb_admin.table("profiles").select("*").eq("id", uid_val).execute()
         if not prof.data:
             try:
                 sb.auth.sign_out()
             except Exception:
                 pass
-            return False, "No account found for this email. Please complete Sign Up first."
+            return False, (
+                "No profile found. Your signup may have been interrupted — "
+                "please sign up again (it will be quick since your email is registered)."
+            )
 
         profile_data = prof.data[0]
 
-        # Gate 3 — free trial OR paid subscription check
+        # ── Access gate: free trial OR paid plan ──────────────────────────────
         _in_trial = is_in_free_trial(email_clean)
         _has_plan = has_paid_plan(email_clean)
         if not _in_trial and not _has_plan:
@@ -1748,29 +1805,36 @@ def do_login(email, password):
                 sb.auth.sign_out()
             except Exception:
                 pass
-            return False, "TRIAL_EXPIRED"   # special sentinel — handled in auth_page
+            return False, "TRIAL_EXPIRED"  # special sentinel — handled in auth_page
 
+        # ── Session state ─────────────────────────────────────────────────────
         month_map = {"January": 1, "May": 5, "September": 9}
-        exam_m    = month_map.get(profile_data.get("exam_month", "January"), 1)
-        exam_y    = int(profile_data.get("exam_year", 2027))
-        st.session_state.exam_date  = date(exam_y, exam_m, 1)
-        st.session_state.logged_in  = True
-        st.session_state.user_id    = uid_val
-        st.session_state.profile    = profile_data
-        # Store subscription info for dashboard banners
+        exam_m = month_map.get(profile_data.get("exam_month", "January"), 1)
+        exam_y = int(profile_data.get("exam_year", 2027))
+
+        st.session_state.exam_date          = date(exam_y, exam_m, 1)
+        st.session_state.logged_in          = True
+        st.session_state.user_id            = uid_val
+        st.session_state.profile            = profile_data
         st.session_state["user_email"]      = email_clean
         st.session_state["in_free_trial"]   = _in_trial
         st.session_state["trial_days_left"] = days_left_in_trial(email_clean)
-        _sub_info = get_subscription_info(email_clean)
-        st.session_state["sub_info"]        = _sub_info
+        st.session_state["sub_info"]        = get_subscription_info(email_clean)
         return True, "Login successful"
 
     except Exception as e:
         err = str(e)
-        if "invalid" in err.lower():
+        if "invalid" in err.lower() or "credentials" in err.lower():
             return False, "Wrong email or password."
+        if "not confirmed" in err.lower() or "email not confirmed" in err.lower():
+            return False, (
+                "📧 Your email is not confirmed yet.\n\n"
+                "Check your inbox for the Supabase confirmation email and click the link. "
+                "If the link redirects to localhost or a broken page, ask admin to set the "
+                "correct Site URL in Supabase → Authentication → URL Configuration."
+            )
         if "confirmed" in err.lower():
-            return False, "Please verify your email first."
+            return False, "📧 Please verify your email before logging in — check your inbox."
         return False, f"Error: {err}"
 
 
