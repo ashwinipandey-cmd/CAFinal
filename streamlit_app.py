@@ -300,14 +300,20 @@ PAYMENT_WHATSAPP = "918700428090"   # with country code, no +
 PAYMENT_EMAIL    = "ashwanipandey673@gmail.com"
 
 # ══════════════════════════════════════════════════════════════════════════════
-# RAZORPAY PAYMENT LINKS
+# RAZORPAY INTEGRATION CONFIG
 # ══════════════════════════════════════════════════════════════════════════════
+# Step 1: Create Payment Links in Razorpay Dashboard → Payment Links
+#         For each link add Notes: key=plan, value=3mo / 1yr / life
+#         Enable "Email" as a mandatory prefill field on each link.
+# Step 2: Paste the 3 link URLs below
+# Step 3: Set RAZORPAY_ENABLED = True
+# ─────────────────────────────────────────────────────────────────────────────
 RAZORPAY_LINKS = {
-    "3mo":  "https://rzp.io/rzp/xiwIpWl",
-    "1yr":  "https://rzp.io/rzp/1DoyjXdn",
-    "life": "https://rzp.io/rzp/WrrhrC2v",
+    "3mo":  "https://rzp.io/rzp/xiwIpWl",    # ← paste your 3-month payment link
+    "1yr":  "https://rzp.io/rzp/1DoyjXdn",    # ← paste your 1-year payment link
+    "life": "https://rzp.io/rzp/WrrhrC2v",   # ← paste your lifetime payment link
 }
-RAZORPAY_ENABLED = True
+RAZORPAY_ENABLED = True   # ← flip to True after pasting real links above
 
 # ── DB-backed pricing config (admin can override via app_config table) ────────
 _DEFAULT_PRICING_CONFIG = {
@@ -4332,6 +4338,13 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
         else:
             rate = "Pay once &middot; Use forever"
 
+        # Razorpay URL for this plan's Subscribe Now button
+        _ep = wa_email if (wa_email and wa_email != "YOUR_EMAIL") else ""
+        _bl = RAZORPAY_LINKS.get(pk, "#") if RAZORPAY_ENABLED else wa_msg
+        rzp_url = (f"{_bl}?prefill[email]={_ep}&notes[email]={_ep}&notes[plan]={pk}"
+                   if (RAZORPAY_ENABLED and _ep) else
+                   (f"{_bl}?notes[plan]={pk}" if RAZORPAY_ENABLED else _bl))
+
         cards += f"""
         <div style="flex:1;min-width:175px;max-width:210px;background:rgba(4,20,52,0.90);
                     border:{border};border-radius:16px;padding:22px 16px 18px;
@@ -4350,53 +4363,28 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
             &#10003; Score Analytics<br>
             &#10003; PDF Export{extras}
           </div>
-          <div style="font-size:10px;color:{color};font-weight:600">{rate}</div>
+          <div style="font-size:10px;color:{color};font-weight:600;margin-bottom:14px">{rate}</div>
+          <a href="{rzp_url}" target="_blank" style="
+              display:block;background:{color};color:#020B18;
+              font-weight:800;font-size:12px;text-align:center;
+              padding:10px 0;border-radius:8px;text-decoration:none;">
+            Subscribe Now
+          </a>
         </div>
         """
 
-    # ── Payment section: Razorpay buttons OR WhatsApp fallback ──────────────
+    # ── Footer note below cards ──────────────────────────────────────────────
     if RAZORPAY_ENABLED:
-        _btn_colors = {"3mo": "#34D399", "1yr": "#38BDF8", "life": "#FBBF24"}
-        _rzp_buttons = ""
-        for _pk in ["3mo", "1yr", "life"]:
-            _p     = plans.get(_pk, {})
-            _label = _p.get("label", _pk)
-            _price = int(_p.get("price", 0))
-            _color = _btn_colors.get(_pk, "#38BDF8")
-            _base  = RAZORPAY_LINKS.get(_pk, "#")
-            # Append email + plan into URL so webhook knows who paid and which plan
-            _email_param = wa_email if (wa_email and wa_email != "YOUR_EMAIL") else ""
-            _rzp_url = (
-                f"{_base}?prefill[email]={_email_param}&notes[email]={_email_param}&notes[plan]={_pk}"
-                if _email_param else f"{_base}?notes[plan]={_pk}"
-            )
-            _rzp_buttons += f"""
-            <a href="{_rzp_url}" target="_blank" style="
-                display:block;background:{_color};color:#020B18;
-                font-weight:800;font-size:13px;text-align:center;
-                padding:13px 0;border-radius:10px;margin-bottom:10px;
-                letter-spacing:0.3px;transition:opacity 0.15s">
-                &#9889; Pay &#8377;{_price} &mdash; {_label} &nbsp;(Instant Access)
-            </a>"""
         _payment_html = f"""
-  <div style="background:rgba(52,211,153,0.07);border:1.5px solid rgba(52,211,153,0.30);
-              border-radius:14px;padding:18px;margin-top:6px">
-    <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
-                color:#34D399;letter-spacing:1.5px;margin-bottom:14px">
-      &#9889; SECURE ONLINE PAYMENT &mdash; ACCESS IN SECONDS
-    </div>
-    {_rzp_buttons}
-    <div style="font-size:11px;color:#7BA7CC;text-align:center;margin-top:4px;line-height:1.7">
-      Powered by <b>Razorpay</b> &middot; UPI / Card / NetBanking / Wallets<br>
-      Access is granted <b style="color:#34D399">automatically</b> within seconds of payment.
-    </div>
-  </div>
-  <div style="font-size:10px;color:#3A5A7A;text-align:center;margin-top:8px">
-    Pay using the same email as your CA Tracker account:
-    <b style="color:#38BDF8">{wa_email}</b>
+  <div style="font-size:11px;color:#7BA7CC;text-align:center;margin-top:8px;line-height:1.8">
+    Powered by <b>Razorpay</b> &middot; UPI / Card / NetBanking / Wallets
+    &middot; Access granted <b style="color:#34D399">automatically</b> within seconds.<br>
+    <span style="font-size:10px;color:#3A5A7A">
+      Pay with the same email as your CA Tracker account:
+      <b style="color:#38BDF8">{wa_email}</b>
+    </span>
   </div>"""
     else:
-        # Original WhatsApp manual flow — shown until RAZORPAY_ENABLED = True
         _payment_html = f"""
   <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.28);
               border-radius:12px;padding:14px 16px;margin-top:4px">
@@ -4528,7 +4516,7 @@ def auth_page():
                 </div>
                 """, unsafe_allow_html=True)
 
-            tab1, tab2, tab3 = st.tabs(["⚡  LOGIN", "🚀  SIGN UP", "💎  PRICING"])
+            tab1, tab2 = st.tabs(["⚡  LOGIN", "🚀  SIGN UP"])
 
             with tab1:
                 with st.form("login_form"):
@@ -4602,9 +4590,6 @@ def auth_page():
                                 st.success(msg)
                             else:
                                 st.error(msg)
-
-            with tab3:
-                _render_pricing(height=660)
 
     if st.session_state.get("show_paywall_email"):
         _trial_expired_screen(st.session_state["show_paywall_email"])
@@ -7334,26 +7319,23 @@ else:
     _trial_days    = st.session_state.get("trial_days_left", get_free_trial_days())
     _sub_info      = st.session_state.get("sub_info", {})
     _wa_sub_link   = f"https://wa.me/{PAYMENT_WHATSAPP}?text=Hi%2C+I+want+to+subscribe+to+CA+Final+Tracker.+Please+approve+my+email%3A+{_user_email_ss}"
-    _subscribe_link  = RAZORPAY_LINKS.get("1yr", _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
-    _subscribe_label = "💳 Subscribe Now →" if RAZORPAY_ENABLED else "📱 WhatsApp to Subscribe"
-    _renew_label     = "💳 Renew now via Razorpay" if RAZORPAY_ENABLED else "📱 Renew now on WhatsApp"
+    _renew_label   = "💳 Renew via Razorpay" if RAZORPAY_ENABLED else "📱 Renew on WhatsApp"
 
-    # Determine paid plan status first — a paid user never sees trial banners
+    # Paid check first — paid users never see trial banners
     _has_active_paid = bool(_sub_info and _sub_info.get("active", False))
     _plan_labels     = {"3mo": "3-Month Plan", "1yr": "1-Year Plan", "life": "Lifetime Plan"}
 
     if _has_active_paid:
-        # ── PAID SUBSCRIBER ───────────────────────────────────────────────────
-        _pk       = _sub_info.get("plan_key", "")
-        _plan_lbl = _plan_labels.get(_pk, "Subscribed")
-        _is_life  = _sub_info.get("is_lifetime", False)
-        _days_rem = _sub_info.get("days_remaining", 0)
-        _end_str  = _sub_info.get("plan_end", "")
+        _pk         = _sub_info.get("plan_key", "")
+        _plan_lbl   = _plan_labels.get(_pk, "Subscribed")
+        _is_life    = _sub_info.get("is_lifetime", False)
+        _days_rem   = _sub_info.get("days_remaining", 0)
+        _end_str    = _sub_info.get("plan_end", "")
         _renew_link = RAZORPAY_LINKS.get(_pk, _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
 
         if _is_life:
-            # 🏆 Lifetime — show once, no nudges ever
-            st.markdown(f"""
+            # Lifetime — no nudges ever
+            st.markdown("""
             <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.30);
                         border-radius:10px;padding:6px 14px;margin-bottom:8px;
                         display:flex;align-items:center;gap:10px">
@@ -7362,70 +7344,77 @@ else:
                     Lifetime Access — Thanks for your support!
                 </span>
             </div>""", unsafe_allow_html=True)
-
         elif _days_rem <= 7:
-            # 🔴 Last 7 days — show renewal nudge
-            st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(248,113,113,0.12),rgba(251,191,36,0.08));
-                        border:1.5px solid rgba(248,113,113,0.50);border-radius:10px;
-                        padding:7px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
-                <span>⚠️</span>
-                <div style="flex:1">
+            # Last 7 days — renew nudge with direct Razorpay link
+            _rb1, _rb2 = st.columns([5, 1])
+            with _rb1:
+                st.markdown(f"""
+                <div style="background:linear-gradient(135deg,rgba(248,113,113,0.12),rgba(251,191,36,0.08));
+                            border:1.5px solid rgba(248,113,113,0.50);border-radius:10px;
+                            padding:8px 14px;display:flex;align-items:center;gap:10px">
+                    <span>⚠️</span>
                     <span style="font-size:11px;color:#F87171;font-weight:700">
                         {_plan_lbl} — Expires in {_days_rem} day{'s' if _days_rem!=1 else ''} ({_end_str})
-                    </span><br>
-                    <a href="{_renew_link}" target="_blank"
-                       style="font-size:10px;color:#25D366;font-weight:700;text-decoration:none">
-                       {_renew_label}</a>
-                </div>
-            </div>""", unsafe_allow_html=True)
-
+                    </span>
+                </div>""", unsafe_allow_html=True)
+            with _rb2:
+                st.link_button(_renew_label, url=_renew_link, use_container_width=True)
         else:
-            # ✅ Active and comfortable — clean status, no nudge
+            # Active and comfortable — clean status, no nudge
             st.markdown(f"""
             <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.22);
                         border-radius:10px;padding:6px 14px;margin-bottom:8px;
                         display:flex;align-items:center;gap:10px">
                 <span>✅</span>
                 <span style="font-size:11px;color:#34D399">
-                    <b>{_plan_lbl}</b> · Active &nbsp;·&nbsp;
-                    <span style="color:#7BA7CC">Expires: {_end_str}</span>
+                    <b>{_plan_lbl}</b> · Active
+                    &nbsp;·&nbsp;<span style="color:#7BA7CC">Expires: {_end_str}</span>
                 </span>
             </div>""", unsafe_allow_html=True)
 
     elif _in_trial:
-        # ── FREE TRIAL (no paid plan) ─────────────────────────────────────────
         if _trial_days <= 3:
-            # 🔴 Urgent — trial ending very soon
-            st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(248,113,113,0.10));
-                        border:1.5px solid rgba(248,113,113,0.60);border-radius:12px;
-                        padding:10px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                <div style="font-size:20px">⏰</div>
-                <div style="flex:1">
-                    <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:#F87171">
-                        FREE TRIAL ENDS IN {_trial_days} DAY{'S' if _trial_days!=1 else ''}!
+            # 🔴 Urgent — button navigates to Pricing tab
+            _ub1, _ub2 = st.columns([5, 1])
+            with _ub1:
+                st.markdown(f"""
+                <div style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(248,113,113,0.10));
+                            border:1.5px solid rgba(248,113,113,0.60);border-radius:12px;
+                            padding:10px 16px;display:flex;align-items:center;gap:12px">
+                    <div style="font-size:20px">⏰</div>
+                    <div>
+                        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:#F87171">
+                            FREE TRIAL ENDS IN {_trial_days} DAY{'S' if _trial_days!=1 else ''}!
+                        </div>
+                        <div style="font-size:11px;color:#B8D4F0;margin-top:2px">
+                            Subscribe to keep all your progress. Plans from ₹149.
+                        </div>
                     </div>
-                    <div style="font-size:11px;color:#B8D4F0;margin-top:2px">
-                        Subscribe now to keep all your progress. Plans from ₹149.
-                        &nbsp;<a href="{_subscribe_link}" target="_blank"
-                           style="color:#25D366;font-weight:700;text-decoration:none">{_subscribe_label}</a>
-                    </div>
-                </div>
-            </div>""", unsafe_allow_html=True)
+                </div>""", unsafe_allow_html=True)
+            with _ub2:
+                if st.button("💳 Subscribe", key="banner_sub_urgent",
+                             use_container_width=True, type="primary"):
+                    st.session_state["go_to_pricing"] = True
+                    st.rerun()
         else:
-            # 🟢 Trial comfortable — gentle info only
-            st.markdown(f"""
-            <div style="background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.25);
-                        border-radius:10px;padding:7px 14px;margin-bottom:8px;
-                        display:flex;align-items:center;gap:10px">
-                <span style="font-size:14px">🎁</span>
-                <span style="font-size:11px;color:#7BA7CC">
-                    Free trial: <b style="color:#34D399">{_trial_days} days remaining</b> ·
-                    Enjoying it? <a href="{_subscribe_link}" target="_blank"
-                       style="color:#38BDF8;font-weight:600;text-decoration:none">Subscribe from ₹149 →</a>
-                </span>
-            </div>""", unsafe_allow_html=True)
+            # 🟢 Comfortable trial — gentle nudge, button navigates to Pricing tab
+            _gb1, _gb2 = st.columns([5, 1])
+            with _gb1:
+                st.markdown(f"""
+                <div style="background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.25);
+                            border-radius:10px;padding:7px 14px;
+                            display:flex;align-items:center;gap:10px">
+                    <span style="font-size:14px">🎁</span>
+                    <span style="font-size:11px;color:#7BA7CC">
+                        Free trial: <b style="color:#34D399">{_trial_days} days remaining</b>
+                        &nbsp;·&nbsp; Subscribe to unlock full access from ₹149.
+                    </span>
+                </div>""", unsafe_allow_html=True)
+            with _gb2:
+                if st.button("💳 Subscribe", key="banner_sub_gentle",
+                             use_container_width=True):
+                    st.session_state["go_to_pricing"] = True
+                    st.rerun()
 
     # ── HOW TO USE — shown on first login ────────────────────────────────────
     if st.session_state.get("show_how_to_use", False):
@@ -7518,44 +7507,43 @@ else:
     _admin_email   = get_admin_email()
     _is_admin_user = bool(_admin_email and _logged_email.strip().lower() == _admin_email.strip().lower())
 
-    if _is_admin_user:
-        tab_dashboard, tab_log, tab_revision, tab_score, tab_pricing, tab_profile, tab_admin = st.tabs([
-            "📊  Dashboard",
-            "📝  Log Study",
-            "🔄  Revision",
-            "🏆  Add Score",
-            "💰  Pricing",
-            "👤  Account",
-            "🔐  Admin",
-        ])
-    else:
-        tab_dashboard, tab_log, tab_revision, tab_score, tab_pricing, tab_profile = st.tabs([
-            "📊  Dashboard",
-            "📝  Log Study",
-            "🔄  Revision",
-            "🏆  Add Score",
-            "💰  Pricing",
-            "👤  Account",
-        ])
+    # When user clicks "Subscribe" banner button, go_to_pricing=True is set.
+    # Putting Pricing first makes Streamlit open it as the active tab on next render,
+    # then we immediately pop the flag so it doesn't stick.
+    _go_pricing = st.session_state.pop("go_to_pricing", False)
 
-    with tab_dashboard:
+    _base_tabs  = ["📊  Dashboard", "📝  Log Study", "🔄  Revision",
+                   "🏆  Add Score", "💰  Pricing", "👤  Account"]
+    _admin_tabs = _base_tabs + ["🔐  Admin"]
+
+    def _make_tabs(names):
+        if _go_pricing:
+            ordered = ["💰  Pricing"] + [n for n in names if n != "💰  Pricing"]
+        else:
+            ordered = names
+        tabs = st.tabs(ordered)
+        return {name: tabs[i] for i, name in enumerate(ordered)}
+
+    _ti = _make_tabs(_admin_tabs if _is_admin_user else _base_tabs)
+
+    with _ti["📊  Dashboard"]:
         dashboard(_log_h, _tst_h, _revt_h, _rev_h, _pend_h)
 
-    with tab_log:
+    with _ti["📝  Log Study"]:
         log_study(_log_h, _revt_h, _rev_h)
 
-    with tab_revision:
+    with _ti["🔄  Revision"]:
         revision(_log_h, _revt_h, _rev_h, _pend_h)
 
-    with tab_score:
+    with _ti["🏆  Add Score"]:
         add_test_score(_tst_h)
 
-    with tab_pricing:
+    with _ti["💰  Pricing"]:
         _render_pricing(user_email=_logged_email)
 
-    with tab_profile:
+    with _ti["👤  Account"]:
         profile_page(_log_h, _revt_h, _rev_h, _tst_h)
 
     if _is_admin_user:
-        with tab_admin:
+        with _ti["🔐  Admin"]:
             _render_admin_panel()
