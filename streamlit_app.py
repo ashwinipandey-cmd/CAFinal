@@ -300,20 +300,14 @@ PAYMENT_WHATSAPP = "918700428090"   # with country code, no +
 PAYMENT_EMAIL    = "ashwanipandey673@gmail.com"
 
 # ══════════════════════════════════════════════════════════════════════════════
-# RAZORPAY INTEGRATION CONFIG
+# RAZORPAY PAYMENT LINKS
 # ══════════════════════════════════════════════════════════════════════════════
-# Step 1: Create Payment Links in Razorpay Dashboard → Payment Links
-#         For each link add Notes: key=plan, value=3mo / 1yr / life
-#         Enable "Email" as a mandatory prefill field on each link.
-# Step 2: Paste the 3 link URLs below
-# Step 3: Set RAZORPAY_ENABLED = True
-# ─────────────────────────────────────────────────────────────────────────────
 RAZORPAY_LINKS = {
-    "3mo":  "https://rzp.io/rzp/xiwIpWl",    # ← paste your 3-month payment link
-    "1yr":  "https://rzp.io/rzp/1DoyjXdn",    # ← paste your 1-year payment link
-    "life": "https://rzp.io/rzp/WrrhrC2v",   # ← paste your lifetime payment link
+    "3mo":  "https://rzp.io/rzp/xiwIpWl",
+    "1yr":  "https://rzp.io/rzp/1DoyjXdn",
+    "life": "https://rzp.io/rzp/WrrhrC2v",
 }
-RAZORPAY_ENABLED = True   # ← flip to True after pasting real links above
+RAZORPAY_ENABLED = True
 
 # ── DB-backed pricing config (admin can override via app_config table) ────────
 _DEFAULT_PRICING_CONFIG = {
@@ -7340,59 +7334,26 @@ else:
     _trial_days    = st.session_state.get("trial_days_left", get_free_trial_days())
     _sub_info      = st.session_state.get("sub_info", {})
     _wa_sub_link   = f"https://wa.me/{PAYMENT_WHATSAPP}?text=Hi%2C+I+want+to+subscribe+to+CA+Final+Tracker.+Please+approve+my+email%3A+{_user_email_ss}"
-    # Smart subscribe link: Razorpay 1yr link (most popular) if enabled, else WhatsApp
     _subscribe_link  = RAZORPAY_LINKS.get("1yr", _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
     _subscribe_label = "💳 Subscribe Now →" if RAZORPAY_ENABLED else "📱 WhatsApp to Subscribe"
     _renew_label     = "💳 Renew now via Razorpay" if RAZORPAY_ENABLED else "📱 Renew now on WhatsApp"
 
-    if _in_trial and _trial_days <= 3:
-        # 🔴 Urgent: trial ending soon
-        st.markdown(f"""
-        <div style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(248,113,113,0.10));
-                    border:1.5px solid rgba(248,113,113,0.60);border-radius:12px;
-                    padding:10px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <div style="font-size:20px">⏰</div>
-            <div style="flex:1">
-                <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:#F87171">
-                    FREE TRIAL ENDS IN {_trial_days} DAY{'S' if _trial_days!=1 else ''}!
-                </div>
-                <div style="font-size:11px;color:#B8D4F0;margin-top:2px">
-                    Subscribe now to keep all your progress. Plans from ₹149.
-                    &nbsp;<a href="{_subscribe_link}" target="_blank"
-                       style="color:#25D366;font-weight:700;text-decoration:none">{_subscribe_label}</a>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    # Determine paid plan status first — a paid user never sees trial banners
+    _has_active_paid = bool(_sub_info and _sub_info.get("active", False))
+    _plan_labels     = {"3mo": "3-Month Plan", "1yr": "1-Year Plan", "life": "Lifetime Plan"}
 
-    elif _in_trial:
-        # 🟢 Trial comfortable
-        st.markdown(f"""
-        <div style="background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.25);
-                    border-radius:10px;padding:7px 14px;margin-bottom:8px;
-                    display:flex;align-items:center;gap:10px">
-            <span style="font-size:14px">🎁</span>
-            <span style="font-size:11px;color:#7BA7CC">
-                Free trial: <b style="color:#34D399">{_trial_days} days remaining</b> · 
-                Enjoying it? <a href="{_subscribe_link}" target="_blank"
-                   style="color:#38BDF8;font-weight:600;text-decoration:none">Subscribe from ₹149 →</a>
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    elif _sub_info:
-        # Paid subscriber — show plan status bar
-        _plan_labels = {"3mo": "3-Month Plan", "1yr": "1-Year Plan", "life": "Lifetime Plan"}
-        _pk          = _sub_info.get("plan_key","")
-        _plan_lbl    = _plan_labels.get(_pk, "Subscribed")
-        _is_life     = _sub_info.get("is_lifetime", False)
-        _days_rem    = _sub_info.get("days_remaining", 0)
-        _end_str     = _sub_info.get("plan_end","")
-        # Renewal link: use matching plan's Razorpay link if enabled
-        _renew_link  = RAZORPAY_LINKS.get(_pk, _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
+    if _has_active_paid:
+        # ── PAID SUBSCRIBER ───────────────────────────────────────────────────
+        _pk       = _sub_info.get("plan_key", "")
+        _plan_lbl = _plan_labels.get(_pk, "Subscribed")
+        _is_life  = _sub_info.get("is_lifetime", False)
+        _days_rem = _sub_info.get("days_remaining", 0)
+        _end_str  = _sub_info.get("plan_end", "")
+        _renew_link = RAZORPAY_LINKS.get(_pk, _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
 
         if _is_life:
-            _sub_badge_html = f"""
+            # 🏆 Lifetime — show once, no nudges ever
+            st.markdown(f"""
             <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.30);
                         border-radius:10px;padding:6px 14px;margin-bottom:8px;
                         display:flex;align-items:center;gap:10px">
@@ -7400,10 +7361,11 @@ else:
                 <span style="font-size:11px;color:#FBBF24;font-weight:700">
                     Lifetime Access — Thanks for your support!
                 </span>
-            </div>"""
-        elif _days_rem <= 14:
-            # 🔴 Expiring soon
-            _sub_badge_html = f"""
+            </div>""", unsafe_allow_html=True)
+
+        elif _days_rem <= 7:
+            # 🔴 Last 7 days — show renewal nudge
+            st.markdown(f"""
             <div style="background:linear-gradient(135deg,rgba(248,113,113,0.12),rgba(251,191,36,0.08));
                         border:1.5px solid rgba(248,113,113,0.50);border-radius:10px;
                         padding:7px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
@@ -7416,20 +7378,54 @@ else:
                        style="font-size:10px;color:#25D366;font-weight:700;text-decoration:none">
                        {_renew_label}</a>
                 </div>
-            </div>"""
+            </div>""", unsafe_allow_html=True)
+
         else:
-            # 🟢 Active subscription
-            _sub_badge_html = f"""
-            <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);
+            # ✅ Active and comfortable — clean status, no nudge
+            st.markdown(f"""
+            <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.22);
                         border-radius:10px;padding:6px 14px;margin-bottom:8px;
                         display:flex;align-items:center;gap:10px">
                 <span>✅</span>
-                <span style="font-size:11px;color:#38BDF8">
-                    <b>{_plan_lbl}</b> · Active for <b style="color:#34D399">{_days_rem} more days</b>
-                    · Expires: {_end_str}
+                <span style="font-size:11px;color:#34D399">
+                    <b>{_plan_lbl}</b> · Active &nbsp;·&nbsp;
+                    <span style="color:#7BA7CC">Expires: {_end_str}</span>
                 </span>
-            </div>"""
-        st.markdown(_sub_badge_html, unsafe_allow_html=True)
+            </div>""", unsafe_allow_html=True)
+
+    elif _in_trial:
+        # ── FREE TRIAL (no paid plan) ─────────────────────────────────────────
+        if _trial_days <= 3:
+            # 🔴 Urgent — trial ending very soon
+            st.markdown(f"""
+            <div style="background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(248,113,113,0.10));
+                        border:1.5px solid rgba(248,113,113,0.60);border-radius:12px;
+                        padding:10px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <div style="font-size:20px">⏰</div>
+                <div style="flex:1">
+                    <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:#F87171">
+                        FREE TRIAL ENDS IN {_trial_days} DAY{'S' if _trial_days!=1 else ''}!
+                    </div>
+                    <div style="font-size:11px;color:#B8D4F0;margin-top:2px">
+                        Subscribe now to keep all your progress. Plans from ₹149.
+                        &nbsp;<a href="{_subscribe_link}" target="_blank"
+                           style="color:#25D366;font-weight:700;text-decoration:none">{_subscribe_label}</a>
+                    </div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            # 🟢 Trial comfortable — gentle info only
+            st.markdown(f"""
+            <div style="background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.25);
+                        border-radius:10px;padding:7px 14px;margin-bottom:8px;
+                        display:flex;align-items:center;gap:10px">
+                <span style="font-size:14px">🎁</span>
+                <span style="font-size:11px;color:#7BA7CC">
+                    Free trial: <b style="color:#34D399">{_trial_days} days remaining</b> ·
+                    Enjoying it? <a href="{_subscribe_link}" target="_blank"
+                       style="color:#38BDF8;font-weight:600;text-decoration:none">Subscribe from ₹149 →</a>
+                </span>
+            </div>""", unsafe_allow_html=True)
 
     # ── HOW TO USE — shown on first login ────────────────────────────────────
     if st.session_state.get("show_how_to_use", False):
