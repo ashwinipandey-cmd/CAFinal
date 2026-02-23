@@ -6977,10 +6977,17 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                 key="ms_sort_order"
             )
         with _ms_fc3:
-            _ms_n = st.slider(
-                "Topics to show", min_value=5, max_value=min(len(_ms_labels), 50),
-                value=min(8, len(_ms_labels)), step=1, key="ms_n_bars"
-            )
+            _ms_max = min(len(_ms_labels), 50)
+            _ms_min = min(5, _ms_max)
+            if _ms_min < _ms_max:
+                _ms_n = st.slider(
+                    "Topics to show", min_value=_ms_min, max_value=_ms_max,
+                    value=min(8, _ms_max), step=1, key="ms_n_bars"
+                )
+            else:
+                _ms_n = _ms_max
+                if _ms_max > 0:
+                    st.caption(f"Showing all {_ms_max} topic(s)")
 
         # ── Build filtered + sorted list ─────────────────────────────────────
         _ms_data = list(zip(_ms_labels, _ms_vals, _ms_clrs))
