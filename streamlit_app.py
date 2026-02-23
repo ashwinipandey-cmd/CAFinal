@@ -309,11 +309,11 @@ PAYMENT_EMAIL    = "ashwanipandey673@gmail.com"
 # Step 3: Set RAZORPAY_ENABLED = True
 # ─────────────────────────────────────────────────────────────────────────────
 RAZORPAY_LINKS = {
-    "3mo":  "https://rzp.io/l/REPLACE_3MO",    # ← paste your 3-month payment link
-    "1yr":  "https://rzp.io/l/REPLACE_1YR",    # ← paste your 1-year payment link
-    "life": "https://rzp.io/l/REPLACE_LIFE",   # ← paste your lifetime payment link
+    "3mo":  "https://rzp.io/rzp/xiwIpWl",    # ← paste your 3-month payment link
+    "1yr":  "https://rzp.io/rzp/1DoyjXdn",    # ← paste your 1-year payment link
+    "life": "https://rzp.io/rzp/WrrhrC2v",   # ← paste your lifetime payment link
 }
-RAZORPAY_ENABLED = False   # ← flip to True after pasting real links above
+RAZORPAY_ENABLED = True   # ← flip to True after pasting real links above
 
 # ── DB-backed pricing config (admin can override via app_config table) ────────
 _DEFAULT_PRICING_CONFIG = {
