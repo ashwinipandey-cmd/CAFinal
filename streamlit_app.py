@@ -134,7 +134,7 @@ FREE_TRIAL_DAYS = 7   # fallback default — actual value comes from DB via get_
 
 PLANS = {   # fallback default — actual values come from DB via get_plans()
     "3mo":  {"label": "3 Months",  "price": 149,  "badge": "STARTER",  "color": "#34D399"},
-    "1yr":  {"label": "1 Year",    "price": 399,  "badge": "POPULAR ⭐","color": "#38BDF8"},
+    "1yr":  {"label": "1 Year",    "price": 399,  "badge": "POPULAR ⭐","color": "#1ec8b4"},
     "life": {"label": "Lifetime",  "price": 799,  "badge": "BEST VALUE","color": "#FBBF24"},
 }
 
@@ -320,7 +320,7 @@ _DEFAULT_PRICING_CONFIG = {
     "free_trial_days": 7,
     "plans": {
         "3mo":  {"label": "3 Months",  "price": 149, "original_price": 149, "badge": "STARTER",   "color": "#34D399", "discount_pct": 0},
-        "1yr":  {"label": "1 Year",    "price": 399, "original_price": 499, "badge": "POPULAR ⭐", "color": "#38BDF8", "discount_pct": 20},
+        "1yr":  {"label": "1 Year",    "price": 399, "original_price": 499, "badge": "POPULAR ⭐", "color": "#1ec8b4", "discount_pct": 20},
         "life": {"label": "Lifetime",  "price": 799, "original_price": 999, "badge": "BEST VALUE", "color": "#FBBF24", "discount_pct": 20},
     },
     "fomo_message": "🔥 Limited time offer — prices go up after 100 subscribers!",
@@ -488,7 +488,7 @@ SUBJ_FULL  = {
 }
 TARGET_HRS = {"FR":200,"AFM":160,"AA":150,"DT":200,"IDT":180}
 COLORS     = {
-    "FR":"#7DD3FC","AFM":"#34D399",
+    "FR":"#5de6d6","AFM":"#34D399",
     "AA":"#FBBF24","DT":"#F87171","IDT":"#60A5FA"
 }
 TOPICS = {
@@ -549,106 +549,134 @@ TOPICS = {
        "Customs – Refund Drawback & Special Provisions","FTP – Overview"]
 }
 
-# ── WORLD CLASS GLASSY NEON CSS ───────────────────────────────────────────────
+# ── CA FINAL TRACKER — DESIGN SYSTEM CSS ─────────────────────────────────────
 GLASSY_CSS = """
 <style>
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 /* ═══════════════════════════════════════════════════════════
-   ROOT DESIGN TOKENS — Mission Control for CA Finals
-   Deep navy base · Electric cyan accents · Precision layout
+   DESIGN SYSTEM — CSS VARIABLES
+   Base: Deep Navy | Accent: Electric Teal | Grid: 8px
 ═══════════════════════════════════════════════════════════ */
 :root {
-    /* Accent palette */
-    --cyan:        #38BDF8;
-    --cyan-bright: #7DD3FC;
-    --cyan-dim:    #0EA5E9;
-    --purple:      #818CF8;
-    --green:       #34D399;
-    --gold:        #FBBF24;
-    --red:         #F87171;
-    --pink:        #F472B6;
+    /* ── Surfaces ── */
+    --bg-void:        #050b14;
+    --bg-base:        #080f1c;
+    --bg-panel:       #0c1526;
+    --bg-panel-hover: #101d32;
+    --bg-border:      rgba(255,255,255,0.06);
+    --bg-border-h:    rgba(30,200,180,0.22);
 
-    /* Semantic aliases kept for backward compat */
-    --neon-purple:  #38BDF8;
-    --neon-cyan:    #7DD3FC;
-    --neon-green:   #34D399;
-    --neon-pink:    #818CF8;
-    --neon-blue:    #60A5FA;
-    --neon-gold:    #FBBF24;
+    /* ── Accents ── */
+    --accent-teal:    #1ec8b4;
+    --accent-teal-d:  #14a898;
+    --accent-teal-glow: rgba(30,200,180,0.12);
+    --accent-amber:   #e8a020;
+    --accent-red:     #e84040;
+    --accent-green:   #22c97a;
 
-    /* Surfaces */
-    --bg-base:     #020B18;
-    --bg-card:     rgba(6,20,52,0.72);
-    --bg-card-hover: rgba(8,26,64,0.85);
-    --bg-input:    rgba(4,14,38,0.80);
-    --bg-overlay:  rgba(2,8,22,0.96);
+    /* ── Text ── */
+    --text-primary:   #d8e4f0;
+    --text-secondary: #6a859e;
+    --text-muted:     #3a5068;
+    --text-mono:      #1ec8b4;
 
-    /* Borders */
-    --border:      rgba(56,189,248,0.18);
-    --border-mid:  rgba(56,189,248,0.35);
-    --border-hi:   rgba(56,189,248,0.60);
-    --border-glow: rgba(56,189,248,0.35);
+    /* ── Typography ── */
+    --font-display:   'Syne', sans-serif;
+    --font-body:      'DM Sans', sans-serif;
+    --font-mono:      'IBM Plex Mono', monospace;
 
-    /* Text */
-    --text-primary: #E8F4FF;
-    --text-body:    #B8D4F0;
-    --text-muted:   #6B91B8;
-    --text-dim:     #3A5A7A;
+    /* ── Spacing / Radii ── */
+    --space:          8px;
+    --radius-sm:      4px;
+    --radius:         8px;
+    --radius-lg:      12px;
 
-    /* Glow shadows */
-    --glow-sm:   0 0 12px rgba(56,189,248,0.25);
-    --glow-md:   0 0 24px rgba(56,189,248,0.35), 0 0 48px rgba(56,189,248,0.12);
-    --glow-lg:   0 0 40px rgba(56,189,248,0.45), 0 0 80px rgba(56,189,248,0.18);
-    --shadow-card: 0 4px 24px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.4);
-    --shadow-deep: 0 8px 40px rgba(0,0,0,0.75), 0 2px 8px rgba(0,0,0,0.5);
+    /* ── Transitions / Shadows ── */
+    --transition:     cubic-bezier(0.22, 1, 0.36, 1);
+    --shadow-panel:   0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.5);
+    --shadow-card:    0 2px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
+    --shadow-glow:    0 0 24px rgba(30,200,180,0.14);
 
-    /* Typography */
-    --font-display: 'DM Mono', monospace;
-    --font-ui:      'DM Sans', sans-serif;
-    --font-body:    'DM Sans', sans-serif;
-
-    /* Backward compat */
-    --dark-bg:      #020B18;
-    --dark-card:    rgba(6,20,52,0.72);
-    --dark-glass:   rgba(6,20,52,0.50);
+    /* ── Legacy aliases (backward compat for inline styles) ── */
+    --cyan:           #1ec8b4;
+    --cyan-bright:    #5de6d6;
+    --cyan-dim:       #14a898;
+    --purple:         #818CF8;
+    --green:          #22c97a;
+    --gold:           #e8a020;
+    --red:            #e84040;
+    --pink:           #F472B6;
+    --neon-purple:    #1ec8b4;
+    --neon-cyan:      #5de6d6;
+    --neon-green:     #22c97a;
+    --neon-pink:      #818CF8;
+    --neon-blue:      #60A5FA;
+    --neon-gold:      #e8a020;
+    --bg-card:        rgba(12,21,38,0.95);
+    --bg-card-hover:  rgba(16,29,50,0.98);
+    --bg-input:       rgba(8,15,28,0.90);
+    --bg-overlay:     rgba(5,11,20,0.98);
+    --border:         rgba(30,200,180,0.18);
+    --border-mid:     rgba(30,200,180,0.35);
+    --border-hi:      rgba(30,200,180,0.60);
+    --border-glow:    rgba(30,200,180,0.35);
+    --text-body:      #b0c8e0;
+    --text-dim:       #3a5068;
+    --glow-sm:        0 0 12px rgba(30,200,180,0.25);
+    --glow-md:        0 0 24px rgba(30,200,180,0.35), 0 0 48px rgba(30,200,180,0.12);
+    --glow-lg:        0 0 40px rgba(30,200,180,0.45), 0 0 80px rgba(30,200,180,0.18);
+    --dark-bg:        #080f1c;
+    --dark-card:      rgba(12,21,38,0.90);
+    --dark-glass:     rgba(12,21,38,0.60);
 }
 
 /* ═══════════════════════════════════════════════════════════
    KEYFRAME ANIMATIONS
 ═══════════════════════════════════════════════════════════ */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+@keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scanline {
+    0%   { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+}
 
 /* ═══════════════════════════════════════════════════════════
-   GLOBAL BASE
+   GLOBAL BASE — Deep Navy background + teal grid texture
 ═══════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; }
 
 .stApp {
-    background: var(--bg-base) !important;
+    background: var(--bg-void) !important;
     font-family: var(--font-body) !important;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    color: var(--text-primary) !important;
 }
 
 [data-testid="stAppViewContainer"] {
-    background:
-        radial-gradient(ellipse 130% 90% at -15% -15%, rgba(14,60,160,0.75) 0%, transparent 48%),
-        radial-gradient(ellipse 110% 80% at 115% 115%, rgba(20,90,220,0.60) 0%, transparent 48%),
-        radial-gradient(ellipse  80% 65% at  50%  48%, rgba(56,189,248,0.10) 0%, transparent 55%),
-        radial-gradient(ellipse  60% 55% at  92%   4%, rgba(99,102,241,0.28) 0%, transparent 48%),
-        radial-gradient(ellipse  50% 50% at   8%  88%, rgba(14,165,233,0.22) 0%, transparent 48%),
-        radial-gradient(ellipse  40% 40% at  72%  58%, rgba(56,189,248,0.07) 0%, transparent 50%),
-        linear-gradient(165deg, #010C1A 0%, #040E22 50%, #020918 100%) !important;
+    background: var(--bg-void) !important;
     min-height: 100vh;
+    position: relative;
 }
 
-/* Subtle noise texture overlay */
+/* Subtle teal grid texture — matches HTML exactly */
 [data-testid="stAppViewContainer"]::before {
     content: '';
     position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    background-image:
+        linear-gradient(rgba(30,200,180,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,200,180,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.4;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -669,7 +697,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 /* Table container */
 .stDataFrame, [data-testid="stDataFrameResizable"] {
     background: rgba(4,14,38,0.85) !important;
-    border: 1.5px solid rgba(56,189,248,0.20) !important;
+    border: 1.5px solid rgba(30,200,180,0.20) !important;
     border-radius: 10px !important;
     overflow: hidden !important;
 }
@@ -683,127 +711,110 @@ section[data-testid="stSidebar"] { display: none !important; }
 [data-testid="stDataFrame"] [role="rowheader"] {
     background: rgba(6,20,54,0.95) !important;
     color: var(--cyan-bright) !important;
-    font-family: var(--font-ui) !important;
+    font-family: var(--font-mono) !important;
     font-weight: 700 !important;
     font-size: 11px !important;
     letter-spacing: 0.5px !important;
-    border-bottom: 1px solid rgba(56,189,248,0.25) !important;
+    border-bottom: 1px solid rgba(30,200,180,0.25) !important;
 }
 /* Data cells */
 [data-testid="stDataFrame"] [role="gridcell"] {
-    background: rgba(4,14,38,0.80) !important;
-    color: #E8F4FF !important;
+    background: rgba(8,15,28,0.80) !important;
+    color: var(--text-primary) !important;
     font-family: var(--font-body) !important;
     font-size: 13px !important;
-    border-bottom: 1px solid rgba(56,189,248,0.08) !important;
+    border-bottom: 1px solid rgba(30,200,180,0.08) !important;
 }
 /* Hover row */
 [data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"] {
-    background: rgba(56,189,248,0.10) !important;
+    background: rgba(30,200,180,0.08) !important;
 }
 /* Scrollbars inside dataframe */
 [data-testid="stDataFrame"] ::-webkit-scrollbar { width: 4px; height: 4px; }
-[data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: rgba(2,8,22,0.5); }
+[data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: rgba(5,11,20,0.5); }
 [data-testid="stDataFrame"] ::-webkit-scrollbar-thumb {
-    background: var(--cyan-dim);
+    background: var(--accent-teal-d);
     border-radius: 2px;
 }
 
-
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: rgba(2,8,22,0.5); }
+::-webkit-scrollbar-track { background: rgba(5,11,20,0.5); }
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(var(--cyan), var(--cyan-bright));
+    background: var(--accent-teal);
     border-radius: 2px;
-    box-shadow: 0 0 6px rgba(56,189,248,0.5);
 }
 
 /* ═══════════════════════════════════════════════════════════
-   TYPOGRAPHY — Mission Control data feel
+   TYPOGRAPHY
 ═══════════════════════════════════════════════════════════ */
 h1 {
     font-family: var(--font-display) !important;
     font-size: 22px !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
     color: var(--text-primary) !important;
     letter-spacing: -0.3px !important;
-    text-shadow: 0 0 30px rgba(56,189,248,0.35), 0 0 60px rgba(56,189,248,0.12) !important;
     margin-bottom: 4px !important;
 }
 h2 {
     font-family: var(--font-display) !important;
     font-size: 14px !important;
-    font-weight: 600 !important;
-    color: var(--text-body) !important;
+    font-weight: 700 !important;
+    color: var(--text-secondary) !important;
     letter-spacing: 0.2px !important;
 }
 h3 {
-    font-family: var(--font-ui) !important;
+    font-family: var(--font-body) !important;
     font-size: 14px !important;
     font-weight: 600 !important;
-    color: var(--text-body) !important;
+    color: var(--text-secondary) !important;
 }
 p, .stMarkdown p {
     font-family: var(--font-body) !important;
-    color: var(--text-body) !important;
+    color: var(--text-secondary) !important;
     line-height: 1.65 !important;
     font-size: 14px !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   NEON SECTION HEADERS  .neon-header
+   SECTION LABELS — matches HTML .neon-header + .section-label
 ═══════════════════════════════════════════════════════════ */
-.neon-header {
-    font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 3.5px;
-    color: var(--cyan);
-    text-shadow: 0 0 16px rgba(56,189,248,0.7);
-    padding: 5px 0 8px;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    position: relative;
-    overflow: hidden;
+.neon-header, .section-label {
+    font-family: var(--font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    color: var(--text-muted) !important;
+    padding: 5px 0 8px !important;
+    margin-bottom: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    position: relative !important;
 }
-.neon-header::after {
+.neon-header::after, .section-label::after {
     content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
+    flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, var(--cyan), rgba(56,189,248,0.3), transparent);
+    background: var(--bg-border);
 }
-
-/* Enhanced glowing version for dashboard section headers */
 .neon-header-glow {
-    font-size: 11px;
-    color: #FFFFFF !important;
-    text-shadow:
-        0 0 10px rgba(56,189,248,1.0),
-        0 0 20px rgba(56,189,248,0.9),
-        0 0 40px rgba(56,189,248,0.7),
-        0 0 80px rgba(56,189,248,0.4) !important;
+    color: var(--accent-teal) !important;
 }
-
 
 /* ═══════════════════════════════════════════════════════════
-   CARD SYSTEM — The core UI unit
-   .panel = grouped container (replaces scattered sections)
+   CARD / PANEL SYSTEM — matches HTML .panel / .kpi-card
 ═══════════════════════════════════════════════════════════ */
 .glass-card, .panel {
-    background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--bg-border);
+    border-radius: var(--radius-lg);
     padding: 20px;
-    backdrop-filter: blur(32px) saturate(160%);
-    -webkit-backdrop-filter: blur(32px) saturate(160%);
+    box-shadow: var(--shadow-card);
     box-shadow:
         var(--shadow-card),
         inset 0 1px 0 rgba(255,255,255,0.07),
-        0 0 0 0.5px rgba(56,189,248,0.08);
+        0 0 0 0.5px rgba(30,200,180,0.08);
     margin-bottom: 14px;
     position: relative;
     overflow: hidden;
@@ -814,7 +825,7 @@ p, .stMarkdown p {
     box-shadow:
         var(--shadow-deep),
         inset 0 1px 0 rgba(255,255,255,0.10),
-        0 0 0 1px rgba(56,189,248,0.12),
+        0 0 0 1px rgba(30,200,180,0.12),
         var(--glow-sm);
 
 }
@@ -829,46 +840,40 @@ div[data-testid="stMetric"] {
     padding: 18px 16px !important;
     backdrop-filter: blur(32px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
-    box-shadow:
-        var(--shadow-card),
-        inset 0 1px 0 rgba(255,255,255,0.07),
-        0 0 0 0.5px rgba(56,189,248,0.06) !important;
+    box-shadow: var(--shadow-card) !important;
     position: relative !important;
     overflow: hidden !important;
 }
 
 div[data-testid="stMetric"]:hover {
-
-    border-color: var(--border-mid) !important;
-    background: var(--bg-card-hover) !important;
-    box-shadow:
-        var(--shadow-deep),
-        0 0 28px rgba(56,189,248,0.22),
-        inset 0 1px 0 rgba(255,255,255,0.12) !important;
+    border-color: var(--bg-border-h) !important;
+    background: var(--bg-panel-hover) !important;
+    box-shadow: var(--shadow-panel), var(--shadow-glow) !important;
+    transform: translateY(-2px) !important;
 }
 div[data-testid="stMetricValue"] {
     font-family: var(--font-display) !important;
-    font-size: 22px !important;
-    font-weight: 700 !important;
-    color: #FFFFFF !important;
-    text-shadow: 0 0 18px rgba(56,189,248,0.55), 0 0 36px rgba(56,189,248,0.2) !important;
-    letter-spacing: -0.5px !important;
+    font-size: 28px !important;
+    font-weight: 800 !important;
+    color: var(--text-primary) !important;
+    letter-spacing: -1px !important;
 }
 div[data-testid="stMetricLabel"] {
-    font-family: var(--font-ui) !important;
-    font-size: 11px !important;
+    font-family: var(--font-mono) !important;
+    font-size: 9.5px !important;
     color: var(--text-muted) !important;
     font-weight: 600 !important;
-    letter-spacing: 0.5px !important;
+    letter-spacing: 1.8px !important;
+    text-transform: uppercase !important;
 }
 div[data-testid="stMetricDelta"] {
-    font-family: var(--font-body) !important;
-    font-size: 11px !important;
-    color: var(--text-muted) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 10px !important;
+    color: var(--text-secondary) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   TOP NAV — Sticky mission control bar
+   TOP NAV TABS — Fixed sticky bar matching HTML nav
 ═══════════════════════════════════════════════════════════ */
 .stTabs {
     position: sticky !important;
@@ -876,16 +881,14 @@ div[data-testid="stMetricDelta"] {
     z-index: 1000 !important;
 }
 .stTabs [data-baseweb="tab-list"] {
-    background: rgba(1,8,20,0.97) !important;
+    background: rgba(8,15,28,0.96) !important;
     border-radius: 0 !important;
     padding: 0 20px !important;
     gap: 0 !important;
     border: none !important;
-    border-bottom: 1px solid var(--border) !important;
-    backdrop-filter: blur(40px) !important;
-    box-shadow:
-        0 1px 0 rgba(56,189,248,0.12),
-        0 8px 32px rgba(0,0,0,0.6) !important;
+    border-bottom: 1px solid var(--bg-border) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.5) !important;
     width: 100% !important;
     justify-content: center !important;
     position: relative !important;
@@ -895,12 +898,12 @@ div[data-testid="stMetricDelta"] {
 
 .stTabs [data-baseweb="tab"] {
     border-radius: 0 !important;
-    color: var(--text-dim) !important;
-    font-family: var(--font-ui) !important;
-    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
     font-weight: 500 !important;
-    letter-spacing: 0.4px !important;
-    text-transform: none !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
     padding: 14px 18px !important;
     border-bottom: 2px solid transparent !important;
     white-space: nowrap !important;
@@ -908,14 +911,14 @@ div[data-testid="stMetricDelta"] {
     position: relative !important;
 }
 .stTabs [data-baseweb="tab"]:hover {
-    color: var(--text-body) !important;
-    background: rgba(56,189,248,0.05) !important;
-    border-bottom-color: rgba(56,189,248,0.35) !important;
+    color: var(--accent-teal) !important;
+    background: var(--accent-teal-glow) !important;
+    border-bottom-color: rgba(30,200,180,0.35) !important;
 }
 .stTabs [aria-selected="true"] {
-    color: #FFFFFF !important;
-    background: transparent !important;
-    border-bottom: 2px solid var(--cyan) !important;
+    color: var(--accent-teal) !important;
+    background: var(--accent-teal-glow) !important;
+    border-bottom: 2px solid var(--accent-teal) !important;
     border-top: none !important;
     border-left: none !important;
     border-right: none !important;
@@ -923,7 +926,7 @@ div[data-testid="stMetricDelta"] {
     text-shadow: none !important;
     box-shadow: none !important;
 }
-/* Suppress Streamlit's own focus/active outline that causes red underline */
+/* Suppress focus outline */
 .stTabs [data-baseweb="tab"]:focus,
 .stTabs [data-baseweb="tab"]:focus-visible,
 .stTabs [data-baseweb="tab"]:active {
@@ -950,37 +953,38 @@ div[data-testid="stMetricDelta"] {
     position: relative !important;
     top: unset !important;
     z-index: unset !important;
-    background: rgba(4,14,38,0.60) !important;
-    border-radius: 10px !important;
+    background: rgba(12,21,38,0.80) !important;
+    border-radius: var(--radius) !important;
     padding: 4px !important;
     gap: 2px !important;
-    border: 1px solid var(--border) !important;
-    border-bottom: 1px solid var(--border) !important;
+    border: 1px solid var(--bg-border) !important;
+    border-bottom: 1px solid var(--bg-border) !important;
     backdrop-filter: blur(20px) !important;
-    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+    box-shadow: var(--shadow-card) !important;
     overflow-x: unset !important;
 }
 .stTabs .stTabs [data-baseweb="tab-list"]::before { display: none !important; }
 .stTabs .stTabs [data-baseweb="tab"] {
-    border-radius: 8px !important;
+    border-radius: var(--radius-sm) !important;
     padding: 8px 16px !important;
     border-bottom: none !important;
-    font-size: 12px !important;
-    letter-spacing: 0.3px !important;
-    color: var(--text-muted) !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+    color: var(--text-secondary) !important;
+    text-transform: uppercase !important;
 }
 .stTabs .stTabs [data-baseweb="tab"]:hover {
-    background: rgba(56,189,248,0.08) !important;
-    color: var(--text-body) !important;
+    background: var(--accent-teal-glow) !important;
+    color: var(--accent-teal) !important;
     border-bottom: none !important;
 }
 .stTabs .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, rgba(56,189,248,0.22), rgba(14,165,233,0.12)) !important;
-    border: 1px solid rgba(56,189,248,0.35) !important;
-    border-bottom: 1px solid rgba(56,189,248,0.35) !important;
-    color: #FFFFFF !important;
+    background: var(--accent-teal-glow) !important;
+    border: 1px solid rgba(30,200,180,0.35) !important;
+    border-bottom: 1px solid rgba(30,200,180,0.35) !important;
+    color: var(--accent-teal) !important;
     text-shadow: none !important;
-    box-shadow: 0 0 12px rgba(56,189,248,0.18), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    box-shadow: none !important;
 }
 .stTabs .stTabs [aria-selected="true"]::after { display: none !important; }
 .stTabs .stTabs [data-baseweb="tab-panel"] {
@@ -995,135 +999,129 @@ div[data-testid="stMetricDelta"] {
 .stNumberInput input,
 .stTextArea textarea,
 .stDateInput input {
-    background: rgba(4,16,48,0.92) !important;
-    border: 1.5px solid rgba(56,189,248,0.35) !important;
-    border-radius: 9px !important;
-    color: #E8F4FF !important;
+    background: rgba(8,15,28,0.92) !important;
+    border: 1px solid var(--bg-border-h) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text-primary) !important;
     font-family: var(--font-body) !important;
     font-size: 14px !important;
     padding: 10px 14px !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06) !important;
-    caret-color: #38BDF8 !important;
+    caret-color: var(--accent-teal) !important;
 }
 .stTextInput input::placeholder,
 .stTextArea textarea::placeholder {
-    color: rgba(123,167,204,0.55) !important;
+    color: rgba(106,133,158,0.55) !important;
     opacity: 1 !important;
 }
 .stTextInput input:focus,
 .stTextArea textarea:focus,
 .stNumberInput input:focus,
 .stDateInput input:focus {
-    border-color: #38BDF8 !important;
-    background: rgba(6,22,60,0.96) !important;
-    color: #FFFFFF !important;
-    box-shadow:
-        0 0 0 3px rgba(56,189,248,0.18),
-        0 0 18px rgba(56,189,248,0.14),
-        inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    border-color: var(--accent-teal) !important;
+    background: rgba(12,21,38,0.96) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 0 0 3px rgba(30,200,180,0.15), 0 0 18px rgba(30,200,180,0.10) !important;
     outline: none !important;
 }
-/* Ensure typed text is always white */
+/* Ensure typed text is always visible */
 .stTextInput input, .stNumberInput input,
 .stTextArea textarea, .stDateInput input {
-    -webkit-text-fill-color: #E8F4FF !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
 }
 .stTextInput input:focus, .stNumberInput input:focus,
 .stTextArea textarea:focus, .stDateInput input:focus {
-    -webkit-text-fill-color: #FFFFFF !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
 }
 .stTextInput label, .stSelectbox label, .stNumberInput label,
 .stTextArea label, .stDateInput label, .stSlider label,
 .stSelectSlider label, .stRadio label, .stCheckbox label,
 .stMultiSelect label {
-    font-family: var(--font-ui) !important;
-    font-size: 11px !important;
-    letter-spacing: 0.4px !important;
-    color: #7DD3FC !important;
-    font-weight: 700 !important;
+    font-family: var(--font-mono) !important;
+    font-size: 10px !important;
+    letter-spacing: 1px !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
     text-transform: uppercase !important;
 }
 
-/* Selectbox & Multiselect — always themed, never gray */
+/* Selectbox & Multiselect */
 .stSelectbox > div > div,
 .stMultiSelect > div > div {
-    background: rgba(4,16,48,0.92) !important;
-    border: 1.5px solid rgba(56,189,248,0.35) !important;
-    border-radius: 9px !important;
-    color: #E8F4FF !important;
+    background: rgba(8,15,28,0.92) !important;
+    border: 1px solid var(--bg-border-h) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text-primary) !important;
     font-family: var(--font-body) !important;
     font-size: 14px !important;
-    backdrop-filter: blur(16px) !important;
 }
 /* Selected value text */
 .stSelectbox > div > div > div,
 .stSelectbox [data-baseweb="select"] span,
-[data-baseweb="select"] > div > div { color: #E8F4FF !important; }
+[data-baseweb="select"] > div > div { color: var(--text-primary) !important; }
 
 .stSelectbox > div > div:hover,
 .stMultiSelect > div > div:hover {
-    border-color: rgba(56,189,248,0.65) !important;
-    box-shadow: 0 0 14px rgba(56,189,248,0.18) !important;
+    border-color: var(--accent-teal) !important;
+    box-shadow: 0 0 14px rgba(30,200,180,0.12) !important;
 }
 /* Dropdown panel */
 [data-baseweb="select"] [role="listbox"],
 [data-baseweb="popover"] ul {
-    background: rgba(2,10,32,0.99) !important;
-    border: 1.5px solid rgba(56,189,248,0.38) !important;
-    border-radius: 10px !important;
-    backdrop-filter: blur(40px) !important;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.90), 0 0 20px rgba(56,189,248,0.10) !important;
+    background: rgba(8,15,28,0.99) !important;
+    border: 1px solid rgba(30,200,180,0.38) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.90) !important;
 }
 /* Option items */
 [data-baseweb="select"] [role="option"],
 [data-baseweb="menu"] li {
-    color: #B8D4F0 !important;
+    color: var(--text-secondary) !important;
     font-size: 13px !important;
     background: transparent !important;
 }
 [data-baseweb="select"] [role="option"]:hover,
 [data-baseweb="menu"] li:hover {
-    background: rgba(56,189,248,0.15) !important;
-    color: #FFFFFF !important;
+    background: var(--accent-teal-glow) !important;
+    color: var(--accent-teal) !important;
 }
 [data-baseweb="select"] [aria-selected="true"] {
-    background: rgba(56,189,248,0.22) !important;
-    color: #7DD3FC !important;
+    background: var(--accent-teal-glow) !important;
+    color: var(--accent-teal) !important;
 }
 /* Multiselect tags */
 .stMultiSelect [data-baseweb="tag"] {
-    background: rgba(56,189,248,0.22) !important;
-    border: 1px solid rgba(56,189,248,0.50) !important;
-    border-radius: 6px !important;
-    color: #7DD3FC !important;
-    font-family: var(--font-body) !important;
-    font-size: 12px !important;
+    background: rgba(30,200,180,0.15) !important;
+    border: 1px solid rgba(30,200,180,0.35) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--accent-teal) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
 }
-.stMultiSelect [data-baseweb="tag"] span { color: #7DD3FC !important; }
+.stMultiSelect [data-baseweb="tag"] span { color: var(--accent-teal) !important; }
 /* Date picker popup */
 [data-baseweb="calendar"] {
-    background: rgba(2,10,32,0.99) !important;
-    border: 1.5px solid rgba(56,189,248,0.30) !important;
-    border-radius: 12px !important;
+    background: rgba(8,15,28,0.99) !important;
+    border: 1px solid rgba(30,200,180,0.30) !important;
+    border-radius: var(--radius-lg) !important;
 }
-[data-baseweb="calendar"] button { color: #E8F4FF !important; }
+[data-baseweb="calendar"] button { color: var(--text-primary) !important; }
 [data-baseweb="calendar"] [aria-selected="true"] {
-    background: #38BDF8 !important; color: #020B18 !important;
+    background: var(--accent-teal) !important; color: var(--bg-void) !important;
 }
 /* Radio & Checkbox text */
 .stRadio [data-testid="stWidgetLabel"] p,
-.stRadio label span { color: #E8F4FF !important; }
-.stCheckbox label span { color: #B8D4F0 !important; }
+.stRadio label span { color: var(--text-primary) !important; }
+.stCheckbox label span { color: var(--text-secondary) !important; }
 
 /* ═══════════════════════════════════════════════════════════
-   BUTTONS — layered glass + neon
+   BUTTONS — teal accent style matching HTML .btn-primary
 ═══════════════════════════════════════════════════════════ */
 .stButton button {
-    background: linear-gradient(135deg, rgba(10,60,150,0.70), rgba(6,40,110,0.60)) !important;
-    border: 1.5px solid rgba(56,189,248,0.40) !important;
-    border-radius: 8px !important;
-    color: var(--text-body) !important;
-    font-family: var(--font-ui) !important;
+    background: rgba(12,21,38,0.90) !important;
+    border: 1px solid var(--bg-border-h) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--text-secondary) !important;
+    font-family: var(--font-mono) !important;
     font-weight: 600 !important;
     font-size: 13px !important;
     letter-spacing: 0.3px !important;
@@ -1137,63 +1135,63 @@ div[data-testid="stMetricDelta"] {
 
 .stButton button:hover {
     background: linear-gradient(135deg, rgba(14,80,180,0.85), rgba(8,52,140,0.75)) !important;
-    border-color: rgba(56,189,248,0.70) !important;
+    border-color: rgba(30,200,180,0.70) !important;
     color: #FFFFFF !important;
 
-    box-shadow:
-        0 4px 16px rgba(0,0,0,0.4),
-        0 0 20px rgba(56,189,248,0.20),
-        inset 0 1px 0 rgba(255,255,255,0.12) !important;
+    transition: all 0.2s var(--transition) !important;
+}
+.stButton button:hover {
+    color: var(--accent-teal) !important;
+    border-color: var(--accent-teal) !important;
+    background: var(--accent-teal-glow) !important;
+    box-shadow: var(--shadow-glow) !important;
+    transform: translateY(-1px) !important;
 }
 
-/* Form submit buttons — themed, not white */
+/* Form submit buttons — primary teal */
 .stFormSubmitButton button {
-    background: linear-gradient(135deg, rgba(14,165,233,0.90), rgba(6,80,180,0.80)) !important;
-    border: 1.5px solid rgba(56,189,248,0.70) !important;
-    border-radius: 8px !important;
-    color: #FFFFFF !important;
-    font-family: var(--font-ui) !important;
+    background: var(--accent-teal) !important;
+    border: none !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--bg-void) !important;
+    font-family: var(--font-mono) !important;
     font-weight: 700 !important;
-    font-size: 14px !important;
-    letter-spacing: 0.5px !important;
-    box-shadow: 0 0 20px rgba(56,189,248,0.30), 0 4px 16px rgba(0,0,0,0.4) !important;
+    font-size: 11px !important;
+    letter-spacing: 0.8px !important;
+    text-transform: uppercase !important;
 }
 .stFormSubmitButton button:hover {
-    background: linear-gradient(135deg, rgba(56,189,248,0.95), rgba(14,80,200,0.90)) !important;
-    border-color: #38BDF8 !important;
-    box-shadow: 0 0 28px rgba(56,189,248,0.50), 0 4px 20px rgba(0,0,0,0.45) !important;
-    color: #020B18 !important;
+    background: var(--accent-teal-d) !important;
+    box-shadow: var(--shadow-glow) !important;
+    transform: translateY(-1px) !important;
+    color: var(--bg-void) !important;
 }
 
-/* Autofill — override browser default (yellow/white) with themed dark */
+/* Autofill override */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px rgba(4,16,48,0.95) inset !important;
-    -webkit-text-fill-color: #E8F4FF !important;
-    border-color: rgba(56,189,248,0.50) !important;
+    -webkit-box-shadow: 0 0 0 1000px rgba(8,15,28,0.95) inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    border-color: rgba(30,200,180,0.50) !important;
     transition: background-color 5000s ease-in-out 0s !important;
 }
 
 .stButton button:active {
-
-    box-shadow: 0 1px 6px rgba(56,189,248,0.18) !important;
+    transform: translateY(0) !important;
+    box-shadow: none !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   FORMS — glass containers
+   FORMS
 ═══════════════════════════════════════════════════════════ */
 .stForm {
-    background: var(--bg-card) !important;
-    border: 1.5px solid var(--border) !important;
-    border-radius: 16px !important;
-    backdrop-filter: blur(32px) saturate(160%) !important;
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--bg-border) !important;
+    border-radius: var(--radius-lg) !important;
     padding: 24px !important;
-    box-shadow:
-        var(--shadow-deep),
-        inset 0 1px 0 rgba(255,255,255,0.06),
-        0 0 40px rgba(56,189,248,0.06) !important;
+    box-shadow: var(--shadow-card) !important;
     position: relative !important;
     overflow: hidden !important;
 }
@@ -1209,36 +1207,33 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
    PROGRESS BARS
 ═══════════════════════════════════════════════════════════ */
 .stProgress > div > div {
-    background: rgba(4,14,38,0.80) !important;
-    border-radius: 6px !important;
-    height: 7px !important;
+    background: var(--bg-base) !important;
+    border-radius: var(--radius-sm) !important;
+    height: 6px !important;
     overflow: hidden !important;
-    border: 1px solid rgba(56,189,248,0.12) !important;
+    border: 1px solid var(--bg-border) !important;
 }
 .stProgress > div > div > div {
-    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan), var(--cyan-bright)) !important;
-    border-radius: 6px !important;
-    box-shadow: 0 0 12px rgba(56,189,248,0.7), 0 0 24px rgba(56,189,248,0.3) !important;
+    background: var(--accent-teal) !important;
+    border-radius: var(--radius-sm) !important;
 }
-
 
 /* ═══════════════════════════════════════════════════════════
    SLIDERS
 ═══════════════════════════════════════════════════════════ */
 .stSlider [data-baseweb="slider"] [role="slider"] {
-    background: var(--cyan) !important;
-    box-shadow: 0 0 10px rgba(56,189,248,0.7), 0 0 20px rgba(56,189,248,0.4) !important;
+    background: var(--accent-teal) !important;
     border: 2px solid rgba(255,255,255,0.3) !important;
 }
 .stSlider [data-baseweb="slider"] [data-testid="stSliderTrack"] {
-    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan)) !important;
+    background: var(--accent-teal) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
    DATAFRAME — precision table
 ═══════════════════════════════════════════════════════════ */
 .stDataFrame {
-    border-radius: 12px !important;
+    border-radius: var(--radius-lg) !important;
     overflow: hidden !important;
     border: 1px solid var(--border) !important;
     box-shadow: var(--shadow-card) !important;
@@ -1248,7 +1243,7 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
     backdrop-filter: blur(20px) !important;
 }
 [data-testid="stDataFrameResizable"] th {
-    background: rgba(56,189,248,0.09) !important;
+    background: rgba(30,200,180,0.09) !important;
     color: var(--text-body) !important;
     font-family: var(--font-ui) !important;
     font-size: 10px !important;
@@ -1261,37 +1256,35 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
     color: var(--text-body) !important;
     font-family: var(--font-body) !important;
     font-size: 13px !important;
-    border-bottom: 1px solid rgba(56,189,248,0.05) !important;
+    border-bottom: 1px solid rgba(30,200,180,0.05) !important;
 }
 [data-testid="stDataFrameResizable"] tr:hover td {
-    background: rgba(56,189,248,0.06) !important;
+    background: rgba(30,200,180,0.05) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
    ALERTS / MESSAGES
 ═══════════════════════════════════════════════════════════ */
 .stSuccess {
-    background: rgba(52,211,153,0.08) !important;
-    border: 1px solid rgba(52,211,153,0.35) !important;
-    border-radius: 10px !important;
-    box-shadow: 0 0 18px rgba(52,211,153,0.10) !important;
-    color: #A7F3D0 !important;
+    background: rgba(34,201,122,0.08) !important;
+    border: 1px solid rgba(34,201,122,0.35) !important;
+    border-radius: var(--radius) !important;
+    color: var(--accent-green) !important;
 }
 .stError {
-    background: rgba(248,113,113,0.08) !important;
-    border: 1px solid rgba(248,113,113,0.35) !important;
-    border-radius: 10px !important;
-    box-shadow: 0 0 18px rgba(248,113,113,0.10) !important;
+    background: rgba(232,64,64,0.08) !important;
+    border: 1px solid rgba(232,64,64,0.35) !important;
+    border-radius: var(--radius) !important;
 }
 .stInfo {
-    background: rgba(56,189,248,0.07) !important;
-    border: 1px solid rgba(56,189,248,0.28) !important;
-    border-radius: 10px !important;
+    background: var(--accent-teal-glow) !important;
+    border: 1px solid rgba(30,200,180,0.28) !important;
+    border-radius: var(--radius) !important;
 }
 .stWarning {
-    background: rgba(251,191,36,0.08) !important;
-    border: 1px solid rgba(251,191,36,0.30) !important;
-    border-radius: 10px !important;
+    background: rgba(232,160,32,0.08) !important;
+    border: 1px solid rgba(232,160,32,0.30) !important;
+    border-radius: var(--radius) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1299,16 +1292,16 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
 ═══════════════════════════════════════════════════════════ */
 .stCaption, [data-testid="stCaptionContainer"] p {
     color: var(--text-muted) !important;
-    font-family: var(--font-body) !important;
-    font-size: 11px !important;
-    letter-spacing: 0.2px !important;
+    font-family: var(--font-mono) !important;
+    font-size: 10px !important;
+    letter-spacing: 0.5px !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
    CHECKBOXES
 ═══════════════════════════════════════════════════════════ */
 .stCheckbox [data-testid="stWidgetLabel"] {
-    color: var(--text-body) !important;
+    color: var(--text-secondary) !important;
     font-family: var(--font-body) !important;
 }
 
@@ -1316,10 +1309,9 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
    PLOTLY MODEBAR
 ═══════════════════════════════════════════════════════════ */
 .js-plotly-plot .plotly .modebar {
-    background: rgba(3,10,28,0.85) !important;
-    border-radius: 8px !important;
-    border: 1px solid var(--border) !important;
-    backdrop-filter: blur(20px) !important;
+    background: rgba(8,15,28,0.85) !important;
+    border-radius: var(--radius) !important;
+    border: 1px solid var(--bg-border) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1328,7 +1320,7 @@ div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
 hr {
     border: none !important;
     height: 1px !important;
-    background: linear-gradient(90deg, transparent, var(--border-mid), transparent) !important;
+    background: var(--bg-border) !important;
     margin: 20px 0 !important;
 }
 
@@ -1336,8 +1328,8 @@ hr {
    SPINNER
 ═══════════════════════════════════════════════════════════ */
 .stSpinner > div {
-    border-top-color: var(--cyan) !important;
-    border-right-color: rgba(56,189,248,0.3) !important;
+    border-top-color: var(--accent-teal) !important;
+    border-right-color: rgba(30,200,180,0.3) !important;
     border-bottom-color: transparent !important;
     border-left-color: transparent !important;
 }
@@ -1346,26 +1338,25 @@ hr {
    LEADERBOARD CARDS
 ═══════════════════════════════════════════════════════════ */
 .lb-card {
-    background: var(--bg-card);
-    border-radius: 12px;
+    background: var(--bg-panel);
+    border-radius: var(--radius-lg);
     padding: 14px 18px;
     margin: 6px 0;
-    border: 1.5px solid var(--border);
-    backdrop-filter: blur(32px) saturate(160%);
+    border: 1px solid var(--bg-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: relative;
     overflow: hidden;
     box-shadow: var(--shadow-card);
+    transition: border-color 0.25s var(--transition), background 0.25s var(--transition);
 }
 
 .lb-card:hover {
-    border-color: var(--border-mid);
-
-    box-shadow: var(--shadow-deep), 0 0 22px rgba(56,189,248,0.12);
+    border-color: var(--bg-border-h);
+    background: var(--bg-panel-hover);
+    box-shadow: var(--shadow-panel), var(--shadow-glow);
 }
-
 
 /* ═══════════════════════════════════════════════════════════
    STAT PILLS
@@ -1374,17 +1365,18 @@ hr {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    background: rgba(56,189,248,0.10);
-    border: 1px solid rgba(56,189,248,0.22);
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-family: var(--font-body);
-    font-size: 11px;
-    color: var(--cyan-bright);
+    background: var(--accent-teal-glow);
+    border: 1px solid rgba(30,200,180,0.22);
+    border-radius: 2px;
+    padding: 3px 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent-teal);
+    letter-spacing: 0.5px;
 }
 .stat-pill:hover {
-    background: rgba(56,189,248,0.18);
-    border-color: rgba(56,189,248,0.40);
+    background: rgba(30,200,180,0.18);
+    border-color: rgba(30,200,180,0.40);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1397,56 +1389,55 @@ hr {
 .brand-title {
     font-family: var(--font-display) !important;
     font-size: 30px !important;
-    font-weight: 900 !important;
-    color: var(--cyan-bright) !important;
+    font-weight: 800 !important;
+    color: var(--accent-teal) !important;
     letter-spacing: -0.5px !important;
     line-height: 1.1 !important;
 }
 .brand-tagline {
-    font-family: var(--font-ui);
-    font-size: 11px;
+    font-family: var(--font-mono);
+    font-size: 10px;
     color: var(--text-muted);
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     text-transform: uppercase;
     margin-top: 6px;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SIDEBAR (hidden but styled if ever shown)
+   SIDEBAR
 ═══════════════════════════════════════════════════════════ */
 [data-testid="stSidebar"] {
-    background: rgba(1,6,18,0.98) !important;
-    border-right: 1px solid var(--border) !important;
-    backdrop-filter: blur(40px) !important;
+    background: var(--bg-base) !important;
+    border-right: 1px solid var(--bg-border) !important;
 }
 [data-testid="stSidebar"] * { color: var(--text-primary) !important; }
 
 /* ═══════════════════════════════════════════════════════════
-   SUBJECT PROGRESS MINI-CARDS — in dashboard
+   SUBJECT PROGRESS MINI-CARDS
 ═══════════════════════════════════════════════════════════ */
 .subj-card {
-    background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--bg-border);
+    border-radius: var(--radius-lg);
     padding: 14px 12px;
     text-align: center;
     position: relative;
     overflow: hidden;
+    transition: border-color 0.25s var(--transition), background 0.25s var(--transition);
 }
 .subj-card:hover {
-
-    border-color: var(--border-mid);
-    box-shadow: var(--shadow-deep), var(--glow-sm);
+    border-color: var(--bg-border-h);
+    background: var(--bg-panel-hover);
+    box-shadow: var(--shadow-panel), var(--shadow-glow);
 }
-
 
 /* ═══════════════════════════════════════════════════════════
    TOPIC ROW CARDS — in revision tracker
 ═══════════════════════════════════════════════════════════ */
 .topic-row {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    background: var(--bg-panel);
+    border: 1px solid var(--bg-border);
+    border-radius: var(--radius);
     padding: 10px 14px;
     margin: 4px 0;
     display: flex;
@@ -1454,97 +1445,85 @@ hr {
     gap: 12px;
     position: relative;
     overflow: hidden;
+    transition: border-color 0.15s, background 0.15s;
 }
 .topic-row:hover {
-    border-color: var(--border-mid);
-    background: var(--bg-card-hover);
-
+    border-color: var(--bg-border-h);
+    background: var(--bg-panel-hover);
 }
 
 /* ═══════════════════════════════════════════════════════════
-   STATUS BADGE PILLS
+   STATUS BADGE PILLS — matches HTML .risk-badge
 ═══════════════════════════════════════════════════════════ */
 .badge-pill {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 9px;
-    border-radius: 20px;
-    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    font-size: 9px;
     font-weight: 700;
-    font-family: var(--font-ui);
-    letter-spacing: 0.4px;
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
     border: 1px solid;
 }
-.badge-reading  { background: rgba(56,189,248,0.14);  color: var(--cyan);  border-color: rgba(56,189,248,0.35); }
-.badge-complete { background: rgba(52,211,153,0.14);  color: var(--green); border-color: rgba(52,211,153,0.35); }
-.badge-pending  { background: rgba(148,163,184,0.10); color: #94A3B8;       border-color: rgba(148,163,184,0.25); }
-.badge-overdue  { background: rgba(248,113,113,0.14); color: var(--red);   border-color: rgba(248,113,113,0.35); }
-.badge-due-today{ background: rgba(251,191,36,0.14);  color: var(--gold);  border-color: rgba(251,191,36,0.35); }
+.badge-reading  { background: var(--accent-teal-glow);         color: var(--accent-teal);  border-color: rgba(30,200,180,0.35); }
+.badge-complete { background: rgba(34,201,122,0.10);            color: var(--accent-green); border-color: rgba(34,201,122,0.25); }
+.badge-pending  { background: rgba(148,163,184,0.10);           color: #94A3B8;             border-color: rgba(148,163,184,0.25); }
+.badge-overdue  { background: rgba(232,64,64,0.10);             color: var(--accent-red);   border-color: rgba(232,64,64,0.25); }
+.badge-due-today{ background: rgba(232,160,32,0.10);            color: var(--accent-amber); border-color: rgba(232,160,32,0.25); }
 
 /* ═══════════════════════════════════════════════════════════
-   DOWNLOAD BUTTONS — match neon theme
+   DOWNLOAD BUTTONS — teal outline style
 ═══════════════════════════════════════════════════════════ */
 .stDownloadButton button {
-    background: linear-gradient(135deg, rgba(6,30,100,0.80), rgba(4,20,70,0.70)) !important;
-    border: 1.5px solid rgba(56,189,248,0.45) !important;
-    border-radius: 8px !important;
-    color: #7DD3FC !important;
-    font-family: var(--font-ui) !important;
-    font-weight: 700 !important;
-    font-size: 13px !important;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.4), 0 0 16px rgba(56,189,248,0.10), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--bg-border-h) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--accent-teal) !important;
+    font-family: var(--font-mono) !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
 }
 .stDownloadButton button:hover {
-    background: linear-gradient(135deg, rgba(10,50,160,0.88), rgba(6,30,120,0.78)) !important;
-    border-color: rgba(56,189,248,0.75) !important;
-    color: #FFFFFF !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 24px rgba(56,189,248,0.25) !important;
+    background: var(--accent-teal-glow) !important;
+    border-color: var(--accent-teal) !important;
+    color: var(--accent-teal) !important;
+    box-shadow: var(--shadow-glow) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ACCOUNT/PROFILE — replace white glow with lite cyan blue
+   EXPANDERS
 ═══════════════════════════════════════════════════════════ */
-/* Expander headers */
 .streamlit-expanderHeader {
-    background: rgba(4,16,48,0.88) !important;
-    border: 1px solid rgba(56,189,248,0.25) !important;
-    border-radius: 10px !important;
-    color: #E8F4FF !important;
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--bg-border) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text-primary) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
 }
 .streamlit-expanderHeader:hover {
-    border-color: rgba(56,189,248,0.55) !important;
-    box-shadow: 0 0 16px rgba(56,189,248,0.18) !important;
+    border-color: var(--bg-border-h) !important;
 }
 .streamlit-expanderContent {
-    background: rgba(3,12,36,0.85) !important;
-    border: 1px solid rgba(56,189,248,0.18) !important;
-    border-radius: 0 0 10px 10px !important;
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--bg-border) !important;
+    border-radius: 0 0 var(--radius) var(--radius) !important;
 }
 
-/* Form containers in Account — replace generic white box-shadow */
-.stForm {
-    background: rgba(4,14,44,0.85) !important;
-    border: 1.5px solid rgba(56,189,248,0.22) !important;
-    border-radius: 16px !important;
-    backdrop-filter: blur(32px) saturate(160%) !important;
-    padding: 24px !important;
-    box-shadow:
-        0 8px 40px rgba(0,0,0,0.70),
-        0 0 30px rgba(56,189,248,0.07),
-        inset 0 1px 0 rgba(56,189,248,0.08) !important;
-}
-
-/* Mobile: increase tap target sizes */
+/* Mobile */
 @media (max-width: 768px) {
     .stButton button, .stDownloadButton button {
         min-height: 44px !important;
-        font-size: 14px !important;
+        font-size: 12px !important;
         padding: 10px 16px !important;
     }
     .stTextInput input, .stNumberInput input,
     .stTextArea textarea, .stDateInput input {
-        font-size: 16px !important; /* prevents iOS zoom */
+        font-size: 16px !important;
         min-height: 44px !important;
     }
     .stSelectbox > div > div {
@@ -1552,22 +1531,16 @@ hr {
         font-size: 16px !important;
     }
     .stTabs [data-baseweb="tab"] {
-        font-size: 12px !important;
-        padding: 6px 8px !important;
+        font-size: 10px !important;
+        padding: 8px 10px !important;
     }
-    h1 { font-size: 22px !important; }
-    h2 { font-size: 18px !important; }
-    .neon-header { font-size: 13px !important; }
+    h1 { font-size: 20px !important; }
+    h2 { font-size: 16px !important; }
     [data-testid="column"] { min-width: 0 !important; }
 }
-/* Metric cards on mobile */
 @media (max-width: 600px) {
-    [data-testid="stMetric"] {
-        padding: 8px !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 18px !important;
-    }
+    [data-testid="stMetric"] { padding: 8px !important; }
+    [data-testid="stMetricValue"] { font-size: 20px !important; }
 }
 
 </style>
@@ -1584,72 +1557,68 @@ if "profile" not in st.session_state:
 def get_exam_date():
     return st.session_state.get("exam_date", date(2027, 1, 1))
 
-# ── PLOTLY DARK THEME ─────────────────────────────────────────────────────────
+# ── PLOTLY DARK THEME — updated to teal palette ───────────────────────────────
 PLOTLY_LAYOUT = dict(
-    paper_bgcolor="rgba(4,10,28,0.95)",
-    plot_bgcolor ="rgba(4,10,28,0.95)",
-    font=dict(family="DM Sans, sans-serif", color="#C8E5F8", size=12),
-    title_font=dict(family="DM Mono, monospace", size=14, color="#FFFFFF"),
+    paper_bgcolor="rgba(8,15,28,0.98)",
+    plot_bgcolor ="rgba(8,15,28,0.98)",
+    font=dict(family="DM Sans, sans-serif", color="#6a859e", size=12),
+    title_font=dict(family="IBM Plex Mono, monospace", size=14, color="#d8e4f0"),
     legend=dict(
-        bgcolor="rgba(6,14,38,0.7)",
-        bordercolor="rgba(56,189,248,0.2)",
+        bgcolor="rgba(12,21,38,0.9)",
+        bordercolor="rgba(30,200,180,0.2)",
         borderwidth=1,
         font=dict(size=11)
     ),
     margin=dict(t=50, b=40, l=40, r=20),
     xaxis=dict(
-        gridcolor="rgba(14,60,140,0.12)",
-        linecolor="rgba(56,189,248,0.2)",
+        gridcolor="rgba(30,200,180,0.07)",
+        linecolor="rgba(30,200,180,0.2)",
         tickfont=dict(size=10),
-        zerolinecolor="rgba(56,189,248,0.1)"
+        zerolinecolor="rgba(30,200,180,0.1)"
     ),
     yaxis=dict(
-        gridcolor="rgba(14,60,140,0.12)",
-        linecolor="rgba(56,189,248,0.2)",
+        gridcolor="rgba(30,200,180,0.07)",
+        linecolor="rgba(30,200,180,0.2)",
         tickfont=dict(size=10),
-        zerolinecolor="rgba(56,189,248,0.1)"
+        zerolinecolor="rgba(30,200,180,0.1)"
     )
 )
 
 def apply_theme(fig, title="", height=None, extra_layout=None):
-    """
-    Safely apply the dark blue theme to any Plotly figure.
-    Uses update_layout with only scalar/safe values, then
-    update_xaxes/update_yaxes separately to avoid validator crashes.
-    """
+    """Apply the deep navy + electric teal theme to any Plotly figure."""
     fig.update_layout(
-        paper_bgcolor="rgba(4,10,28,0.95)",
-        plot_bgcolor ="rgba(4,10,28,0.95)",
+        paper_bgcolor="rgba(8,15,28,0.98)",
+        plot_bgcolor ="rgba(8,15,28,0.98)",
         margin       =dict(t=50, b=40, l=40, r=20),
-        font         =dict(family="DM Sans, sans-serif", color="#C8E5F8", size=12),
+        font         =dict(family="DM Sans, sans-serif", color="#6a859e", size=12),
         legend       =dict(
-            bgcolor="rgba(6,14,38,0.8)",
-            bordercolor="rgba(56,189,248,0.2)",
+            bgcolor="rgba(12,21,38,0.9)",
+            bordercolor="rgba(30,200,180,0.2)",
             borderwidth=1,
-            font=dict(size=11, color="#C8E5F8")
+            font=dict(size=11, color="#6a859e")
         ),
         transition   =dict(duration=0),
     )
     if title:
         fig.update_layout(
             title=dict(text=title,
-                       font=dict(family="DM Mono, monospace", size=14, color="#FFFFFF"))
+                       font=dict(family="IBM Plex Mono, monospace", size=14, color="#d8e4f0"))
         )
     if height:
         fig.update_layout(height=height)
     if extra_layout:
         fig.update_layout(**extra_layout)
     fig.update_xaxes(
-        gridcolor="rgba(56,189,248,0.07)",
-        linecolor="rgba(56,189,248,0.2)",
-        tickfont=dict(size=10),
-        zerolinecolor="rgba(56,189,248,0.1)"
+        gridcolor="rgba(30,200,180,0.07)",
+        linecolor="rgba(30,200,180,0.2)",
+        tickfont=dict(size=10, color="#3a5068"),
+        zerolinecolor="rgba(30,200,180,0.1)"
     )
     fig.update_yaxes(
-        gridcolor="rgba(56,189,248,0.07)",
-        linecolor="rgba(56,189,248,0.2)",
-        tickfont=dict(size=10),
-        zerolinecolor="rgba(56,189,248,0.1)"
+        gridcolor="rgba(30,200,180,0.07)",
+        linecolor="rgba(30,200,180,0.2)",
+        tickfont=dict(size=10, color="#3a5068"),
+        zerolinecolor="rgba(30,200,180,0.1)"
     )
     return fig
 
@@ -2162,33 +2131,33 @@ def dark_table(df, caption=""):
     cols  = list(df.columns)
     hdr   = "".join(
         f'<th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;'
-        f'letter-spacing:0.9px;text-transform:uppercase;color:#7DD3FC;'
+        f'letter-spacing:0.9px;text-transform:uppercase;color:#5de6d6;'
         f'background:rgba(6,20,58,0.98);white-space:nowrap;'
-        f'border-bottom:2px solid rgba(56,189,248,0.35)">{c}</th>'
+        f'border-bottom:2px solid rgba(30,200,180,0.35)">{c}</th>'
         for c in cols
     )
     rows_html = ""
     for i, (_, row) in enumerate(df.iterrows()):
         bg = "rgba(8,22,60,0.85)" if i % 2 == 0 else "rgba(4,14,44,0.75)"
         cells = "".join(
-            f'<td style="padding:8px 14px;font-size:12px;color:#E8F4FF;font-weight:500;'
-            f'border-bottom:1px solid rgba(56,189,248,0.10);white-space:nowrap">{str(v)}</td>'
+            f'<td style="padding:8px 14px;font-size:12px;color:#d8e4f0;font-weight:500;'
+            f'border-bottom:1px solid rgba(30,200,180,0.10);white-space:nowrap">{str(v)}</td>'
             for v in row.values
         )
         rows_html += (
             f'<tr style="background:{bg};" '
-            f'onmouseover="this.style.background=\'rgba(56,189,248,0.13)\'" '
+            f'onmouseover="this.style.background=\'rgba(30,200,180,0.13)\'" '
             f'onmouseout="this.style.background=\'{bg}\'">'
             f'{cells}</tr>'
         )
     cap_html = (
-        f'<div style="font-size:10px;color:#6B91B8;margin-top:6px;padding-left:4px">{caption}</div>'
+        f'<div style="font-size:10px;color:#6a859e;margin-top:6px;padding-left:4px">{caption}</div>'
         if caption else ""
     )
     st.markdown(f"""
-    <div style="overflow-x:auto;border:1.5px solid rgba(56,189,248,0.25);
+    <div style="overflow-x:auto;border:1.5px solid rgba(30,200,180,0.25);
                 border-radius:10px;background:rgba(4,12,36,0.92);margin-top:6px;
-                box-shadow:0 0 20px rgba(56,189,248,0.08)">
+                box-shadow:0 0 20px rgba(30,200,180,0.08)">
         <table style="width:100%;border-collapse:collapse">
             <thead>
                 <tr>{hdr}</tr>
@@ -3332,11 +3301,11 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         preview_gaps = get_cgsm_gaps(new_r1_days, new_r2_days, new_nrev, new_gf, new_maxg, days_left_preview)
         gaps_str = " → ".join([f"R{i+1}:{g}d" for i, g in enumerate(preview_gaps)])
         st.markdown(f"""
-        <div style="background:rgba(56,189,248,0.07);border:1.5px solid rgba(56,189,248,0.20);
+        <div style="background:rgba(30,200,180,0.07);border:1.5px solid rgba(30,200,180,0.20);
                     border-radius:10px;padding:10px 14px;margin:6px 0;font-size:11px">
-            <span style="color:#7BA7CC;font-weight:700">Gap Preview → </span>
-            <span style="color:#7DD3FC;font-family:'DM Mono',monospace">{gaps_str}</span>
-            <span style="color:#6B91B8;margin-left:12px">(capped at {new_maxg}d)</span>
+            <span style="color:#6a859e;font-weight:700">Gap Preview → </span>
+            <span style="color:#5de6d6;font-family:'IBM Plex Mono',monospace">{gaps_str}</span>
+            <span style="color:#6a859e;margin-left:12px">(capped at {new_maxg}d)</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -3369,7 +3338,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         with bd1:
             st.markdown(f"""<div style="background:{'rgba(251,191,36,0.10)' if cur_backdate else 'rgba(14,60,140,0.25)'};
                 border:2px solid {'rgba(251,191,36,0.35)' if cur_backdate else 'rgba(14,60,140,0.35)'};
-                border-radius:10px;padding:12px 14px;font-size:12px;color:#C8E5F8">
+                border-radius:10px;padding:12px 14px;font-size:12px;color:#d8e4f0">
                 {'⚠️ <b>Backdated entries enabled</b> — all past dates accessible'
                  if cur_backdate else '🔒 <b>Backdated entries restricted</b> — only last 3 days'}
             </div>""", unsafe_allow_html=True)
@@ -3413,7 +3382,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         # ── EXPORT DATA AS CSV ───────────────────────────────────────────────
         st.markdown("---")
         st.markdown('<div class="neon-header">📤 Export My Data</div>', unsafe_allow_html=True)
-        st.markdown('<p style="font-size:12px;color:#7BA7CC;margin-bottom:14px">Download all your study data as CSV files. Your data belongs to you — always exportable.</p>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:12px;color:#6a859e;margin-bottom:14px">Download all your study data as CSV files. Your data belongs to you — always exportable.</p>', unsafe_allow_html=True)
         _ecol1, _ecol2, _ecol3 = st.columns(3)
         with _ecol1:
             if not log_df.empty:
@@ -3463,7 +3432,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         st.markdown("""
         <div style="background:rgba(248,113,113,0.06);border:2px solid rgba(248,113,113,0.28);
                     border-radius:14px;padding:18px 20px;margin-bottom:4px">
-            <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;
                         color:#F87171;letter-spacing:2px;margin-bottom:8px">⚠️ DANGER ZONE</div>
             <div style="font-size:13px;color:#FCA5A5;line-height:1.6;margin-bottom:4px">
                 <b>Reset Account Data</b> permanently deletes all study logs, test scores, and revision sessions.
@@ -3549,16 +3518,16 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         if _ref_code:
             _wa_ref_link = f"https://wa.me/?text=Hey!+I%27m+using+CA+Final+Tracker+to+track+my+prep.+Use+my+referral+code+{_ref_code}+when+you+sign+up+%F0%9F%8E%93+Link%3A+YOUR_APP_URL"
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(56,189,248,0.06));
+            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(30,200,180,0.06));
                         border:2px solid rgba(52,211,153,0.40);border-radius:16px;padding:20px;margin-bottom:16px">
-                <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;
                             color:#34D399;letter-spacing:2px;margin-bottom:8px">YOUR REFERRAL CODE</div>
-                <div style="font-family:'DM Mono',monospace;font-size:32px;font-weight:900;
-                            color:#E8F4FF;letter-spacing:4px;text-shadow:0 0 20px rgba(52,211,153,0.5);
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:900;
+                            color:#d8e4f0;letter-spacing:4px;text-shadow:0 0 20px rgba(52,211,153,0.5);
                             margin-bottom:10px">{_ref_code}</div>
-                <div style="font-size:12px;color:#7BA7CC;margin-bottom:14px">
+                <div style="font-size:12px;color:#6a859e;margin-bottom:14px">
                     Share this code with friends. Earn <b style="color:#FBBF24">+{_bonus_days} bonus days</b> for every friend
-                    who signs up AND subscribes to a <b style="color:#38BDF8">{_plan_labels.get(_min_plan,'paid')} plan or higher</b>.
+                    who signs up AND subscribes to a <b style="color:#1ec8b4">{_plan_labels.get(_min_plan,'paid')} plan or higher</b>.
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap">
                     <a href="{_wa_ref_link}" target="_blank" style="text-decoration:none">
@@ -3616,7 +3585,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 <div style="font-size:13px;color:#FBBF24;font-weight:700;margin-bottom:6px">
                     💡 Start Earning — Share Your Code Now!
                 </div>
-                <div style="font-size:12px;color:#C8E5F8;line-height:1.7">
+                <div style="font-size:12px;color:#d8e4f0;line-height:1.7">
                     For every friend who uses your code and subscribes to a {_plan_labels.get(_min_plan,'paid')} or higher plan,
                     you get <b style="color:#FBBF24">{_bonus_days} free bonus days</b> automatically added.
                     No manual action needed — it's 100% automatic!
@@ -3651,7 +3620,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 with cols[idx % 5]:
                     if is_unlocked:
                         st.markdown(f"""
-                        <div style="background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(56,189,248,0.10));
+                        <div style="background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(30,200,180,0.10));
                                     border:2px solid rgba(52,211,153,0.50);border-radius:16px;
                                     padding:16px 10px;text-align:center;cursor:default">
                             <div style="font-size:32px;margin-bottom:6px">{item["icon"]}</div>
@@ -3662,12 +3631,12 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                     else:
                         # Show locked with popover hint
                         st.markdown(f"""
-                        <div style="background:rgba(6,14,38,0.80);border:2px solid rgba(56,189,248,0.12);
+                        <div style="background:rgba(6,14,38,0.80);border:2px solid rgba(30,200,180,0.12);
                                     border-radius:16px;padding:16px 10px;text-align:center;
                                     opacity:0.55;cursor:default" title="{item['desc']}">
                             <div style="font-size:32px;margin-bottom:6px;filter:grayscale(1)">🔒</div>
-                            <div style="font-size:11px;font-weight:700;color:#7BA7CC">{item["name"]}</div>
-                            <div style="font-size:9px;color:#7BA7CC;margin-top:4px">Locked</div>
+                            <div style="font-size:11px;font-weight:700;color:#6a859e">{item["name"]}</div>
+                            <div style="font-size:9px;color:#6a859e;margin-top:4px">Locked</div>
                         </div>""", unsafe_allow_html=True)
                         if st.button(f"How to unlock?", key=f"ach_{item['id']}",
                                      use_container_width=True):
@@ -3692,9 +3661,9 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         st.markdown("""
         <div style="text-align:center;padding:60px 30px">
             <div style="font-size:64px;margin-bottom:20px">🚀</div>
-            <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;
-                        color:#38BDF8;margin-bottom:12px">COMING SOON</div>
-            <div style="font-size:14px;color:#7BA7CC;max-width:380px;margin:0 auto;line-height:1.8">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;
+                        color:#1ec8b4;margin-bottom:12px">COMING SOON</div>
+            <div style="font-size:14px;color:#6a859e;max-width:380px;margin:0 auto;line-height:1.8">
                 The Global Leaderboard is under construction.<br>
                 Compete with CA Final students across India.<br><br>
                 <span style="color:#93C8E8">Features planned:</span><br>
@@ -3702,10 +3671,10 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 📊 Subject-wise leaderboards<br>
                 🎖️ Weekly &amp; all-time rankings
             </div>
-            <div style="margin-top:24px;background:rgba(56,189,248,0.07);
-                        border:2px solid rgba(56,189,248,0.20);border-radius:14px;
+            <div style="margin-top:24px;background:rgba(30,200,180,0.07);
+                        border:2px solid rgba(30,200,180,0.20);border-radius:14px;
                         padding:14px 20px;display:inline-block">
-                <div style="font-size:11px;color:#38BDF8;font-family:Helvetica,sans-serif">
+                <div style="font-size:11px;color:#1ec8b4;font-family:Helvetica,sans-serif">
                     Stay tuned for the next update!
                 </div>
             </div>
@@ -3719,23 +3688,23 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
     # ════════════════════════════════
     with ptab4:
         st.markdown('<div class="neon-header neon-header-glow">ℹ️ How to Use CA Final Tracker</div>', unsafe_allow_html=True)
-        st.markdown('<p style="font-size:12px;color:#7BA7CC;margin-bottom:20px">Complete guide to getting the most out of every feature. Bookmark this tab!</p>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:12px;color:#6a859e;margin-bottom:20px">Complete guide to getting the most out of every feature. Bookmark this tab!</p>', unsafe_allow_html=True)
 
         steps = [
-            ("⚙️", "STEP 1 — Account Setup", "#38BDF8",
-             "Go to <b style='color:#7DD3FC'>Settings</b> (this tab) and set your exam month & year. "
+            ("⚙️", "STEP 1 — Account Setup", "#1ec8b4",
+             "Go to <b style='color:#5de6d6'>Settings</b> (this tab) and set your exam month & year. "
              "The countdown timer starts immediately. Customize daily study hour targets per subject if needed. "
              "Your username appears on the dashboard header — make it something motivating!"),
             ("📝", "STEP 2 — Log Study Hours", "#FBBF24",
-             "Every study session → <b style='color:#7DD3FC'>📝 Log Study</b> tab. Select subject, topic, hours, "
+             "Every study session → <b style='color:#5de6d6'>📝 Log Study</b> tab. Select subject, topic, hours, "
              "difficulty, and session type. Logging earns XP and advances your level. "
              "Mark topics as <b>Completed</b> when done — this unlocks revision scheduling."),
             ("🔄", "STEP 3 — Track Revisions", "#34D399",
-             "After completing topics, go to <b style='color:#7DD3FC'>🔄 Revision</b> tab. "
+             "After completing topics, go to <b style='color:#5de6d6'>🔄 Revision</b> tab. "
              "Your daily revision agenda shows overdue and upcoming topics. Log revision sessions to build memory strength. "
              "The Memory Strength chart shows which topics need re-revision most urgently."),
             ("🏆", "STEP 4 — Add Test Scores", "#818CF8",
-             "After every mock test → <b style='color:#7DD3FC'>🏆 Add Score</b>. Log subject, score, and action plan. "
+             "After every mock test → <b style='color:#5de6d6'>🏆 Add Score</b>. Log subject, score, and action plan. "
              "The Dashboard shows score trends so you can see if preparation translates into marks. "
              "Note weak and strong areas for targeted revision."),
             ("📊", "STEP 5 — Read Your Dashboard", "#F87171",
@@ -3743,43 +3712,43 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
              "Subject progress rings show hours vs target. Donut charts in Revision tab show coverage at a glance. "
              "Use 🔄 Refresh button to sync latest data."),
             ("📤", "STEP 6 — Export & Backup", "#60A5FA",
-             "Go to <b style='color:#7DD3FC'>Settings → Export My Data</b> for CSV downloads of all study logs, "
+             "Go to <b style='color:#5de6d6'>Settings → Export My Data</b> for CSV downloads of all study logs, "
              "test scores, and revision data. Export regularly to back up your progress. "
              "All data is also stored securely in the cloud (Supabase on AWS)."),
         ]
 
         for i, (icon, title, clr, desc) in enumerate(steps):
             st.markdown(f"""
-            <div style="background:rgba(4,14,44,0.88);border:1.5px solid rgba(56,189,248,0.22);
+            <div style="background:rgba(4,14,44,0.88);border:1.5px solid rgba(30,200,180,0.22);
                         border-left:4px solid {clr};border-radius:14px;padding:18px 20px;margin-bottom:12px;
                         box-shadow:0 2px 12px rgba(0,0,0,0.30)">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
                     <span style="font-size:24px">{icon}</span>
-                    <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;
                                 color:{clr};letter-spacing:1px">{title}</div>
                 </div>
-                <div style="font-size:13px;color:#C8E5F8;line-height:1.7;padding-left:34px">{desc}</div>
+                <div style="font-size:13px;color:#d8e4f0;line-height:1.7;padding-left:34px">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown("---")
         st.markdown("""
-        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.25);
+        <div style="background:rgba(30,200,180,0.06);border:1px solid rgba(30,200,180,0.25);
                     border-radius:14px;padding:16px 20px">
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#38BDF8;
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#1ec8b4;
                         letter-spacing:1.5px;font-weight:700;margin-bottom:12px">❓ FREQUENTLY ASKED QUESTIONS</div>
-            <div style="font-size:13px;color:#C8E5F8;line-height:1.8">
-                <b style="color:#7DD3FC">Q: Can I use CA Final Tracker on mobile?</b><br>
+            <div style="font-size:13px;color:#d8e4f0;line-height:1.8">
+                <b style="color:#5de6d6">Q: Can I use CA Final Tracker on mobile?</b><br>
                 A: Yes — the app is mobile-responsive and works in any browser. Just open it on your phone.<br><br>
-                <b style="color:#7DD3FC">Q: Is my data secure?</b><br>
+                <b style="color:#5de6d6">Q: Is my data secure?</b><br>
                 A: All data is stored securely on Supabase (hosted on AWS). Private to your account only.<br><br>
-                <b style="color:#7DD3FC">Q: Can I log hours retroactively?</b><br>
+                <b style="color:#5de6d6">Q: Can I log hours retroactively?</b><br>
                 A: Yes — enable backdating in Settings to log sessions for past dates.<br><br>
-                <b style="color:#7DD3FC">Q: How are XP levels calculated?</b><br>
+                <b style="color:#5de6d6">Q: How are XP levels calculated?</b><br>
                 A: XP = total study + revision hours. Level 25 (Legend) = 890h — the full CA Final target.<br><br>
-                <b style="color:#7DD3FC">Q: What if I preparing for both groups?</b><br>
+                <b style="color:#5de6d6">Q: What if I preparing for both groups?</b><br>
                 A: Log all 5 subjects — the app is designed for the full CA Final curriculum simultaneously.<br><br>
-                <b style="color:#7DD3FC">Q: How to reset if I start over?</b><br>
+                <b style="color:#5de6d6">Q: How to reset if I start over?</b><br>
                 A: Go to Settings → Danger Zone → Reset Account Data. Profile and login are preserved.
             </div>
         </div>
@@ -3788,8 +3757,8 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
         <div style="text-align:center;padding:16px 0">
-            <span style="font-size:32px;filter:drop-shadow(0 0 14px rgba(56,189,248,0.9))">🎓</span>
-            <div style="font-family:'DM Mono',monospace;font-size:13px;color:#7DD3FC;margin-top:8px;font-weight:700">
+            <span style="font-size:32px;filter:drop-shadow(0 0 14px rgba(30,200,180,0.9))">🎓</span>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5de6d6;margin-top:8px;font-weight:700">
                 CA Final Tracker — Your exam. Your data. Your win.
             </div>
         </div>
@@ -3957,7 +3926,7 @@ def _render_admin_panel():
                 <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);
                             border-radius:10px;padding:10px 14px;margin-bottom:6px">
                   <span style="color:#FBBF24;font-size:13px;font-weight:700">{_em}</span>
-                  <span style="color:#7BA7CC;font-size:11px;margin-left:10px">📅 Signed up: {_at}</span>
+                  <span style="color:#6a859e;font-size:11px;margin-left:10px">📅 Signed up: {_at}</span>
                   <span style="color:#{_tc};font-size:11px;margin-left:10px">🕐 Trial: {_tdays}d left</span>
                 </div>""", unsafe_allow_html=True)
 
@@ -3974,12 +3943,12 @@ def _render_admin_panel():
                     _end_v = _end_date(_plan_sel, _start_sel)
                     _exp_p = _expire_label(_plan_sel, _end_v)
                     st.markdown(f"""
-                    <div style="margin-top:26px;background:rgba(56,189,248,0.08);
-                                border:1px solid rgba(56,189,248,0.30);border-radius:8px;
+                    <div style="margin-top:26px;background:rgba(30,200,180,0.08);
+                                border:1px solid rgba(30,200,180,0.30);border-radius:8px;
                                 padding:8px 12px;text-align:center">
-                        <div style="font-size:9px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:2px">EXPIRES</div>
+                        <div style="font-size:9px;color:#6a859e;font-weight:700;letter-spacing:1px;margin-bottom:2px">EXPIRES</div>
                         <div style="font-size:13px;font-weight:800;
-                                    color:{'#FBBF24' if _PLAN_DUR.get(_plan_sel) is None else '#38BDF8'}">{_exp_p}</div>
+                                    color:{'#FBBF24' if _PLAN_DUR.get(_plan_sel) is None else '#1ec8b4'}">{_exp_p}</div>
                     </div>""", unsafe_allow_html=True)
 
                 _note_inp = st.text_input("Payment note (optional)",
@@ -4007,7 +3976,7 @@ def _render_admin_panel():
                             st.rerun()
                         except Exception as _de:
                             st.error(f"Error: {_de}")
-                st.markdown("<hr style='border-color:rgba(56,189,248,0.10);margin:8px 0'>", unsafe_allow_html=True)
+                st.markdown("<hr style='border-color:rgba(30,200,180,0.10);margin:8px 0'>", unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -4041,10 +4010,10 @@ def _render_admin_panel():
                 <div style="background:rgba(4,14,38,0.80);border:1px solid rgba(52,211,153,0.20);
                             border-radius:10px;padding:10px 14px;margin-bottom:4px">
                     <span style="color:#34D399;font-size:13px;font-weight:600">{_em}</span>
-                    <span style="color:#38BDF8;font-size:11px;margin-left:10px;
-                                 background:rgba(56,189,248,0.10);padding:2px 8px;border-radius:6px">{_plan_lbl}</span>
+                    <span style="color:#1ec8b4;font-size:11px;margin-left:10px;
+                                 background:rgba(30,200,180,0.10);padding:2px 8px;border-radius:6px">{_plan_lbl}</span>
                     <span style="color:{_ec};font-size:11px;margin-left:8px;font-weight:700">{_ei} {_et}</span>
-                    <span style="color:#7BA7CC;font-size:10px;margin-left:8px">{f'until {_end_str}' if not _is_life else ''}</span>
+                    <span style="color:#6a859e;font-size:10px;margin-left:8px">{f'until {_end_str}' if not _is_life else ''}</span>
                     <span style="color:#3A5A7A;font-size:10px;margin-left:8px">approved:{_at}</span>
                 </div>""", unsafe_allow_html=True)
 
@@ -4084,7 +4053,7 @@ def _render_admin_panel():
                             st.rerun()
                         except Exception as _de:
                             st.error(f"Error: {_de}")
-                st.markdown("<hr style='border-color:rgba(56,189,248,0.08);margin:4px 0'>", unsafe_allow_html=True)
+                st.markdown("<hr style='border-color:rgba(30,200,180,0.08);margin:4px 0'>", unsafe_allow_html=True)
 
         # ══════════════════════════════════════════════════════════════════
         # REVOKED USERS
@@ -4098,7 +4067,7 @@ def _render_admin_panel():
                 _cr1, _cr2, _cr3, _cr4 = st.columns([1.8, 1.2, 0.9, 0.9])
                 _cr1.markdown(
                     f"<span style='color:#F87171;font-size:13px'>{_em}</span> "
-                    f"<span style='color:#7BA7CC;font-size:11px'>{_at}</span>",
+                    f"<span style='color:#6a859e;font-size:11px'>{_at}</span>",
                     unsafe_allow_html=True)
                 with _cr2:
                     # Re-approve WITH plan — FIXED (was approve_email(_em) with no plan)
@@ -4128,10 +4097,10 @@ def _render_admin_panel():
 
         st.markdown("---")
         st.markdown("""
-        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);
+        <div style="background:rgba(30,200,180,0.06);border:1px solid rgba(30,200,180,0.22);
                     border-radius:12px;padding:14px 18px">
-            <div style="font-size:12px;color:#7BA7CC;line-height:1.9">
-                ℹ️ <b style="color:#38BDF8">Workflow:</b><br>
+            <div style="font-size:12px;color:#6a859e;line-height:1.9">
+                ℹ️ <b style="color:#1ec8b4">Workflow:</b><br>
                 1. User signs up → auto-added as <b style="color:#FBBF24">Pending</b> (free trial starts)<br>
                 2. User pays via UPI → sends payment screenshot to WhatsApp / Email<br>
                 3. You verify → select plan + date → click <b>✅ Approve</b> (referral bonus auto-applied)<br>
@@ -4184,7 +4153,7 @@ def _render_admin_panel():
                     "original_price": _p_orig,
                     "discount_pct":   _p_disc,
                     "badge":          _p_badge,
-                    "color":          _pp.get("color", "#38BDF8"),
+                    "color":          _pp.get("color", "#1ec8b4"),
                 }
 
             st.markdown("---")
@@ -4286,9 +4255,9 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
     mail_to  = f"mailto:{PAYMENT_EMAIL}?subject=CA+Final+Tracker+Subscription&body=Hi%2C+I+want+to+subscribe.+Please+approve%3A+{wa_email}"
 
     heading_html = f"""
-      <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:900;
-                  color:#E8F4FF;text-align:center;margin-bottom:6px">Choose Your Plan</div>
-      <div style="font-size:12px;color:#7BA7CC;text-align:center;
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:900;
+                  color:#d8e4f0;text-align:center;margin-bottom:6px">Choose Your Plan</div>
+      <div style="font-size:12px;color:#6a859e;text-align:center;
                   margin-bottom:{'6' if fomo_on and fomo else '20'}px">
         One-time payment &middot; No auto-renewal &middot; Lifetime access stays forever
       </div>
@@ -4310,19 +4279,19 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
         price        = int(p.get("price", 0))
         orig         = int(p.get("original_price", price))
         badge        = p.get("badge", "")
-        color        = p.get("color", "#38BDF8")
+        color        = p.get("color", "#1ec8b4")
         disc         = int(p.get("discount_pct", 0))
         is_pop       = (pk == "1yr")
         border       = f"2px solid {color}b3" if is_pop else f"1.5px solid {color}66"
         shadow       = f"box-shadow:0 0 28px {color}40;" if is_pop else ""
         pop_tag      = f"""<div style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);
-                            background:linear-gradient(90deg,#0EA5E9,#38BDF8);color:#020B18;
+                            background:linear-gradient(90deg,#14a898,#1ec8b4);color:#050b14;
                             font-size:9px;font-weight:800;padding:3px 13px;border-radius:20px;
                             letter-spacing:1px;white-space:nowrap">&#11088; MOST POPULAR</div>""" if is_pop else ""
         disc_tag     = f"""<div style="position:absolute;top:-10px;right:10px;background:#F87171;
                             color:#fff;font-size:9px;font-weight:800;padding:2px 8px;
                             border-radius:10px">{disc}% OFF</div>""" if disc > 0 else ""
-        strike       = f"""<span style="text-decoration:line-through;color:#6B91B8;
+        strike       = f"""<span style="text-decoration:line-through;color:#6a859e;
                             font-size:14px;margin-right:6px">&#8377;{orig}</span>""" if orig > price else ""
         mt           = "margin-top:6px;" if is_pop else ""
         extras       = ""
@@ -4351,13 +4320,13 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
                     text-align:center;position:relative;{shadow}">
           {pop_tag}
           {disc_tag}
-          <div style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;
                       color:{color};letter-spacing:2px;margin-bottom:10px;{mt}">{badge}</div>
-          <div style="font-size:28px;font-weight:900;color:#E8F4FF;line-height:1.1">
+          <div style="font-size:28px;font-weight:900;color:#d8e4f0;line-height:1.1">
             {strike}&#8377;{price}
           </div>
-          <div style="font-size:11px;color:#7BA7CC;margin:5px 0 14px">{label}</div>
-          <div style="font-size:11px;color:#B8D4F0;line-height:1.8;margin-bottom:14px;text-align:left;padding:0 4px">
+          <div style="font-size:11px;color:#6a859e;margin:5px 0 14px">{label}</div>
+          <div style="font-size:11px;color:#b0c8e0;line-height:1.8;margin-bottom:14px;text-align:left;padding:0 4px">
             &#10003; Full Dashboard Access<br>
             &#10003; Revision Tracker<br>
             &#10003; Score Analytics<br>
@@ -4365,7 +4334,7 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
           </div>
           <div style="font-size:10px;color:{color};font-weight:600;margin-bottom:14px">{rate}</div>
           <a href="{rzp_url}" target="_blank" style="
-              display:block;background:{color};color:#020B18;
+              display:block;background:{color};color:#050b14;
               font-weight:800;font-size:12px;text-align:center;
               padding:10px 0;border-radius:8px;text-decoration:none;">
             Subscribe Now
@@ -4376,28 +4345,28 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
     # ── Footer note below cards ──────────────────────────────────────────────
     if RAZORPAY_ENABLED:
         _payment_html = f"""
-  <div style="font-size:11px;color:#7BA7CC;text-align:center;margin-top:8px;line-height:1.8">
+  <div style="font-size:11px;color:#6a859e;text-align:center;margin-top:8px;line-height:1.8">
     Powered by <b>Razorpay</b> &middot; UPI / Card / NetBanking / Wallets
     &middot; Access granted <b style="color:#34D399">automatically</b> within seconds.<br>
     <span style="font-size:10px;color:#3A5A7A">
       Pay with the same email as your CA Tracker account:
-      <b style="color:#38BDF8">{wa_email}</b>
+      <b style="color:#1ec8b4">{wa_email}</b>
     </span>
   </div>"""
     else:
         _payment_html = f"""
-  <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.28);
+  <div style="background:rgba(30,200,180,0.07);border:1px solid rgba(30,200,180,0.28);
               border-radius:12px;padding:14px 16px;margin-top:4px">
-    <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
-                color:#38BDF8;letter-spacing:1.5px;margin-bottom:10px">HOW TO SUBSCRIBE</div>
-    <div style="font-size:12px;color:#C8E5F8;line-height:2.0">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;
+                color:#1ec8b4;letter-spacing:1.5px;margin-bottom:10px">HOW TO SUBSCRIBE</div>
+    <div style="font-size:12px;color:#d8e4f0;line-height:2.0">
       <b style="color:#34D399">Step 1:</b> Pay via UPI / GPay / PhonePe to <b style="color:#FBBF24">8700428090</b><br>
       <b style="color:#34D399">Step 2:</b> Screenshot the payment confirmation<br>
       <b style="color:#34D399">Step 3:</b> Send screenshot + your email to:<br>
       &nbsp;&nbsp;&#128241; <a href="{wa_msg}" target="_blank"
            style="color:#25D366;font-weight:700">WhatsApp: +91 8700428090</a><br>
       &nbsp;&nbsp;&#128231; <a href="{mail_to}"
-           style="color:#38BDF8;font-weight:700">{PAYMENT_EMAIL}</a><br>
+           style="color:#1ec8b4;font-weight:700">{PAYMENT_EMAIL}</a><br>
       <b style="color:#34D399">Step 4:</b> Admin approves &mdash; you get instant access!
     </div>
   </div>
@@ -4444,7 +4413,7 @@ def _hex_to_rgba(hex_color: str, alpha: float) -> str:
         r, g, b = int(h[0:2],16), int(h[2:4],16), int(h[4:6],16)
         return f"({r},{g},{b},{alpha})"
     except Exception:
-        return f"(56,189,248,{alpha})"
+        return f"(30,200,180,{alpha})"
 
 
 def _trial_expired_screen(email: str):
@@ -4454,11 +4423,11 @@ def _trial_expired_screen(email: str):
                 border-radius:20px;padding:28px 24px;max-width:700px;margin:40px auto">
       <div style="text-align:center;margin-bottom:20px">
         <div style="font-size:44px;filter:drop-shadow(0 0 16px rgba(251,191,36,0.8))">🔒</div>
-        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:900;
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:900;
                     color:#FBBF24;margin:8px 0 4px;letter-spacing:-0.3px">
           Your Free Trial Has Ended
         </div>
-        <div style="font-size:13px;color:#7BA7CC">
+        <div style="font-size:13px;color:#6a859e">
           You've used your free trial. Subscribe to continue your CA Final journey.
         </div>
       </div>
@@ -4485,7 +4454,7 @@ def auth_page():
             st.markdown("""
             <div class="brand-logo">
                 <div style="font-size:52px;margin-bottom:8px;line-height:1;
-                            filter:drop-shadow(0 0 18px rgba(56,189,248,0.90)) drop-shadow(0 0 36px rgba(56,189,248,0.55));">
+                            filter:drop-shadow(0 0 18px rgba(30,200,180,0.90)) drop-shadow(0 0 36px rgba(30,200,180,0.55));">
                     🎓
                 </div>
                 <div class="brand-title">CA FINAL TRACKER</div>
@@ -4496,13 +4465,13 @@ def auth_page():
             _cfg  = get_pricing_cfg()
             _fomo = _cfg.get("fomo_message","") if _cfg.get("fomo_enabled", True) else ""
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(56,189,248,0.08));
+            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(30,200,180,0.08));
                         border:1px solid rgba(52,211,153,0.35);
                         border-radius:12px;padding:10px 16px;margin-bottom:{'4' if _fomo else '12'}px;text-align:center">
                 <div style="font-size:13px;color:#34D399;font-weight:700;line-height:1.6">
                     🎁 <b>First {get_free_trial_days()} Days FREE</b> for everyone!
                 </div>
-                <div style="font-size:11px;color:#7BA7CC;margin-top:3px">
+                <div style="font-size:11px;color:#6a859e;margin-top:3px">
                     Sign up now — no payment needed. Subscribe anytime to continue.
                 </div>
             </div>
@@ -4618,20 +4587,20 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     from reportlab.platypus.flowables import Flowable
 
     # ── Palette ────────────────────────────────────────────────────────────────
-    BG     = colors.HexColor("#020B18")
+    BG     = colors.HexColor("#050b14")
     CARD   = colors.HexColor("#061434")
     CARD2  = colors.HexColor("#071838")
     NAVY2  = colors.HexColor("#0A1F55")
-    CYAN   = colors.HexColor("#38BDF8")
-    CYAN_L = colors.HexColor("#7DD3FC")
+    CYAN   = colors.HexColor("#1ec8b4")
+    CYAN_L = colors.HexColor("#5de6d6")
     GREEN  = colors.HexColor("#34D399")
     GOLD   = colors.HexColor("#FBBF24")
     RED    = colors.HexColor("#F87171")
     PURPLE = colors.HexColor("#818CF8")
     ORANGE = colors.HexColor("#F97316")
     BLUE   = colors.HexColor("#60A5FA")
-    MUTED  = colors.HexColor("#6B91B8")
-    BODY   = colors.HexColor("#B8D4F0")
+    MUTED  = colors.HexColor("#6a859e")
+    BODY   = colors.HexColor("#b0c8e0")
     BORDER = colors.HexColor("#0E3C8C")
     WHITE  = colors.HexColor("#FFFFFF")
     DKRED  = colors.HexColor("#2A0808")
@@ -5514,9 +5483,9 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 <div style="display:flex;align-items:center;gap:12px">
                     <div style="font-size:20px">🔴</div>
                     <div>
-                        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;
                                     color:#F87171;letter-spacing:0.5px">RECOVERY MODE TRIGGERED</div>
-                        <div style="font-size:11px;color:#C8E5F8;margin-top:2px">
+                        <div style="font-size:11px;color:#d8e4f0;margin-top:2px">
                             {_overdue_bann} revisions overdue (>{_daily_cap_bann * 1.5:.0f} × daily cap).
                             Focus on clearing backlog before adding new topics. Revision schedule auto-compressed.
                         </div>
@@ -5531,7 +5500,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
     st.markdown('<div class="neon-header neon-header-glow">📖 First Reading Progress</div>', unsafe_allow_html=True)
     cols = st.columns(5)
     subj_bg = {
-        "FR":  ("rgba(125,211,252,0.12)", "#7DD3FC", "rgba(125,211,252,0.5)"),
+        "FR":  ("rgba(125,211,252,0.12)", "#5de6d6", "rgba(125,211,252,0.5)"),
         "AFM": ("rgba(52,211,153,0.12)",  "#34D399", "rgba(52,211,153,0.5)"),
         "AA":  ("rgba(251,191,36,0.12)",  "#FBBF24", "rgba(251,191,36,0.5)"),
         "DT":  ("rgba(248,113,113,0.12)", "#F87171", "rgba(248,113,113,0.5)"),
@@ -5561,21 +5530,21 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
                             background:linear-gradient(90deg,transparent,{clr},transparent);
                             opacity:0.9"></div>
-                <div style="font-family:'DM Mono',monospace;font-size:14px;
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;
                             font-weight:800;color:{clr};
                             text-shadow:0 0 14px {glow},0 0 28px {glow};margin-bottom:4px">{s}</div>
                 <div style="font-size:9px;color:#93C8E8;letter-spacing:0.5px;
                             margin-bottom:10px">{SUBJ_FULL[s]}</div>
                 <div style="background:rgba(14,60,140,0.30);border-radius:6px;
                             height:8px;overflow:hidden;margin-bottom:8px;
-                            border:1px solid rgba(56,189,248,0.12)">
+                            border:1px solid rgba(30,200,180,0.12)">
                     <div style="width:{pct:.0f}%;height:100%;border-radius:6px;
                                 background:linear-gradient(90deg,{clr}99,{clr});
                                 box-shadow:0 0 12px {glow};"></div>
                 </div>
-                <div style="font-family:'DM Mono',monospace;font-size:17px;
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:17px;
                             font-weight:700;color:#FFFFFF;
-                            text-shadow:0 0 18px rgba(56,189,248,0.65)">{pct:.0f}%</div>
+                            text-shadow:0 0 18px rgba(30,200,180,0.65)">{pct:.0f}%</div>
                 <div style="font-size:10px;color:#93C8E8;margin-top:3px;font-weight:600">
                     {done:.0f}h / {tgt}h
                 </div>
@@ -5628,12 +5597,12 @@ def dashboard(log, tst, rev, rev_sess, pend):
                             position:relative;overflow:hidden">
                     <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
                                 background:linear-gradient(90deg,transparent,{clr},transparent);opacity:0.9"></div>
-                    <div style="font-family:'DM Mono',monospace;font-size:12px;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;
                                 font-weight:800;color:{clr};margin-bottom:4px;
                                 text-shadow:0 0 12px {glow_rev}">{s}</div>
                     <div style="background:rgba(14,60,140,0.30);border-radius:5px;
                                 height:6px;overflow:hidden;margin-bottom:6px;
-                                border:1px solid rgba(56,189,248,0.12)">
+                                border:1px solid rgba(30,200,180,0.12)">
                         <div style="width:{rev_pct:.0f}%;height:100%;border-radius:5px;
                                     background:linear-gradient(90deg,#34D39988,#34D399);
                                     box-shadow:0 0 10px rgba(52,211,153,0.7)"></div>
@@ -5643,8 +5612,8 @@ def dashboard(log, tst, rev, rev_sess, pend):
                     <div style="font-size:10px;color:#93C8E8;margin-top:2px;font-weight:600">
                         {rev_rounds}/{max_rounds} rounds
                     </div>
-                    <div style="font-size:10px;color:#38BDF8;margin-top:3px;font-weight:600;
-                                text-shadow:0 0 8px rgba(56,189,248,0.7)">
+                    <div style="font-size:10px;color:#1ec8b4;margin-top:3px;font-weight:600;
+                                text-shadow:0 0 8px rgba(30,200,180,0.7)">
                         ⏱ {rev_hrs:.1f}h / {total_req_hrs:.1f}h
                     </div>
                 </div>
@@ -5683,24 +5652,24 @@ def dashboard(log, tst, rev, rev_sess, pend):
                             position:relative;overflow:hidden">
                     <div style="position:absolute;top:0;left:0;right:0;height:1.5px;
                                 background:linear-gradient(90deg,transparent,{clr},transparent);opacity:0.8"></div>
-                    <div style="font-family:'DM Mono',monospace;font-size:12px;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;
                                 font-weight:800;color:{clr};text-shadow:0 0 12px {clr}88">{s}</div>
-                    <div style="font-size:10px;color:#7BA7CC;margin:4px 0 8px">{SUBJ_FULL[s]}</div>
+                    <div style="font-size:10px;color:#6a859e;margin:4px 0 8px">{SUBJ_FULL[s]}</div>
                     <div style="display:flex;justify-content:space-around">
                         <div>
                             <div style="font-size:16px;font-weight:700;color:#FFFFFF;
-                                        text-shadow:0 0 10px rgba(56,189,248,0.5)">{topics_studied}</div>
-                            <div style="font-size:9px;color:#7BA7CC">Topics</div>
+                                        text-shadow:0 0 10px rgba(30,200,180,0.5)">{topics_studied}</div>
+                            <div style="font-size:9px;color:#6a859e">Topics</div>
                         </div>
                         <div>
-                            <div style="font-size:16px;font-weight:700;color:#38BDF8;
-                                        text-shadow:0 0 10px rgba(56,189,248,0.7)">{total_revs}</div>
-                            <div style="font-size:9px;color:#7BA7CC">Revisions</div>
+                            <div style="font-size:16px;font-weight:700;color:#1ec8b4;
+                                        text-shadow:0 0 10px rgba(30,200,180,0.7)">{total_revs}</div>
+                            <div style="font-size:9px;color:#6a859e">Revisions</div>
                         </div>
                         <div>
                             <div style="font-size:16px;font-weight:700;color:{health_clr};
                                         text-shadow:0 0 10px {health_clr}88">{overdue}</div>
-                            <div style="font-size:9px;color:#7BA7CC">Overdue</div>
+                            <div style="font-size:9px;color:#6a859e">Overdue</div>
                         </div>
                     </div>
                 </div>
@@ -5756,20 +5725,20 @@ def dashboard(log, tst, rev, rev_sess, pend):
             <div style="background:rgba(6,14,38,0.85);border:2px solid {_pc44};
                         border-radius:14px;padding:16px 18px;height:100%;
                         box-shadow:0 0 20px {_pc22}">
-                <div style="font-size:10px;font-weight:700;color:#7BA7CC;
+                <div style="font-size:10px;font-weight:700;color:#6a859e;
                             letter-spacing:1.2px;margin-bottom:6px">PREPARATION PHASE</div>
-                <div style="font-family:'DM Mono',monospace;font-size:15px;
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;
                             font-weight:800;color:{_pc};margin-bottom:6px">{_phase_info["label"]}</div>
                 <div style="font-size:11px;color:#93C8E8;line-height:1.5">{_phase_info["desc"]}</div>
                 <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
-                    <div style="font-size:10px;background:rgba(56,189,248,0.08);
-                                border:1px solid rgba(56,189,248,0.20);border-radius:6px;
-                                padding:3px 8px;color:#7DD3FC">
+                    <div style="font-size:10px;background:rgba(30,200,180,0.08);
+                                border:1px solid rgba(30,200,180,0.20);border-radius:6px;
+                                padding:3px 8px;color:#5de6d6">
                         📊 Syllabus: {_frp*100:.0f}% complete
                     </div>
-                    <div style="font-size:10px;background:rgba(56,189,248,0.08);
-                                border:1px solid rgba(56,189,248,0.20);border-radius:6px;
-                                padding:3px 8px;color:#7DD3FC">
+                    <div style="font-size:10px;background:rgba(30,200,180,0.08);
+                                border:1px solid rgba(30,200,180,0.20);border-radius:6px;
+                                padding:3px 8px;color:#5de6d6">
                         📅 Max gap: {_phase_info["effective_max_gap"]}d
                     </div>
                 </div>
@@ -5777,33 +5746,33 @@ def dashboard(log, tst, rev, rev_sess, pend):
             """, unsafe_allow_html=True)
 
         with pw_col:
-            _rv_c = "#34D399" if _pwdam["revision_hrs"] > _pwdam["first_read_hrs"] else "#38BDF8"
+            _rv_c = "#34D399" if _pwdam["revision_hrs"] > _pwdam["first_read_hrs"] else "#1ec8b4"
             st.markdown(f"""
             <div style="background:rgba(6,14,38,0.85);border:2px solid rgba(52,211,153,0.30);
                         border-radius:14px;padding:16px 18px;height:100%;
                         box-shadow:0 0 20px rgba(52,211,153,0.08)">
-                <div style="font-size:10px;font-weight:700;color:#7BA7CC;
+                <div style="font-size:10px;font-weight:700;color:#6a859e;
                             letter-spacing:1.2px;margin-bottom:6px">TODAY'S SUGGESTED SPLIT</div>
                 <div style="font-size:11px;color:#93C8E8;margin-bottom:10px">
                     Based on {_frp*100:.0f}% syllabus progress (FRP) · {_study_hrs}h/day setting
                 </div>
                 <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
                     <div style="text-align:center">
-                        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:800;
                                     color:#34D399;text-shadow:0 0 14px rgba(52,211,153,0.8)">
                             {_pwdam["revision_hrs"]:.1f}h</div>
-                        <div style="font-size:9px;color:#7BA7CC;letter-spacing:0.5px">REVISION</div>
+                        <div style="font-size:9px;color:#6a859e;letter-spacing:0.5px">REVISION</div>
                     </div>
                     <div style="font-size:16px;color:#3A5A7A">+</div>
                     <div style="text-align:center">
-                        <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;
-                                    color:#38BDF8;text-shadow:0 0 14px rgba(56,189,248,0.8)">
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:800;
+                                    color:#1ec8b4;text-shadow:0 0 14px rgba(30,200,180,0.8)">
                             {_pwdam["first_read_hrs"]:.1f}h</div>
-                        <div style="font-size:9px;color:#7BA7CC;letter-spacing:0.5px">FIRST READ</div>
+                        <div style="font-size:9px;color:#6a859e;letter-spacing:0.5px">FIRST READ</div>
                     </div>
                     <div style="margin-left:auto;text-align:right">
                         <div style="font-size:10px;color:#93C8E8">Revision share</div>
-                        <div style="font-family:'DM Mono',monospace;font-size:16px;
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:16px;
                                     font-weight:700;color:#FBBF24">{_pwdam["revision_share_pct"]:.0f}%</div>
                     </div>
                 </div>
@@ -5822,7 +5791,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
         air_col, rpi_col = st.columns([3, 2])
 
         with air_col:
-            st.markdown('<div style="font-size:11px;color:#7BA7CC;margin-bottom:10px;font-weight:600">AIR PREPAREDNESS INDEX — per subject heatmap</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-size:11px;color:#6a859e;margin-bottom:10px;font-weight:600">AIR PREPAREDNESS INDEX — per subject heatmap</div>', unsafe_allow_html=True)
             subj_cols = st.columns(5)
             for i, s in enumerate(SUBJECTS):
                 s_air   = _air["per_subject"].get(s, 0)
@@ -5837,10 +5806,10 @@ def dashboard(log, tst, rev, rev_sess, pend):
                     <div style="background:rgba(6,14,38,0.88);border:2px solid {s_c44};
                                 border-radius:12px;padding:12px 8px;text-align:center;
                                 box-shadow:0 0 16px {s_c22}">
-                        <div style="font-family:'DM Mono',monospace;font-size:13px;
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;
                                     font-weight:800;color:{s_c}">{s}</div>
-                        <div style="font-size:9px;color:#7BA7CC;margin:3px 0">AIR Score</div>
-                        <div style="font-family:'DM Mono',monospace;font-size:20px;
+                        <div style="font-size:9px;color:#6a859e;margin:3px 0">AIR Score</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;
                                     font-weight:700;color:#FFFFFF;
                                     text-shadow:0 0 12px {s_c}">{s_air:.0f}</div>
                         <div style="margin-top:6px;background:rgba(14,60,140,0.30);
@@ -5863,10 +5832,10 @@ def dashboard(log, tst, rev, rev_sess, pend):
                         box-shadow:0 0 20px {_ac44}">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                     <div>
-                        <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px">OVERALL AIR PREPAREDNESS</div>
-                        <div style="font-family:'DM Mono',monospace;font-size:13px;color:{_ac};font-weight:700">{_air["label"]}</div>
+                        <div style="font-size:10px;color:#6a859e;font-weight:700;letter-spacing:1px">OVERALL AIR PREPAREDNESS</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:{_ac};font-weight:700">{_air["label"]}</div>
                     </div>
-                    <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:900;
                                 color:#FFFFFF;text-shadow:0 0 20px {_ac88}">{_air["overall"]:.0f}</div>
                 </div>
                 <div style="background:rgba(14,60,140,0.18);border-radius:8px;height:10px;overflow:hidden;margin-bottom:10px">
@@ -5877,19 +5846,19 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:10px">
                     <div style="text-align:center">
                         <div style="color:#FFFFFF;font-weight:700">{comp["coverage"]:.0f}%</div>
-                        <div style="color:#7BA7CC">Coverage ×35%</div>
+                        <div style="color:#6a859e">Coverage ×35%</div>
                     </div>
                     <div style="text-align:center">
                         <div style="color:#FFFFFF;font-weight:700">{comp["revision_depth"]:.0f}%</div>
-                        <div style="color:#7BA7CC">Rev Depth ×30%</div>
+                        <div style="color:#6a859e">Rev Depth ×30%</div>
                     </div>
                     <div style="text-align:center">
                         <div style="color:#FFFFFF;font-weight:700">{comp["consistency"]:.0f}%</div>
-                        <div style="color:#7BA7CC">Consistency ×20%</div>
+                        <div style="color:#6a859e">Consistency ×20%</div>
                     </div>
                     <div style="text-align:center">
                         <div style="color:#FFFFFF;font-weight:700">{comp["balance"]:.0f}%</div>
-                        <div style="color:#7BA7CC">Balance ×15%</div>
+                        <div style="color:#6a859e">Balance ×15%</div>
                     </div>
                 </div>
             </div>
@@ -5906,15 +5875,15 @@ def dashboard(log, tst, rev, rev_sess, pend):
             <div style="background:rgba(6,14,38,0.88);border:2px solid {_rc44};
                         border-radius:14px;padding:16px 18px;
                         box-shadow:0 0 20px {_rc44}">
-                <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">
+                <div style="font-size:10px;color:#6a859e;font-weight:700;letter-spacing:1px;margin-bottom:6px">
                     READINESS PROBABILITY INDEX (RPI)
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                    <div style="font-family:'DM Mono',monospace;font-size:36px;font-weight:900;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:36px;font-weight:900;
                                 color:#FFFFFF;text-shadow:0 0 20px {_rc88}">{_rpi["rpi"]:.0f}</div>
                     <div style="text-align:right">
                         <div style="font-size:10px;font-weight:700;color:{_rc}">{_rpi["label"]}</div>
-                        <div style="font-size:9px;color:#7BA7CC;margin-top:2px">out of 100</div>
+                        <div style="font-size:9px;color:#6a859e;margin-top:2px">out of 100</div>
                     </div>
                 </div>
                 <div style="background:rgba(14,60,140,0.18);border-radius:6px;height:8px;overflow:hidden;margin-bottom:12px">
@@ -5924,30 +5893,30 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 </div>
                 <div style="display:flex;flex-direction:column;gap:5px;font-size:10px">
                     <div style="display:flex;justify-content:space-between">
-                        <span style="color:#7BA7CC">Coverage</span>
-                        <span style="color:#E8F4FF;font-weight:700">{rcomp["coverage"]:.0f}%</span>
+                        <span style="color:#6a859e">Coverage</span>
+                        <span style="color:#d8e4f0;font-weight:700">{rcomp["coverage"]:.0f}%</span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
-                        <span style="color:#7BA7CC">Revision Depth</span>
-                        <span style="color:#E8F4FF;font-weight:700">{rcomp["revision_depth"]:.0f}%</span>
+                        <span style="color:#6a859e">Revision Depth</span>
+                        <span style="color:#d8e4f0;font-weight:700">{rcomp["revision_depth"]:.0f}%</span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
-                        <span style="color:#7BA7CC">Retention Density</span>
+                        <span style="color:#6a859e">Retention Density</span>
                         <span style="color:#FBBF24;font-weight:700">{rden:.2f} touches/topic</span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
-                        <span style="color:#7BA7CC">Consistency</span>
-                        <span style="color:#E8F4FF;font-weight:700">{rcomp["consistency"]:.0f}%</span>
+                        <span style="color:#6a859e">Consistency</span>
+                        <span style="color:#d8e4f0;font-weight:700">{rcomp["consistency"]:.0f}%</span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
-                        <span style="color:#7BA7CC">Exposure Risk</span>
+                        <span style="color:#6a859e">Exposure Risk</span>
                         <span style="color:#F87171;font-weight:700">{rcomp["exposure_risk"]:.0f}%</span>
                     </div>
                 </div>
                 <div style="margin-top:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);
                             border-radius:8px;padding:8px 10px;font-size:10px">
                     <div style="color:#FBBF24;font-weight:700;margin-bottom:2px">📍 Retention Density Milestone</div>
-                    <div style="color:#C8E5F8">{rmile[0]}: need ≥{rmile[1]:.1f} · current: {rden:.2f}</div>
+                    <div style="color:#d8e4f0">{rmile[0]}: need ≥{rmile[1]:.1f} · current: {rden:.2f}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -5965,10 +5934,10 @@ def dashboard(log, tst, rev, rev_sess, pend):
             <div style="background:rgba(6,14,38,0.85);border:2px solid {_sc44};
                         border-radius:14px;padding:14px 16px;height:100%;
                         box-shadow:0 0 16px {_sc44}">
-                <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">STRESS INDEX</div>
-                <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
+                <div style="font-size:10px;color:#6a859e;font-weight:700;letter-spacing:1px;margin-bottom:6px">STRESS INDEX</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:900;
                             color:{_sc};text-shadow:0 0 14px {_sc}44">{_si:.2f}</div>
-                <div style="font-size:9px;color:#7BA7CC;margin-bottom:8px">
+                <div style="font-size:9px;color:#6a859e;margin-bottom:8px">
                     14d avg: {_stress["rolling_avg_hrs"]:.1f}h/day
                 </div>
                 <div style="font-size:10px;color:#93C8E8;line-height:1.4">{_stress["message"]}</div>
@@ -5982,10 +5951,10 @@ def dashboard(log, tst, rev, rev_sess, pend):
             <div style="background:rgba(6,14,38,0.85);border:2px solid {_cc44};
                         border-radius:14px;padding:14px 16px;height:100%;
                         box-shadow:0 0 16px {_cc44}">
-                <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">EXECUTION CONSISTENCY</div>
-                <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
+                <div style="font-size:10px;color:#6a859e;font-weight:700;letter-spacing:1px;margin-bottom:6px">EXECUTION CONSISTENCY</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:900;
                             color:{_cc};text-shadow:0 0 14px {_cc}44">{_cons["pct"]:.0f}%</div>
-                <div style="font-size:9px;color:#7BA7CC;margin-bottom:6px">
+                <div style="font-size:9px;color:#6a859e;margin-bottom:6px">
                     {_cons["days_studied"]} days studied / {_cons["elapsed"]} elapsed
                 </div>
                 <div style="background:rgba(14,60,140,0.25);border-radius:4px;height:5px;overflow:hidden">
@@ -6004,20 +5973,20 @@ def dashboard(log, tst, rev, rev_sess, pend):
             <div style="background:rgba(6,14,38,0.85);border:2px solid {_proj_c44};
                         border-radius:14px;padding:14px 16px;
                         box-shadow:0 0 16px {_proj_c44}">
-                <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">EXAM READINESS PROJECTION</div>
-                <div style="font-size:11px;color:#E8F4FF;line-height:1.5;margin-bottom:8px">{_projection["message"]}</div>
+                <div style="font-size:10px;color:#6a859e;font-weight:700;letter-spacing:1px;margin-bottom:6px">EXAM READINESS PROJECTION</div>
+                <div style="font-size:11px;color:#d8e4f0;line-height:1.5;margin-bottom:8px">{_projection["message"]}</div>
                 <div style="display:flex;gap:16px;flex-wrap:wrap">
                     <div style="text-align:center">
-                        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:{_proj_c}">{_p_frp:.0f}%</div>
-                        <div style="font-size:9px;color:#7BA7CC">Projected FR</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:{_proj_c}">{_p_frp:.0f}%</div>
+                        <div style="font-size:9px;color:#6a859e">Projected FR</div>
                     </div>
                     <div style="text-align:center">
-                        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#FBBF24">{_p_cyc:.1f}</div>
-                        <div style="font-size:9px;color:#7BA7CC">Rev Cycles</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:#FBBF24">{_p_cyc:.1f}</div>
+                        <div style="font-size:9px;color:#6a859e">Rev Cycles</div>
                     </div>
                     <div style="text-align:center">
-                        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:#60A5FA">{_p_daily:.1f}h</div>
-                        <div style="font-size:9px;color:#7BA7CC">Daily avg (14d)</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:#60A5FA">{_p_daily:.1f}h</div>
+                        <div style="font-size:9px;color:#6a859e">Daily avg (14d)</div>
                     </div>
                 </div>
             </div>
@@ -6043,11 +6012,11 @@ def dashboard(log, tst, rev, rev_sess, pend):
                     <div style="background:rgba(6,14,38,0.85);border:2px solid {bc44};
                                 border-radius:10px;padding:10px 8px;text-align:center;
                                 box-shadow:0 0 12px {bc44}">
-                        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:{bc}">{s}</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:{bc}">{s}</div>
                         <div style="font-size:18px;margin:4px 0">{flag_icon}</div>
                         <div style="font-size:14px;font-weight:700;color:#FFFFFF">{bs:.0f}%</div>
-                        <div style="font-size:9px;color:#7BA7CC">this week</div>
-                        <div style="font-size:9px;color:#6B91B8">ideal: {bi:.0f}%</div>
+                        <div style="font-size:9px;color:#6a859e">this week</div>
+                        <div style="font-size:9px;color:#6a859e">ideal: {bi:.0f}%</div>
                     </div>
                     """, unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
@@ -6071,10 +6040,10 @@ def dashboard(log, tst, rev, rev_sess, pend):
                                     border-radius:8px;padding:8px 12px;margin:4px 0;
                                     display:flex;justify-content:space-between;align-items:center">
                             <div>
-                                <div style="font-size:11px;color:#E8F4FF;font-weight:600">{str(row["topic"])[:40]}</div>
-                                <div style="font-size:9px;color:#7BA7CC">{row["subject"]} · {row["round_label"]}</div>
+                                <div style="font-size:11px;color:#d8e4f0;font-weight:600">{str(row["topic"])[:40]}</div>
+                                <div style="font-size:9px;color:#6a859e">{row["subject"]} · {row["round_label"]}</div>
                             </div>
-                            <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+                            <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;
                                         color:#F87171;white-space:nowrap">{dov}d late</div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -6087,8 +6056,8 @@ def dashboard(log, tst, rev, rev_sess, pend):
                                         border-radius:8px;padding:8px 12px;margin:4px 0;
                                         display:flex;justify-content:space-between;align-items:center">
                                 <div>
-                                    <div style="font-size:11px;color:#E8F4FF;font-weight:600">{str(row["topic"])[:40]}</div>
-                                    <div style="font-size:9px;color:#7BA7CC">{row["subject"]} · Not yet revised</div>
+                                    <div style="font-size:11px;color:#d8e4f0;font-weight:600">{str(row["topic"])[:40]}</div>
+                                    <div style="font-size:9px;color:#6a859e">{row["subject"]} · Not yet revised</div>
                                 </div>
                                 <div style="font-size:10px;font-weight:700;color:#FBBF24">R1 due</div>
                             </div>
@@ -6102,7 +6071,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
         <div class="glass-card" style="text-align:center; padding:50px">
             <div style="font-size:48px; margin-bottom:16px">🚀</div>
             <h2 style="color:#FFFFFF">Welcome! Start Your Journey</h2>
-            <p style="color:#7BA7CC">Log your first study session to see your dashboard come alive.</p>
+            <p style="color:#6a859e">Log your first study session to see your dashboard come alive.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -6155,7 +6124,7 @@ def log_study(existing_log, rev_df, rev_sess):
     # ── Status badge ──────────────────────────────────────────────────────────
     status_badges = {
         "not_started": ("⬜ Not Started",  "#94A3B8"),
-        "reading":     ("📖 In Progress",  "#38BDF8"),
+        "reading":     ("📖 In Progress",  "#1ec8b4"),
         "completed":   ("✅ First Read Complete", "#34D399"),
     }
     badge_txt, badge_clr = status_badges.get(t_status, ("⬜", "#94A3B8"))
@@ -6167,7 +6136,7 @@ def log_study(existing_log, rev_df, rev_sess):
     _badge_cls = _badge_map.get(t_status, "badge-pending")
     st.markdown(
         f'<div style="display:flex;align-items:center;gap:12px;'
-        f'background:var(--bg-card);border:1.5px solid rgba(56,189,248,0.18);'
+        f'background:var(--bg-card);border:1.5px solid rgba(30,200,180,0.18);'
         f'border-radius:10px;padding:10px 16px;margin:8px 0">'
         f'<span class="badge-pill {_badge_cls}">{badge_txt}</span>'
         f'<span style="font-size:12px;color:var(--text-muted)">TFR so far:</span>'
@@ -6209,14 +6178,14 @@ def log_study(existing_log, rev_df, rev_sess):
             st.markdown(f"""
             <div style="background:rgba(52,211,153,0.08);border:2px solid rgba(52,211,153,0.30);
                         border-radius:12px;padding:14px 18px;margin:8px 0">
-                <div style="font-family:'DM Mono',monospace;font-size:11px;
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;
                             color:#34D399;margin-bottom:6px;letter-spacing:1px">
                     🔒 REVISION R{next_round} — AUTO-CALCULATED DURATION
                 </div>
                 <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
                     <div>
                         <span style="font-size:24px;font-weight:800;color:#FFFFFF">{locked_hrs:.2f}h</span>
-                        <span style="font-size:11px;color:#7BA7CC;margin-left:8px">
+                        <span style="font-size:11px;color:#6a859e;margin-left:8px">
                             = TFR {tfr_stored:.1f}h × {ratio_used*100:.0f}%
                         </span>
                     </div>
@@ -6539,7 +6508,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
     _pend_rev = pend
     st.markdown('<div class="neon-header neon-header-glow">📅 Today\'s Revision Agenda</div>', unsafe_allow_html=True)
     today_str = date.today().strftime("%A, %d %B %Y")
-    st.markdown(f"<p style='font-size:12px;color:#7BA7CC;margin-top:-8px'>📆 {today_str}</p>",
+    st.markdown(f"<p style='font-size:12px;color:#6a859e;margin-top:-8px'>📆 {today_str}</p>",
                 unsafe_allow_html=True)
 
     if not _pend_rev.empty:
@@ -6553,7 +6522,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                 st.markdown("""
                 <div style="background:rgba(248,113,113,0.08);border:2px solid rgba(248,113,113,0.3);
                             border-radius:14px;padding:14px 18px;margin-bottom:14px">
-                    <div style="font-family:'DM Mono',monospace;font-size:12px;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;
                                 color:#F87171;letter-spacing:1px;margin-bottom:10px">
                         🔴 MUST DO TODAY — Overdue & Due
                     </div>
@@ -6561,22 +6530,22 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                 for _rank, (_, _row) in enumerate(_urgent.iterrows(), 1):
                     _badge_clr = "#F87171" if _row["days_overdue"] > 0 else "#FBBF24"
                     _badge_txt = f"+{_row['days_overdue']}d overdue" if _row["days_overdue"] > 0 else "DUE TODAY"
-                    _subj_clr  = COLORS.get(_row["subject"], "#38BDF8")
+                    _subj_clr  = COLORS.get(_row["subject"], "#1ec8b4")
                     st.markdown(f"""
                     <div style="display:flex;align-items:center;gap:12px;
                                 padding:10px 14px;margin:5px 0;
                                 background:rgba(248,113,113,0.06);
                                 border-left:4px solid {_badge_clr};border-radius:8px">
-                        <div style="font-family:'DM Mono',monospace;font-size:13px;
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;
                                     font-weight:800;color:{_badge_clr};min-width:24px">{_rank}</div>
                         <div style="flex:1">
-                            <span style="font-family:'DM Mono',monospace;font-size:10px;
+                            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;
                                          color:{_subj_clr};font-weight:700">{_row['subject']}</span>
                             <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
                                          font-weight:600">{_row['topic']}</span>
                         </div>
                         <div style="text-align:right">
-                            <div style="font-family:'DM Mono',monospace;font-size:11px;
+                            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;
                                         color:{_badge_clr};font-weight:700">{_row['round_label']}</div>
                             <div style="font-size:9px;color:#F87171">{_badge_txt}</div>
                         </div>
@@ -6588,27 +6557,27 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                 st.markdown("""
                 <div style="background:rgba(251,191,36,0.06);border:2px solid rgba(251,191,36,0.25);
                             border-radius:14px;padding:14px 18px;margin-bottom:14px">
-                    <div style="font-family:'DM Mono',monospace;font-size:12px;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;
                                 color:#FBBF24;letter-spacing:1px;margin-bottom:10px">
                         🟡 RECOMMENDED — Due Within 3 Days
                     </div>
                 """, unsafe_allow_html=True)
                 for _, _row in _soon.iterrows():
                     _days_away = abs(_row["days_overdue"])
-                    _subj_clr  = COLORS.get(_row["subject"], "#38BDF8")
+                    _subj_clr  = COLORS.get(_row["subject"], "#1ec8b4")
                     st.markdown(f"""
                     <div style="display:flex;align-items:center;gap:12px;
                                 padding:10px 14px;margin:5px 0;
                                 background:rgba(251,191,36,0.04);
                                 border-left:4px solid #FBBF24;border-radius:8px">
                         <div style="flex:1">
-                            <span style="font-family:'DM Mono',monospace;font-size:10px;
+                            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;
                                          color:{_subj_clr};font-weight:700">{_row['subject']}</span>
                             <span style="font-size:13px;color:#FFFFFF;margin-left:8px;
                                          font-weight:600">{_row['topic']}</span>
                         </div>
                         <div style="text-align:right">
-                            <div style="font-family:'DM Mono',monospace;font-size:11px;
+                            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;
                                         color:#FBBF24;font-weight:700">{_row['round_label']}</div>
                             <div style="font-size:9px;color:#FBBF24">in {_days_away}d · {_row['due_date']}</div>
                         </div>
@@ -6619,14 +6588,14 @@ def revision(log_df, rev_df, rev_sess_df, pend):
             _total_agenda = len(_urgent) + len(_soon)
             _est_hrs = round(_total_agenda * 0.75, 1)
             st.markdown(f"""
-            <div style="background:rgba(56,189,248,0.06);border:2px solid rgba(56,189,248,0.20);
+            <div style="background:rgba(30,200,180,0.06);border:2px solid rgba(30,200,180,0.20);
                         border-radius:12px;padding:12px 18px;margin-top:6px;
                         display:flex;justify-content:space-between;align-items:center">
-                <div style="font-size:12px;color:#C8E5F8">
+                <div style="font-size:12px;color:#d8e4f0">
                     📋 <b>{_total_agenda}</b> topic(s) on today's agenda
                     &nbsp;·&nbsp; ⏱ Estimated <b>~{_est_hrs}h</b> revision time
                 </div>
-                <div style="font-size:10px;color:#7BA7CC">~45 min per topic</div>
+                <div style="font-size:10px;color:#6a859e">~45 min per topic</div>
             </div>
             """, unsafe_allow_html=True)
     else:
@@ -6681,7 +6650,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
     def _make_donut(vals, labels, colors, title, center_text):
         if sum(vals) == 0:
             vals, labels, colors = [1], ["No Data"], ["#2D3748"]
-        glow_clr = colors[0] if colors else "#38BDF8"
+        glow_clr = colors[0] if colors else "#1ec8b4"
         fig_d = go.Figure(go.Pie(
             values=vals, labels=labels,
             marker=dict(colors=colors, line=dict(color="rgba(0,0,0,0)", width=0)),
@@ -6693,13 +6662,13 @@ def revision(log_df, rev_df, rev_sess_df, pend):
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             height=220, margin=dict(t=44, b=18, l=8, r=8),
             title=dict(text=f"<b>{title}</b>",
-                       font=dict(family="DM Mono, monospace", size=11, color="#FFFFFF"),
+                       font=dict(family="IBM Plex Mono, monospace", size=11, color="#FFFFFF"),
                        x=0.5, xanchor="center", y=0.98, yanchor="top"),
             showlegend=True,
             legend=dict(orientation="h", x=0.5, xanchor="center", y=-0.12,
-                        font=dict(size=9, color="#C8E5F8"), bgcolor="rgba(0,0,0,0)"),
+                        font=dict(size=9, color="#d8e4f0"), bgcolor="rgba(0,0,0,0)"),
             annotations=[dict(text=f"<b>{center_text}</b>", x=0.5, y=0.5,
-                              font=dict(size=15, color="#FFFFFF", family="DM Mono, monospace"),
+                              font=dict(size=15, color="#FFFFFF", family="IBM Plex Mono, monospace"),
                               showarrow=False)]
         )
         return fig_d, glow_clr
@@ -6742,7 +6711,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
     with _dc1:
         _pct_r = f"{int(_dn_read/_dn_all_topics*100)}%" if _dn_all_topics > 0 else "0%"
         _f1, _gc1 = _make_donut([_dn_read, _dn_not_read], ["Read","Not Read"],
-                                 ["#38BDF8","#1E3A5F"], "📖 Topics Read", _pct_r)
+                                 ["#1ec8b4","#1E3A5F"], "📖 Topics Read", _pct_r)
         st.plotly_chart(_f1, width='stretch')
     with _dc2:
         _pct_rv = f"{int(_dn_revised/_dn_comp_count*100)}%" if _dn_comp_count > 0 else "0%"
@@ -6771,7 +6740,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
             upcoming_df["days_away"] = upcoming_df["days_overdue"].abs()
 
             def _pend_row_html(row, clr, badge):
-                sc = COLORS.get(row["subject"], "#38BDF8")
+                sc = COLORS.get(row["subject"], "#1ec8b4")
                 # Get duration from schedule if possible
                 info = completion_info.get((row["subject"], row["topic"]), {})
                 tfr_v = float(info.get("tfr") or 0)
@@ -6791,15 +6760,15 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                             border-left:4px solid {clr};border-radius:9px;
                             padding:9px 14px;margin:4px 0">
                     <div style="flex:1">
-                        <span style="font-family:'DM Mono',monospace;font-size:10px;
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;
                                      color:{sc};font-weight:700">{row['subject']}</span>
                         <span style="font-size:12px;color:#FFFFFF;margin-left:8px">{row['topic'][:55]}</span>
-                        <span style="font-family:'DM Mono',monospace;font-size:9px;
-                                     color:#7BA7CC;margin-left:8px">{row['round_label']}</span>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;
+                                     color:#6a859e;margin-left:8px">{row['round_label']}</span>
                     </div>
                     <div style="text-align:right;white-space:nowrap">
-                        <div style="font-size:9px;color:#7BA7CC">{dur_str}</div>
-                        <div style="font-family:'DM Mono',monospace;font-size:11px;
+                        <div style="font-size:9px;color:#6a859e">{dur_str}</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;
                                     font-weight:700;color:{clr}">{badge}</div>
                     </div>
                 </div>"""
@@ -6859,16 +6828,16 @@ def revision(log_df, rev_df, rev_sess_df, pend):
             stat_lbl  = {"not_started":"⬜ Not Started","reading":"📖 Reading","completed":"✅ Completed"}.get(status, "⬜")
 
             st.markdown(f"""
-            <div style="background:rgba(8,18,50,0.80);border:2px solid rgba(56,189,248,0.25);
+            <div style="background:rgba(8,18,50,0.80);border:2px solid rgba(30,200,180,0.25);
                         border-radius:12px;padding:14px 18px;margin-bottom:12px;
                         display:flex;gap:24px;flex-wrap:wrap">
-                <div><span style="font-size:10px;color:#7BA7CC">Status</span>
+                <div><span style="font-size:10px;color:#6a859e">Status</span>
                      <div style="font-size:13px;color:#FFFFFF;font-weight:700">{stat_lbl}</div></div>
-                <div><span style="font-size:10px;color:#7BA7CC">TFR</span>
+                <div><span style="font-size:10px;color:#6a859e">TFR</span>
                      <div style="font-size:13px;color:#FFFFFF;font-weight:700">{tfr_val:.1f}h</div></div>
-                <div><span style="font-size:10px;color:#7BA7CC">Completed On</span>
+                <div><span style="font-size:10px;color:#6a859e">Completed On</span>
                      <div style="font-size:13px;color:#FFFFFF;font-weight:700">{str(comp_date)[:10] if comp_date else "—"}</div></div>
-                <div><span style="font-size:10px;color:#7BA7CC">Revisions Done</span>
+                <div><span style="font-size:10px;color:#6a859e">Revisions Done</span>
                      <div style="font-size:13px;color:#FFFFFF;font-weight:700">{len(set(rev_dates_map.get(key,[])))}/{num_rev}</div></div>
             </div>
             """, unsafe_allow_html=True)
@@ -6886,11 +6855,11 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                         hrs = float(row.get("hours", 0))
                         st.markdown(f"""
                         <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
-                                    background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.15);
-                                    border-left:3px solid #38BDF8;border-radius:8px;margin:3px 0">
+                                    background:rgba(30,200,180,0.05);border:1px solid rgba(30,200,180,0.15);
+                                    border-left:3px solid #1ec8b4;border-radius:8px;margin:3px 0">
                             <div style="font-size:16px">📖</div>
                             <div style="flex:1;font-size:12px;color:#FFFFFF">{d}</div>
-                            <div style="font-size:11px;color:#38BDF8;font-weight:600">⏱ {hrs:.1f}h</div>
+                            <div style="font-size:11px;color:#1ec8b4;font-weight:600">⏱ {hrs:.1f}h</div>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -6909,7 +6878,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                         <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
                                     background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.15);
                                     border-left:3px solid #34D399;border-radius:8px;margin:3px 0">
-                            <div style="font-family:'DM Mono',monospace;font-size:10px;
+                            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;
                                         color:#34D399;font-weight:800;min-width:24px">R{rn}</div>
                             <div style="flex:1;font-size:12px;color:#FFFFFF">{d}</div>
                             <div style="font-size:11px;color:#34D399;font-weight:600">⏱ {hrs:.2f}h ✅</div>
@@ -6977,17 +6946,10 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                 key="ms_sort_order"
             )
         with _ms_fc3:
-            _ms_max = min(len(_ms_labels), 50)
-            _ms_min = min(5, _ms_max)
-            if _ms_min < _ms_max:
-                _ms_n = st.slider(
-                    "Topics to show", min_value=_ms_min, max_value=_ms_max,
-                    value=min(8, _ms_max), step=1, key="ms_n_bars"
-                )
-            else:
-                _ms_n = _ms_max
-                if _ms_max > 0:
-                    st.caption(f"Showing all {_ms_max} topic(s)")
+            _ms_n = st.slider(
+                "Topics to show", min_value=5, max_value=min(len(_ms_labels), 50),
+                value=min(8, len(_ms_labels)), step=1, key="ms_n_bars"
+            )
 
         # ── Build filtered + sorted list ─────────────────────────────────────
         _ms_data = list(zip(_ms_labels, _ms_vals, _ms_clrs))
@@ -7082,9 +7044,9 @@ def leaderboard():
         <div class="glass-card" style="text-align:center;padding:50px 30px">
             <div style="font-size:56px;margin-bottom:18px">🔒</div>
             <h2 style="color:#FFFFFF;margin-bottom:10px">Leaderboard is Locked</h2>
-            <p style="color:#7BA7CC;max-width:380px;margin:0 auto 20px">
+            <p style="color:#6a859e;max-width:380px;margin:0 auto 20px">
                 You haven't opted in to the leaderboard yet. 
-                Opt in from your <b style='color:#38BDF8'>Profile</b> tab to appear on the 
+                Opt in from your <b style='color:#1ec8b4'>Profile</b> tab to appear on the 
                 leaderboard and see how others are performing.
             </p>
         </div>
@@ -7110,7 +7072,7 @@ def leaderboard():
         <div class="glass-card" style="text-align:center;padding:40px">
             <div style="font-size:40px;margin-bottom:12px">🏆</div>
             <h2>No Rankings Yet</h2>
-            <p style="color:#7BA7CC">Be the first to climb the leaderboard!</p>
+            <p style="color:#6a859e">Be the first to climb the leaderboard!</p>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -7124,10 +7086,10 @@ def leaderboard():
     for i, row in lb.iterrows():
         is_me  = row["username"] == my_user
         medal  = medals[i] if i < 3 else f"#{i + 1}"
-        border = "#38BDF8" if is_me else (medal_colors.get(i, "rgba(56,189,248,0.15)"))
-        glow   = "rgba(56,189,248,0.2)" if is_me else neon_glow.get(i, "transparent")
-        you    = " · <span style='color:#38BDF8;font-size:11px;letter-spacing:1px'>YOU</span>" if is_me else ""
-        rank_style = f"color:{medal_colors.get(i, '#C8D8EE')};font-size:22px" if i < 3 else "color:#7BA7CC;font-size:14px;font-family:'DM Mono',monospace"
+        border = "#1ec8b4" if is_me else (medal_colors.get(i, "rgba(30,200,180,0.15)"))
+        glow   = "rgba(30,200,180,0.2)" if is_me else neon_glow.get(i, "transparent")
+        you    = " · <span style='color:#1ec8b4;font-size:11px;letter-spacing:1px'>YOU</span>" if is_me else ""
+        rank_style = f"color:{medal_colors.get(i, '#C8D8EE')};font-size:22px" if i < 3 else "color:#6a859e;font-size:14px;font-family:'IBM Plex Mono',monospace"
 
         st.markdown(f"""
         <div class="lb-card" style="border-left:3px solid {border};box-shadow:0 0 20px {glow}">
@@ -7137,7 +7099,7 @@ def leaderboard():
                     <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;color:#FFFFFF">
                         {row['full_name']} {you}
                     </div>
-                    <div style="font-size:11px;color:#7BA7CC;letter-spacing:0.5px">@{row['username']}</div>
+                    <div style="font-size:11px;color:#6a859e;letter-spacing:0.5px">@{row['username']}</div>
                 </div>
             </div>
             <div style="display:flex;gap:12px;align-items:center">
@@ -7152,7 +7114,7 @@ def leaderboard():
     fig = px.bar(
         lb.head(10), x="username", y="total_hours",
         color="total_hours",
-        color_continuous_scale=["#0C2060", "#1D6FD8", "#38BDF8"],
+        color_continuous_scale=["#0C2060", "#1D6FD8", "#1ec8b4"],
         title="Top 10 — Study Hours",
         text="total_hours"
     )
@@ -7166,6 +7128,39 @@ def leaderboard():
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown(GLASSY_CSS, unsafe_allow_html=True)
+
+# ── STATUS TICKER BAR — matches HTML design exactly ───────────────────────────
+st.markdown("""
+<div style="background:rgba(5,11,20,0.85);border-bottom:1px solid rgba(255,255,255,0.06);
+            padding:5px 24px;display:flex;justify-content:space-between;align-items:center;
+            font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#3a5068;
+            letter-spacing:0.5px;position:relative;z-index:999">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="width:5px;height:5px;border-radius:50%;background:#22c97a;
+                animation:pulse 2s infinite"></div>
+    <span>System Online</span>
+  </div>
+  <div style="display:flex;gap:32px">
+    <span style="color:#6a859e">Platform <span style="color:#1ec8b4;font-weight:600">CA Final Tracker</span></span>
+    <span style="color:#6a859e">Status <span style="color:#22c97a;font-weight:600">Active</span></span>
+    <span style="color:#6a859e">Engine <span style="color:#1ec8b4;font-weight:600">CGSM v2</span></span>
+  </div>
+  <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#3a5068"
+        id="st_clock">Performance Intelligence System</span>
+</div>
+<script>
+(function(){
+  function updateClock(){
+    var now = new Date();
+    var pad = function(n){return String(n).padStart(2,'0');};
+    var el = document.getElementById('st_clock');
+    if(el) el.textContent = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())+' IST';
+  }
+  updateClock();
+  setInterval(updateClock,1000);
+})();
+</script>
+""", unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
     auth_page()
@@ -7205,19 +7200,18 @@ else:
     _lvl_info = get_level_info(_total_xp)
     _lvl     = _lvl_info["level"]
     _lvl_clr = (
-        "#34D399" if _lvl >= 20 else "#60A5FA" if _lvl >= 15 else
-        "#FBBF24" if _lvl >= 10 else "#38BDF8" if _lvl >= 5  else "#94A3B8"
+        "#22c97a" if _lvl >= 20 else "#1ec8b4" if _lvl >= 15 else
+        "#e8a020" if _lvl >= 10 else "#1ec8b4" if _lvl >= 5  else "#6a859e"
     )
     _lvl_pct = _lvl_info["pct"]
 
     # Compute glow colour RGB for CSS
     _glow_rgb = {
-        "#34D399": "52,211,153",
-        "#60A5FA": "96,165,250",
-        "#FBBF24": "251,191,36",
-        "#38BDF8": "56,189,248",
-        "#94A3B8": "148,163,184",
-    }.get(_lvl_clr, "56,189,248")
+        "#22c97a": "34,201,122",
+        "#1ec8b4": "30,200,180",
+        "#e8a020": "232,160,32",
+        "#6a859e": "106,133,158",
+    }.get(_lvl_clr, "30,200,180")
     _circ = 219.91   # circumference of r=35 circle
     _filled = _lvl_pct / 100 * _circ
 
@@ -7242,23 +7236,22 @@ else:
         '<svg width="76" height="76" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">'
         '<defs>'
         '<linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">'
-        '<stop offset="0%"   stop-color="#0EA5E9"/>'
-        '<stop offset="50%"  stop-color="#FFFFFF"/>'
-        '<stop offset="100%" stop-color="#7DD3FC"/>'
+        '<stop offset="0%"   stop-color="#14a898"/>'
+        '<stop offset="50%"  stop-color="#1ec8b4"/>'
+        '<stop offset="100%" stop-color="#5de6d6"/>'
         '</linearGradient>'
         '</defs>'
-        '<circle cx="38" cy="38" r="35" fill="none" stroke="rgba(56,189,248,0.12)" stroke-width="5"/>'
+        '<circle cx="38" cy="38" r="35" fill="none" stroke="rgba(30,200,180,0.12)" stroke-width="5"/>'
         f'<circle cx="38" cy="38" r="35" fill="none" stroke="url(#ringGrad)" stroke-width="5"'
-        f' stroke-linecap="round" stroke-dasharray="{_filled:.2f} {_circ:.2f}"'
-        f' style="filter:drop-shadow(0 0 8px rgba(56,189,248,0.9))">'
+        f' stroke-linecap="round" stroke-dasharray="{_filled:.2f} {_circ:.2f}">'
         '</circle>'
         '</svg>'
         '<div style="position:absolute;top:6px;left:6px;width:64px;height:64px;'
-        'border-radius:50%;background:linear-gradient(135deg,#0C2A6E,#1D5FA8);'
+        'border-radius:50%;background:linear-gradient(135deg,#0c1526,#1a3a50);'
         'display:flex;align-items:center;justify-content:center;'
-        'box-shadow:0 0 18px rgba(56,189,248,0.5)">'
-        f'<span style="font-family:DM Mono,monospace;font-size:26px;font-weight:900;'
-        f'color:#FFFFFF;text-shadow:0 0 12px rgba(56,189,248,0.8)">{_initial}</span>'
+        'border:1px solid rgba(30,200,180,0.22)">'
+        f'<span style="font-family:IBM Plex Mono,monospace;font-size:26px;font-weight:700;'
+        f'color:#1ec8b4">{_initial}</span>'
         '</div>'
         '</div>'
     )
@@ -7271,32 +7264,30 @@ else:
         st.markdown(f"""
         <div style="padding:4px 0 0 4px">
             <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1px">
-                <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
-                            color:#7DD3FC;
-                            text-shadow:0 0 18px rgba(56,189,248,0.7);
-                            letter-spacing:-0.5px;line-height:1.1">{name}</div>
-                <div style="font-size:10px;color:#7BA7CC;align-self:center">@{profile.get("username","")}</div>
+                <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;
+                            color:#d8e4f0;letter-spacing:-0.5px;line-height:1.1">{name}</div>
+                <div style="font-size:10px;color:#3a5068;align-self:center;font-family:'IBM Plex Mono',monospace;letter-spacing:0.5px">@{profile.get("username","")}</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-                <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:900;
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;
                             color:{_lvl_clr};letter-spacing:1px">LVL&nbsp;{_lvl}</div>
-                <div style="background:rgba({_glow_rgb},0.15);border:1px solid rgba({_glow_rgb},0.40);
-                            border-radius:8px;padding:3px 10px;
-                            font-size:11px;font-weight:700;color:{_lvl_clr};
-                            font-family:'DM Mono',monospace;letter-spacing:0.5px">
+                <div style="background:rgba({_glow_rgb},0.10);border:1px solid rgba({_glow_rgb},0.30);
+                            border-radius:4px;padding:2px 8px;
+                            font-size:10px;font-weight:600;color:{_lvl_clr};
+                            font-family:'IBM Plex Mono',monospace;letter-spacing:1px;text-transform:uppercase">
                     {_lvl_info["name"].upper()}</div>
-                <div style="font-size:10px;color:#7BA7CC;margin-left:auto">
+                <div style="font-size:10px;color:#6a859e;margin-left:auto">
                     {_total_xp:.0f}h &nbsp;/&nbsp; {_lvl_info["next_threshold"]}h</div>
             </div>
             <div style="background:rgba(14,60,140,0.15);border-radius:8px;
                         height:12px;overflow:hidden;position:relative;
                         border:1px solid rgba({_glow_rgb},0.15)">
                 <div style="width:{_lvl_pct:.1f}%;height:100%;border-radius:8px;
-                            background:linear-gradient(90deg,#0EA5E9,#38BDF8,#7DD3FC);
-                            box-shadow:0 0 14px rgba(56,189,248,0.9),0 0 28px rgba(56,189,248,0.4)">
+                            background:linear-gradient(90deg,#14a898,#1ec8b4,#5de6d6);
+                            box-shadow:0 0 14px rgba(30,200,180,0.9),0 0 28px rgba(30,200,180,0.4)">
                 </div>
             </div>
-            <div style="font-size:9px;color:#7BA7CC;margin-top:3px">
+            <div style="font-size:9px;color:#6a859e;margin-top:3px">
                 {hrs_to_next:.0f}h more to Level {min(_lvl+1,25)}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -7305,19 +7296,18 @@ else:
     _exam_label = exam.strftime("%b %Y").upper()  # e.g. "SEP 2027" — always in sync with days_left
     with h_days:
         st.markdown(f"""
-        <div style="background:var(--bg-card);border:1.5px solid var(--border-mid);
-                    border-radius:14px;padding:8px 10px;text-align:center;
+        <div style="background:var(--bg-panel);border:1px solid var(--bg-border-h);
+                    border-radius:var(--radius-lg);padding:8px 10px;text-align:center;
                     position:relative;overflow:hidden;margin-top:4px;
-                    box-shadow:0 0 20px rgba(56,189,248,0.18),var(--shadow-card)">
-            <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:800;
-                        color:#FFFFFF;line-height:1;
-                        text-shadow:0 0 20px rgba(56,189,248,0.9),0 0 40px rgba(56,189,248,0.5)">{days_left}</div>
-            <div style="font-size:8px;color:var(--text-muted);letter-spacing:2.5px;margin-top:3px;font-weight:700">DAYS</div>
-            <div style="font-size:9px;color:var(--cyan);margin-top:2px;font-weight:600">{_exam_label}</div>
+                    box-shadow:var(--shadow-card)">
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;
+                        color:var(--text-primary);line-height:1">{days_left}</div>
+            <div style="font-size:8px;color:var(--text-muted);letter-spacing:2.5px;margin-top:3px;font-family:'IBM Plex Mono',monospace;font-weight:600;text-transform:uppercase">DAYS</div>
+            <div style="font-size:9px;color:var(--accent-teal);margin-top:2px;font-family:'IBM Plex Mono',monospace;font-weight:600">{_exam_label}</div>
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>",
+    st.markdown("<div style='border-bottom:1px solid var(--bg-border);margin:6px 0 10px'></div>",
                 unsafe_allow_html=True)
 
     # ── FREE TRIAL / SUBSCRIPTION BANNER ─────────────────────────────────────
@@ -7375,7 +7365,7 @@ else:
                 <span>✅</span>
                 <span style="font-size:11px;color:#34D399">
                     <b>{_plan_lbl}</b> · Active
-                    &nbsp;·&nbsp;<span style="color:#7BA7CC">Expires: {_end_str}</span>
+                    &nbsp;·&nbsp;<span style="color:#6a859e">Expires: {_end_str}</span>
                 </span>
             </div>""", unsafe_allow_html=True)
 
@@ -7390,10 +7380,10 @@ else:
                             padding:10px 16px;display:flex;align-items:center;gap:12px">
                     <div style="font-size:20px">⏰</div>
                     <div>
-                        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:#F87171">
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:800;color:#F87171">
                             FREE TRIAL ENDS IN {_trial_days} DAY{'S' if _trial_days!=1 else ''}!
                         </div>
-                        <div style="font-size:11px;color:#B8D4F0;margin-top:2px">
+                        <div style="font-size:11px;color:#b0c8e0;margin-top:2px">
                             Subscribe to keep all your progress. Plans from ₹149.
                         </div>
                     </div>
@@ -7412,7 +7402,7 @@ else:
                             border-radius:10px;padding:7px 14px;
                             display:flex;align-items:center;gap:10px">
                     <span style="font-size:14px">🎁</span>
-                    <span style="font-size:11px;color:#7BA7CC">
+                    <span style="font-size:11px;color:#6a859e">
                         Free trial: <b style="color:#34D399">{_trial_days} days remaining</b>
                         &nbsp;·&nbsp; Subscribe to unlock full access from ₹149.
                     </span>
@@ -7428,15 +7418,15 @@ else:
         st.markdown("---")
         with st.container():
             st.markdown("""
-            <div style="background:rgba(4,20,64,0.95);border:2px solid rgba(56,189,248,0.50);
+            <div style="background:rgba(4,20,64,0.95);border:2px solid rgba(30,200,180,0.50);
                         border-radius:20px;padding:28px 32px;margin-bottom:24px;
-                        box-shadow:0 0 40px rgba(56,189,248,0.20),0 8px 40px rgba(0,0,0,0.60)">
+                        box-shadow:0 0 40px rgba(30,200,180,0.20),0 8px 40px rgba(0,0,0,0.60)">
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-                    <span style="font-size:32px;filter:drop-shadow(0 0 12px rgba(56,189,248,0.8))">🎓</span>
+                    <span style="font-size:32px;filter:drop-shadow(0 0 12px rgba(30,200,180,0.8))">🎓</span>
                     <div>
-                        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:900;
-                                    color:#7DD3FC;letter-spacing:-0.3px">Welcome to CA Final Tracker!</div>
-                        <div style="font-size:12px;color:#7BA7CC;margin-top:2px">Quick start guide — read once, track forever</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:900;
+                                    color:#5de6d6;letter-spacing:-0.3px">Welcome to CA Final Tracker!</div>
+                        <div style="font-size:12px;color:#6a859e;margin-top:2px">Quick start guide — read once, track forever</div>
                     </div>
                 </div>
             </div>
@@ -7444,63 +7434,63 @@ else:
             _how_cols = st.columns(2)
             with _how_cols[0]:
                 st.markdown("""
-                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(30,200,180,0.25);
                             border-radius:14px;padding:18px 20px;height:100%">
-                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#38BDF8;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#1ec8b4;
                                 letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 1 — SETUP</div>
-                    <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
-                        Go to <b style="color:#7DD3FC">👤 Account → Settings</b> and set your exam month &amp; year.
+                    <div style="font-size:13px;color:#d8e4f0;line-height:1.7">
+                        Go to <b style="color:#5de6d6">👤 Account → Settings</b> and set your exam month &amp; year.
                         The countdown timer will start immediately. Set your target hours per subject if they differ from defaults.
                     </div>
                 </div>""", unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("""
-                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(30,200,180,0.25);
                             border-radius:14px;padding:18px 20px;height:100%">
-                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#34D399;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#34D399;
                                 letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 3 — LOG REVISION</div>
-                    <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
-                        After completing a topic, go to <b style="color:#7DD3FC">📝 Log Study</b> and mark it as
-                        <b>Completed</b>. Then use <b style="color:#7DD3FC">🔄 Revision</b> tab to track each revision session.
+                    <div style="font-size:13px;color:#d8e4f0;line-height:1.7">
+                        After completing a topic, go to <b style="color:#5de6d6">📝 Log Study</b> and mark it as
+                        <b>Completed</b>. Then use <b style="color:#5de6d6">🔄 Revision</b> tab to track each revision session.
                         The pendency engine will alert you when topics are due for revision.
                     </div>
                 </div>""", unsafe_allow_html=True)
             with _how_cols[1]:
                 st.markdown("""
-                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(30,200,180,0.25);
                             border-radius:14px;padding:18px 20px;height:100%">
-                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#FBBF24;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FBBF24;
                                 letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 2 — LOG STUDY HOURS</div>
-                    <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
-                        Every study session → <b style="color:#7DD3FC">📝 Log Study</b> tab.
+                    <div style="font-size:13px;color:#d8e4f0;line-height:1.7">
+                        Every study session → <b style="color:#5de6d6">📝 Log Study</b> tab.
                         Select subject, topic, hours studied, and difficulty. Logging earns XP and advances your level.
                         The Dashboard updates in real time to show progress rings and hours remaining per subject.
                     </div>
                 </div>""", unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("""
-                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(30,200,180,0.25);
                             border-radius:14px;padding:18px 20px;height:100%">
-                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#818CF8;
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#818CF8;
                                 letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 4 — TRACK SCORES</div>
-                    <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
-                        After every mock test → <b style="color:#7DD3FC">🏆 Add Score</b> tab. Log marks, subject,
+                    <div style="font-size:13px;color:#d8e4f0;line-height:1.7">
+                        After every mock test → <b style="color:#5de6d6">🏆 Add Score</b> tab. Log marks, subject,
                         weak/strong areas, and action plan. The Dashboard shows score trends so you can see
                         if your preparation is translating into marks.
                     </div>
                 </div>""", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("""
-            <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.25);
+            <div style="background:rgba(30,200,180,0.06);border:1px solid rgba(30,200,180,0.25);
                         border-radius:12px;padding:14px 18px;margin-bottom:14px">
                 <div style="font-size:12px;color:#93C8E8;line-height:1.7">
-                    💡 <b style="color:#38BDF8">Daily habit tip:</b> Check Dashboard every morning · Log each session immediately after studying ·
+                    💡 <b style="color:#1ec8b4">Daily habit tip:</b> Check Dashboard every morning · Log each session immediately after studying ·
                     Review Revision tab weekly · Never let more than 20 topics go unrevised ·
                     Use 🔄 Refresh (top of Dashboard) to sync latest data.
                 </div>
             </div>
-            <div style="font-size:11px;color:#7BA7CC;text-align:center">
-                📖 Full guide available anytime in <b style="color:#38BDF8">👤 Account → How to Use</b>
+            <div style="font-size:11px;color:#6a859e;text-align:center">
+                📖 Full guide available anytime in <b style="color:#1ec8b4">👤 Account → How to Use</b>
             </div>
             """, unsafe_allow_html=True)
             if st.button("✅ Got it! Let's go →", key="dismiss_how_to_use", use_container_width=True):
