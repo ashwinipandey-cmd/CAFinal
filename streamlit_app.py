@@ -134,7 +134,7 @@ FREE_TRIAL_DAYS = 7   # fallback default — actual value comes from DB via get_
 
 PLANS = {   # fallback default — actual values come from DB via get_plans()
     "3mo":  {"label": "3 Months",  "price": 149,  "badge": "STARTER",  "color": "#34D399"},
-    "1yr":  {"label": "1 Year",    "price": 399,  "badge": "POPULAR ⭐","color": "#F4B942"},
+    "1yr":  {"label": "1 Year",    "price": 399,  "badge": "POPULAR ⭐","color": "#38BDF8"},
     "life": {"label": "Lifetime",  "price": 799,  "badge": "BEST VALUE","color": "#FBBF24"},
 }
 
@@ -320,7 +320,7 @@ _DEFAULT_PRICING_CONFIG = {
     "free_trial_days": 7,
     "plans": {
         "3mo":  {"label": "3 Months",  "price": 149, "original_price": 149, "badge": "STARTER",   "color": "#34D399", "discount_pct": 0},
-        "1yr":  {"label": "1 Year",    "price": 399, "original_price": 499, "badge": "POPULAR ⭐", "color": "#F4B942", "discount_pct": 20},
+        "1yr":  {"label": "1 Year",    "price": 399, "original_price": 499, "badge": "POPULAR ⭐", "color": "#38BDF8", "discount_pct": 20},
         "life": {"label": "Lifetime",  "price": 799, "original_price": 999, "badge": "BEST VALUE", "color": "#FBBF24", "discount_pct": 20},
     },
     "fomo_message": "🔥 Limited time offer — prices go up after 100 subscribers!",
@@ -488,7 +488,7 @@ SUBJ_FULL  = {
 }
 TARGET_HRS = {"FR":200,"AFM":160,"AA":150,"DT":200,"IDT":180}
 COLORS     = {
-    "FR":"#FFD166","AFM":"#34D399",
+    "FR":"#7DD3FC","AFM":"#34D399",
     "AA":"#FBBF24","DT":"#F87171","IDT":"#60A5FA"
 }
 TOPICS = {
@@ -553,784 +553,1021 @@ TOPICS = {
 GLASSY_CSS = """
 <style>
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;700&display=swap');
 
-/* ═══════════════════════════════════════════════════════
-   DESIGN TOKENS — Scholarly Dark Precision (Gold Theme)
-   Matches ca-tracker-app.html exactly
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   ROOT DESIGN TOKENS — Mission Control for CA Finals
+   Deep navy base · Electric cyan accents · Precision layout
+═══════════════════════════════════════════════════════════ */
 :root {
-    --ink:         #08090C;
-    --void:        #0D0F14;
-    --surface:     #12151C;
-    --surface-2:   #181C26;
-    --surface-3:   #1E2330;
-    --border:      rgba(255,255,255,0.07);
-    --border-hi:   rgba(255,255,255,0.13);
-    --gold:        #F4B942;
-    --gold-dim:    #C4922A;
-    --gold-bright: #FFD166;
-    --gold-glow:   rgba(244,185,66,0.18);
-    --gold-glow2:  rgba(244,185,66,0.08);
-    --gold-border: rgba(244,185,66,0.28);
-    --teal:        #F4B942;
-    --teal-dim:    rgba(45,212,191,0.15);
-    --success:     #34D399;
-    --warning:     #FBBF24;
-    --danger:      #F87171;
-    --info:        #60A5FA;
-    --purple:      #A78BFA;
-    --text-primary:   #F0F2F7;
-    --text-body:      #B8C4D8;
-    --text-secondary: #8E96B0;
-    --text-muted:     #4A5168;
-    --shadow-card:    0 1px 3px rgba(0,0,0,0.5), 0 4px 24px rgba(0,0,0,0.3);
-    --shadow-deep:    0 4px 24px rgba(0,0,0,0.65), 0 1px 4px rgba(0,0,0,0.40);
-    --glow-gold:      0 0 32px rgba(244,185,66,0.20), 0 0 80px rgba(244,185,66,0.08);
+    /* Accent palette */
+    --cyan:        #38BDF8;
+    --cyan-bright: #7DD3FC;
+    --cyan-dim:    #0EA5E9;
+    --purple:      #818CF8;
+    --green:       #34D399;
+    --gold:        #FBBF24;
+    --red:         #F87171;
+    --pink:        #F472B6;
 
-    /* ── Legacy aliases for any old inline style references ── */
-    --cyan:           #F4B942;
-    --cyan-bright:    #FFD166;
-    --cyan-dim:       #C4922A;
-    --green:          #34D399;
-    --gold-p:         #FBBF24;
-    --red:            #F87171;
-    --pink:           #A78BFA;
-    --neon-purple:    #F4B942;
-    --neon-cyan:      #FFD166;
-    --neon-green:     #34D399;
-    --neon-pink:      #A78BFA;
-    --neon-blue:      #60A5FA;
-    --neon-gold:      #F4B942;
-    --bg-base:        #0D0F14;
-    --bg-card:        rgba(18,21,28,0.88);
-    --bg-card-hover:  rgba(24,28,38,0.95);
-    --bg-input:       rgba(12,15,22,0.90);
-    --bg-overlay:     rgba(8,9,12,0.98);
-    --bg-panel:       rgba(18,21,28,0.85);
-    --bg-panel-hover: rgba(24,28,38,0.92);
-    --bg-void:        #0D0F14;
-    --bg-border:      rgba(255,255,255,0.07);
-    --bg-border-h:    rgba(244,185,66,0.28);
-    --accent-teal:    #F4B942;
-    --accent-teal-d:  #C4922A;
-    --accent-teal-glow: rgba(244,185,66,0.08);
-    --border-mid:     rgba(244,185,66,0.28);
-    --border-h:       rgba(244,185,66,0.45);
-    --text-dim:       #4A5168;
-    --shadow-panel:   0 1px 3px rgba(0,0,0,0.5), 0 4px 24px rgba(0,0,0,0.3);
-    --shadow-glow:    0 0 32px rgba(244,185,66,0.20), 0 0 80px rgba(244,185,66,0.08);
-    --dark-bg:        #0D0F14;
-    --dark-card:      rgba(18,21,28,0.85);
-    --dark-glass:     rgba(18,21,28,0.60);
+    /* Semantic aliases kept for backward compat */
+    --neon-purple:  #38BDF8;
+    --neon-cyan:    #7DD3FC;
+    --neon-green:   #34D399;
+    --neon-pink:    #818CF8;
+    --neon-blue:    #60A5FA;
+    --neon-gold:    #FBBF24;
 
-    --font-display:   'DM Serif Display', serif;
-    --font-body:      'Outfit', sans-serif;
-    --font-mono:      'DM Mono', monospace;
-    --font-ui:        'Outfit', sans-serif;
+    /* Surfaces */
+    --bg-base:     #020B18;
+    --bg-card:     rgba(6,20,52,0.72);
+    --bg-card-hover: rgba(8,26,64,0.85);
+    --bg-input:    rgba(4,14,38,0.80);
+    --bg-overlay:  rgba(2,8,22,0.96);
+
+    /* Borders */
+    --border:      rgba(56,189,248,0.18);
+    --border-mid:  rgba(56,189,248,0.35);
+    --border-hi:   rgba(56,189,248,0.60);
+    --border-glow: rgba(56,189,248,0.35);
+
+    /* Text */
+    --text-primary: #E8F4FF;
+    --text-body:    #B8D4F0;
+    --text-muted:   #6B91B8;
+    --text-dim:     #3A5A7A;
+
+    /* Glow shadows */
+    --glow-sm:   0 0 12px rgba(56,189,248,0.25);
+    --glow-md:   0 0 24px rgba(56,189,248,0.35), 0 0 48px rgba(56,189,248,0.12);
+    --glow-lg:   0 0 40px rgba(56,189,248,0.45), 0 0 80px rgba(56,189,248,0.18);
+    --shadow-card: 0 4px 24px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-deep: 0 8px 40px rgba(0,0,0,0.75), 0 2px 8px rgba(0,0,0,0.5);
+
+    /* Typography */
+    --font-display: 'DM Mono', monospace;
+    --font-ui:      'DM Sans', sans-serif;
+    --font-body:    'DM Sans', sans-serif;
+
+    /* Backward compat */
+    --dark-bg:      #020B18;
+    --dark-card:    rgba(6,20,52,0.72);
+    --dark-glass:   rgba(6,20,52,0.50);
 }
 
-/* ═══════════════════════════════════════════════════════
-   ANIMATIONS
-═══════════════════════════════════════════════════════ */
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes pulseGold {
-    0%,100% { box-shadow: 0 0 0 0 rgba(244,185,66,0.4); }
-    50%     { box-shadow: 0 0 0 7px rgba(244,185,66,0); }
-}
-@keyframes shimmer {
-    0%   { left: -100%; }
-    100% { left: 200%; }
-}
-@keyframes ticker {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-}
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50%       { transform: translateY(-6px); }
-}
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-}
-@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+/* ═══════════════════════════════════════════════════════════
+   KEYFRAME ANIMATIONS
+═══════════════════════════════════════════════════════════ */
 
-/* ═══════════════════════════════════════════════════════
-   GLOBAL BASE — Scholarly dark void background
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL BASE
+═══════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; }
 
 .stApp {
-    background: var(--void) !important;
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--text-primary) !important;
+    background: var(--bg-base) !important;
+    font-family: var(--font-body) !important;
 }
 
 [data-testid="stAppViewContainer"] {
     background:
-        radial-gradient(ellipse 90% 70% at -8% -10%, rgba(30,50,120,0.50) 0%, transparent 50%),
-        radial-gradient(ellipse 80% 65% at 108% 108%, rgba(20,40,100,0.40) 0%, transparent 50%),
-        radial-gradient(ellipse 60% 50% at 50% 48%, rgba(244,185,66,0.035) 0%, transparent 55%),
-        linear-gradient(165deg, #080A10 0%, #0D0F18 55%, #090C12 100%) !important;
+        radial-gradient(ellipse 130% 90% at -15% -15%, rgba(14,60,160,0.75) 0%, transparent 48%),
+        radial-gradient(ellipse 110% 80% at 115% 115%, rgba(20,90,220,0.60) 0%, transparent 48%),
+        radial-gradient(ellipse  80% 65% at  50%  48%, rgba(56,189,248,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse  60% 55% at  92%   4%, rgba(99,102,241,0.28) 0%, transparent 48%),
+        radial-gradient(ellipse  50% 50% at   8%  88%, rgba(14,165,233,0.22) 0%, transparent 48%),
+        radial-gradient(ellipse  40% 40% at  72%  58%, rgba(56,189,248,0.07) 0%, transparent 50%),
+        linear-gradient(165deg, #010C1A 0%, #040E22 50%, #020918 100%) !important;
     min-height: 100vh;
 }
 
-/* Noise texture overlay */
+/* Subtle noise texture overlay */
 [data-testid="stAppViewContainer"]::before {
     content: '';
     position: fixed; inset: 0;
-    opacity: 0.025;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size: 128px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
     pointer-events: none;
     z-index: 0;
+    opacity: 0.4;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    HIDE BRANDING & SIDEBAR
-═══════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 #MainMenu, footer, header { visibility: hidden !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 section[data-testid="stSidebar"] { display: none !important; }
 
-/* ═══════════════════════════════════════════════════════
-   SCROLLBARS — match HTML exactly
-═══════════════════════════════════════════════════════ */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--void); }
-::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
-
-/* ═══════════════════════════════════════════════════════
-   DARK THEMED DATAFRAMES
-═══════════════════════════════════════════════════════ */
-[data-testid="stDataFrame"] { border-radius: 12px !important; overflow: hidden !important; }
-[data-testid="stDataFrame"] > div { background: transparent !important; }
-[data-testid="stDataFrame"] [role="columnheader"] {
-    background: rgba(15,18,28,0.98) !important;
-    color: var(--gold) !important;
-    font-family: 'DM Mono', monospace !important;
-    font-size: 10px !important; font-weight: 700 !important;
-    letter-spacing: 1.2px !important; text-transform: uppercase !important;
-    border-bottom: 1px solid rgba(244,185,66,0.22) !important;
+/* ═══════════════════════════════════════════════════════════
+   DARK THEMED DATAFRAMES — remove white bg, white text
+═══════════════════════════════════════════════════════════ */
+/* Outer wrapper */
+[data-testid="stDataFrame"] > div,
+[data-testid="stDataFrame"] iframe {
+    background: transparent !important;
 }
+/* Table container */
+.stDataFrame, [data-testid="stDataFrameResizable"] {
+    background: rgba(4,14,38,0.85) !important;
+    border: 1.5px solid rgba(56,189,248,0.20) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+/* Apply dark styles via injected iframe workaround — target glide-data-grid canvas wrapper */
+[data-testid="stDataFrame"] > div > div {
+    background: rgba(4,14,38,0.85) !important;
+    border-radius: 10px !important;
+}
+/* Column header row */
+[data-testid="stDataFrame"] [role="columnheader"],
+[data-testid="stDataFrame"] [role="rowheader"] {
+    background: rgba(6,20,54,0.95) !important;
+    color: var(--cyan-bright) !important;
+    font-family: var(--font-ui) !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+    border-bottom: 1px solid rgba(56,189,248,0.25) !important;
+}
+/* Data cells */
 [data-testid="stDataFrame"] [role="gridcell"] {
-    background: rgba(10,13,20,0.92) !important;
-    color: var(--text-primary) !important;
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 12.5px !important;
-    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    background: rgba(4,14,38,0.80) !important;
+    color: #E8F4FF !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    border-bottom: 1px solid rgba(56,189,248,0.08) !important;
 }
-[data-testid="stDataFrame"] [role="row"]:nth-child(even) [role="gridcell"] {
-    background: rgba(12,15,22,0.78) !important;
-}
+/* Hover row */
 [data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"] {
-    background: rgba(244,185,66,0.06) !important;
+    background: rgba(56,189,248,0.10) !important;
 }
+/* Scrollbars inside dataframe */
 [data-testid="stDataFrame"] ::-webkit-scrollbar { width: 4px; height: 4px; }
-[data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: var(--void); }
-[data-testid="stDataFrame"] ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
-[data-testid="stDataFrameResizable"] tr:hover td { background: rgba(244,185,66,0.06) !important; }
+[data-testid="stDataFrame"] ::-webkit-scrollbar-track { background: rgba(2,8,22,0.5); }
+[data-testid="stDataFrame"] ::-webkit-scrollbar-thumb {
+    background: var(--cyan-dim);
+    border-radius: 2px;
+}
 
-/* ═══════════════════════════════════════════════════════
-   TYPOGRAPHY
-═══════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: rgba(2,8,22,0.5); }
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(var(--cyan), var(--cyan-bright));
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(56,189,248,0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TYPOGRAPHY — Mission Control data feel
+═══════════════════════════════════════════════════════════ */
 h1 {
-    font-family: 'DM Serif Display', serif !important;
-    font-size: 22px !important; font-weight: 400 !important; font-style: italic !important;
-    color: var(--text-primary) !important; letter-spacing: -0.3px !important;
+    font-family: var(--font-display) !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    letter-spacing: -0.3px !important;
+    text-shadow: 0 0 30px rgba(56,189,248,0.35), 0 0 60px rgba(56,189,248,0.12) !important;
+    margin-bottom: 4px !important;
 }
 h2 {
-    font-family: 'DM Serif Display', serif !important;
-    font-size: 16px !important; font-weight: 400 !important;
-    color: var(--text-primary) !important;
+    font-family: var(--font-display) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--text-body) !important;
+    letter-spacing: 0.2px !important;
 }
 h3 {
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 14px !important; font-weight: 600 !important;
+    font-family: var(--font-ui) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
     color: var(--text-body) !important;
 }
 p, .stMarkdown p {
-    font-family: 'Outfit', sans-serif !important;
+    font-family: var(--font-body) !important;
     color: var(--text-body) !important;
-    line-height: 1.6 !important; font-size: 14px !important;
+    line-height: 1.65 !important;
+    font-size: 14px !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   NEON HEADER / SECTION LABELS — matches HTML .neon-header
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   NEON SECTION HEADERS  .neon-header
+═══════════════════════════════════════════════════════════ */
 .neon-header {
-    font-family: 'DM Mono', monospace !important;
-    font-size: 10px !important; font-weight: 700 !important;
-    text-transform: uppercase !important; letter-spacing: 3px !important;
-    color: var(--gold) !important;
-    padding: 5px 0 10px !important; margin-bottom: 16px !important;
-    display: flex !important; align-items: center !important; gap: 10px !important;
-    position: relative !important;
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3.5px;
+    color: var(--cyan);
+    text-shadow: 0 0 16px rgba(56,189,248,0.7);
+    padding: 5px 0 8px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
 }
 .neon-header::after {
     content: '';
-    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, var(--gold), rgba(244,185,66,0.22), transparent);
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--cyan), rgba(56,189,248,0.3), transparent);
 }
 
-/* ═══════════════════════════════════════════════════════
-   GLASS CARD & PANEL — matches HTML .glass-card
-═══════════════════════════════════════════════════════ */
+/* Enhanced glowing version for dashboard section headers */
+.neon-header-glow {
+    font-size: 11px;
+    color: #FFFFFF !important;
+    text-shadow:
+        0 0 10px rgba(56,189,248,1.0),
+        0 0 20px rgba(56,189,248,0.9),
+        0 0 40px rgba(56,189,248,0.7),
+        0 0 80px rgba(56,189,248,0.4) !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   CARD SYSTEM — The core UI unit
+   .panel = grouped container (replaces scattered sections)
+═══════════════════════════════════════════════════════════ */
 .glass-card, .panel {
-    background: rgba(18,21,28,0.85) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 14px !important; padding: 20px !important;
-    backdrop-filter: blur(24px) saturate(140%) !important;
-    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.05) !important;
-    margin-bottom: 14px !important; position: relative !important;
-    overflow: hidden !important; transition: border-color 0.25s, box-shadow 0.25s !important;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    backdrop-filter: blur(32px) saturate(160%);
+    -webkit-backdrop-filter: blur(32px) saturate(160%);
+    box-shadow:
+        var(--shadow-card),
+        inset 0 1px 0 rgba(255,255,255,0.07),
+        0 0 0 0.5px rgba(56,189,248,0.08);
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
 }
-.glass-card::before, .panel::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(244,185,66,0.20), transparent);
-    opacity: 0; transition: opacity 0.3s;
-}
-.glass-card:hover, .panel:hover { border-color: rgba(244,185,66,0.18) !important; }
-.glass-card:hover::before, .panel:hover::before { opacity: 1; }
+.glass-card:hover, .panel:hover {
+    border-color: var(--border-mid);
+    background: var(--bg-card-hover);
+    box-shadow:
+        var(--shadow-deep),
+        inset 0 1px 0 rgba(255,255,255,0.10),
+        0 0 0 1px rgba(56,189,248,0.12),
+        var(--glow-sm);
 
-/* ═══════════════════════════════════════════════════════
-   METRIC CARDS — matches HTML .metric-card
-═══════════════════════════════════════════════════════ */
-div[data-testid="stMetric"] {
-    background: rgba(18,21,28,0.85) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 14px !important; padding: 18px 20px !important;
-    backdrop-filter: blur(20px) !important;
-    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.04) !important;
-    position: relative !important; overflow: hidden !important;
-    transition: all 0.25s !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   METRIC CARDS — KPI tiles
+═══════════════════════════════════════════════════════════ */
+div[data-testid="stMetric"] {
+    background: var(--bg-card) !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: 14px !important;
+    padding: 18px 16px !important;
+    backdrop-filter: blur(32px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+    box-shadow:
+        var(--shadow-card),
+        inset 0 1px 0 rgba(255,255,255,0.07),
+        0 0 0 0.5px rgba(56,189,248,0.06) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
 div[data-testid="stMetric"]:hover {
-    border-color: rgba(244,185,66,0.20) !important;
-    transform: translateY(-3px) !important;
-    box-shadow: var(--shadow-deep), 0 0 24px rgba(244,185,66,0.08) !important;
+
+    border-color: var(--border-mid) !important;
+    background: var(--bg-card-hover) !important;
+    box-shadow:
+        var(--shadow-deep),
+        0 0 28px rgba(56,189,248,0.22),
+        inset 0 1px 0 rgba(255,255,255,0.12) !important;
 }
 div[data-testid="stMetricValue"] {
-    font-family: 'DM Serif Display', serif !important;
-    font-size: 32px !important; font-weight: 400 !important; font-style: italic !important;
-    color: var(--text-primary) !important; line-height: 1.1 !important;
+    font-family: var(--font-display) !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    text-shadow: 0 0 18px rgba(56,189,248,0.55), 0 0 36px rgba(56,189,248,0.2) !important;
+    letter-spacing: -0.5px !important;
 }
 div[data-testid="stMetricLabel"] {
-    font-family: 'DM Mono', monospace !important;
-    font-size: 10px !important; font-weight: 600 !important;
-    color: var(--text-secondary) !important;
-    text-transform: uppercase !important; letter-spacing: 1.8px !important;
+    font-family: var(--font-ui) !important;
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
 }
 div[data-testid="stMetricDelta"] {
-    font-family: 'DM Mono', monospace !important;
-    font-size: 11px !important; font-weight: 500 !important;
+    font-family: var(--font-body) !important;
+    font-size: 11px !important;
     color: var(--text-muted) !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   TABS — matches HTML .tabs-bar / .tab-btn exactly
-═══════════════════════════════════════════════════════ */
-.stTabs { position: sticky !important; top: 0 !important; z-index: 1000 !important; }
-.stTabs [data-baseweb="tab-list"] {
-    background: rgba(8,9,12,0.95) !important;
-    border-radius: 0 !important; padding: 0 20px !important; gap: 0 !important;
-    border: none !important; border-bottom: 1px solid var(--border) !important;
-    backdrop-filter: blur(32px) !important;
-    box-shadow: 0 1px 0 rgba(244,185,66,0.07), 0 8px 32px rgba(0,0,0,0.4) !important;
-    width: 100% !important; justify-content: center !important;
-    overflow-x: auto !important; scrollbar-width: none !important;
+/* ═══════════════════════════════════════════════════════════
+   TOP NAV — Sticky mission control bar
+═══════════════════════════════════════════════════════════ */
+.stTabs {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
 }
-.stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { display: none; }
+.stTabs [data-baseweb="tab-list"] {
+    background: rgba(1,8,20,0.97) !important;
+    border-radius: 0 !important;
+    padding: 0 20px !important;
+    gap: 0 !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    backdrop-filter: blur(40px) !important;
+    box-shadow:
+        0 1px 0 rgba(56,189,248,0.12),
+        0 8px 32px rgba(0,0,0,0.6) !important;
+    width: 100% !important;
+    justify-content: center !important;
+    position: relative !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+}
+
 .stTabs [data-baseweb="tab"] {
-    border-radius: 0 !important; color: var(--text-muted) !important;
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 12.5px !important; font-weight: 500 !important;
-    letter-spacing: 0.2px !important; text-transform: none !important;
-    padding: 14px 20px !important; border-bottom: 2px solid transparent !important;
-    white-space: nowrap !important; background: transparent !important;
-    transition: color 0.2s, border-color 0.2s !important;
+    border-radius: 0 !important;
+    color: var(--text-dim) !important;
+    font-family: var(--font-ui) !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.4px !important;
+    text-transform: none !important;
+    padding: 14px 18px !important;
+    border-bottom: 2px solid transparent !important;
+    white-space: nowrap !important;
+    background: transparent !important;
+    position: relative !important;
 }
 .stTabs [data-baseweb="tab"]:hover {
     color: var(--text-body) !important;
-    background: rgba(244,185,66,0.03) !important;
-    border-bottom-color: rgba(244,185,66,0.25) !important;
+    background: rgba(56,189,248,0.05) !important;
+    border-bottom-color: rgba(56,189,248,0.35) !important;
 }
 .stTabs [aria-selected="true"] {
-    color: var(--gold-bright) !important;
+    color: #FFFFFF !important;
     background: transparent !important;
-    border-bottom: 2px solid var(--gold) !important;
-    text-shadow: 0 0 16px rgba(244,185,66,0.45) !important;
-    border-top: none !important; border-left: none !important; border-right: none !important;
-    outline: none !important; box-shadow: none !important;
+    border-bottom: 2px solid var(--cyan) !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    outline: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
 }
+/* Suppress Streamlit's own focus/active outline that causes red underline */
 .stTabs [data-baseweb="tab"]:focus,
 .stTabs [data-baseweb="tab"]:focus-visible,
 .stTabs [data-baseweb="tab"]:active {
-    outline: none !important; box-shadow: none !important; border-color: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
 }
-.stTabs [aria-selected="true"]::after { display: none !important; }
-.stTabs [data-baseweb="tab-panel"] { padding: 24px 0 0 !important; animation: fadeUp 0.4s ease both; }
+.stTabs [aria-selected="true"]::after {
+    display: none !important;
+}
+.stTabs [data-baseweb="tab-panel"] {
+    padding: 24px 0 0 !important;
+}
 
-/* Inner / nested tabs — pill style */
-.stTabs .stTabs { position: static !important; top: unset !important; z-index: unset !important; }
+/* ═══════════════════════════════════════════════════════════
+   INNER TABS — nested pill style
+═══════════════════════════════════════════════════════════ */
+.stTabs .stTabs {
+    position: static !important;
+    top: unset !important;
+    z-index: unset !important;
+}
 .stTabs .stTabs [data-baseweb="tab-list"] {
-    background: rgba(14,17,26,0.80) !important;
-    border-radius: 10px !important; padding: 4px !important;
-    border: 1px solid var(--border) !important; border-bottom: 1px solid var(--border) !important;
+    position: relative !important;
+    top: unset !important;
+    z-index: unset !important;
+    background: rgba(4,14,38,0.60) !important;
+    border-radius: 10px !important;
+    padding: 4px !important;
+    gap: 2px !important;
+    border: 1px solid var(--border) !important;
+    border-bottom: 1px solid var(--border) !important;
+    backdrop-filter: blur(20px) !important;
+    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.04) !important;
     overflow-x: unset !important;
 }
+.stTabs .stTabs [data-baseweb="tab-list"]::before { display: none !important; }
 .stTabs .stTabs [data-baseweb="tab"] {
-    border-radius: 8px !important; padding: 8px 16px !important;
-    border-bottom: none !important; font-size: 12px !important;
-    color: var(--text-muted) !important; text-transform: none !important;
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    border-bottom: none !important;
+    font-size: 12px !important;
+    letter-spacing: 0.3px !important;
+    color: var(--text-muted) !important;
 }
 .stTabs .stTabs [data-baseweb="tab"]:hover {
-    background: rgba(244,185,66,0.05) !important; color: var(--text-body) !important;
+    background: rgba(56,189,248,0.08) !important;
+    color: var(--text-body) !important;
     border-bottom: none !important;
 }
 .stTabs .stTabs [aria-selected="true"] {
-    background: rgba(244,185,66,0.09) !important;
-    border: 1px solid rgba(244,185,66,0.30) !important;
-    border-bottom: 1px solid rgba(244,185,66,0.30) !important;
-    color: var(--gold-bright) !important; text-shadow: none !important;
-    box-shadow: none !important;
+    background: linear-gradient(135deg, rgba(56,189,248,0.22), rgba(14,165,233,0.12)) !important;
+    border: 1px solid rgba(56,189,248,0.35) !important;
+    border-bottom: 1px solid rgba(56,189,248,0.35) !important;
+    color: #FFFFFF !important;
+    text-shadow: none !important;
+    box-shadow: 0 0 12px rgba(56,189,248,0.18), inset 0 1px 0 rgba(255,255,255,0.08) !important;
 }
 .stTabs .stTabs [aria-selected="true"]::after { display: none !important; }
-.stTabs .stTabs [data-baseweb="tab-panel"] { padding: 14px 0 0 !important; }
+.stTabs .stTabs [data-baseweb="tab-panel"] {
+    padding: 14px 0 0 !important;
+}
 
-/* ═══════════════════════════════════════════════════════
-   FORM INPUTS — matches HTML .form-input
-═══════════════════════════════════════════════════════ */
-.stTextInput input, .stNumberInput input,
-.stTextArea textarea, .stDateInput input {
-    background: rgba(12,15,22,0.90) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    border-radius: 9px !important; color: var(--text-primary) !important;
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 14px !important; padding: 10px 14px !important;
-    caret-color: var(--gold) !important; transition: all 0.2s !important;
+
+/* ═══════════════════════════════════════════════════════════
+   FORM INPUTS — full theme, always visible text
+═══════════════════════════════════════════════════════════ */
+.stTextInput input,
+.stNumberInput input,
+.stTextArea textarea,
+.stDateInput input {
+    background: rgba(4,16,48,0.92) !important;
+    border: 1.5px solid rgba(56,189,248,0.35) !important;
+    border-radius: 9px !important;
+    color: #E8F4FF !important;
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    padding: 10px 14px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06) !important;
+    caret-color: #38BDF8 !important;
 }
-.stTextInput input::placeholder, .stTextArea textarea::placeholder {
-    color: rgba(122,138,168,0.50) !important; opacity: 1 !important;
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: rgba(123,167,204,0.55) !important;
+    opacity: 1 !important;
 }
-.stTextInput input:focus, .stTextArea textarea:focus,
-.stNumberInput input:focus, .stDateInput input:focus {
-    border-color: rgba(244,185,66,0.55) !important;
-    background: rgba(14,17,26,0.95) !important; color: var(--text-primary) !important;
-    box-shadow: 0 0 0 3px rgba(244,185,66,0.12), 0 0 18px rgba(244,185,66,0.10) !important;
+.stTextInput input:focus,
+.stTextArea textarea:focus,
+.stNumberInput input:focus,
+.stDateInput input:focus {
+    border-color: #38BDF8 !important;
+    background: rgba(6,22,60,0.96) !important;
+    color: #FFFFFF !important;
+    box-shadow:
+        0 0 0 3px rgba(56,189,248,0.18),
+        0 0 18px rgba(56,189,248,0.14),
+        inset 0 1px 0 rgba(255,255,255,0.08) !important;
     outline: none !important;
 }
+/* Ensure typed text is always white */
 .stTextInput input, .stNumberInput input,
 .stTextArea textarea, .stDateInput input {
-    -webkit-text-fill-color: var(--text-primary) !important;
+    -webkit-text-fill-color: #E8F4FF !important;
+}
+.stTextInput input:focus, .stNumberInput input:focus,
+.stTextArea textarea:focus, .stDateInput input:focus {
+    -webkit-text-fill-color: #FFFFFF !important;
 }
 .stTextInput label, .stSelectbox label, .stNumberInput label,
 .stTextArea label, .stDateInput label, .stSlider label,
 .stSelectSlider label, .stRadio label, .stCheckbox label,
 .stMultiSelect label {
-    font-family: 'DM Mono', monospace !important; font-size: 10px !important;
-    font-weight: 700 !important; color: var(--gold) !important;
-    letter-spacing: 1.8px !important; text-transform: uppercase !important;
+    font-family: var(--font-ui) !important;
+    font-size: 11px !important;
+    letter-spacing: 0.4px !important;
+    color: #7DD3FC !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
 }
 
-/* Selectbox & Multiselect — matches HTML .form-select */
-.stSelectbox > div > div, .stMultiSelect > div > div {
-    background: rgba(12,15,22,0.90) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    border-radius: 9px !important; color: var(--text-primary) !important;
-    font-family: 'Outfit', sans-serif !important; font-size: 14px !important;
+/* Selectbox & Multiselect — always themed, never gray */
+.stSelectbox > div > div,
+.stMultiSelect > div > div {
+    background: rgba(4,16,48,0.92) !important;
+    border: 1.5px solid rgba(56,189,248,0.35) !important;
+    border-radius: 9px !important;
+    color: #E8F4FF !important;
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    backdrop-filter: blur(16px) !important;
 }
+/* Selected value text */
 .stSelectbox > div > div > div,
 .stSelectbox [data-baseweb="select"] span,
-[data-baseweb="select"] > div > div { color: var(--text-primary) !important; }
-.stSelectbox > div > div:hover, .stMultiSelect > div > div:hover {
-    border-color: rgba(244,185,66,0.55) !important;
-    box-shadow: 0 0 0 3px rgba(244,185,66,0.12) !important;
+[data-baseweb="select"] > div > div { color: #E8F4FF !important; }
+
+.stSelectbox > div > div:hover,
+.stMultiSelect > div > div:hover {
+    border-color: rgba(56,189,248,0.65) !important;
+    box-shadow: 0 0 14px rgba(56,189,248,0.18) !important;
 }
-[data-baseweb="select"] [role="listbox"], [data-baseweb="popover"] ul {
-    background: #0D0F14 !important;
-    border: 1px solid rgba(244,185,66,0.38) !important;
-    border-radius: 9px !important;
-    box-shadow: var(--shadow-deep) !important;
+/* Dropdown panel */
+[data-baseweb="select"] [role="listbox"],
+[data-baseweb="popover"] ul {
+    background: rgba(2,10,32,0.99) !important;
+    border: 1.5px solid rgba(56,189,248,0.38) !important;
+    border-radius: 10px !important;
+    backdrop-filter: blur(40px) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.90), 0 0 20px rgba(56,189,248,0.10) !important;
 }
-[data-baseweb="select"] [role="option"], [data-baseweb="menu"] li {
-    color: var(--text-body) !important; font-size: 14px !important;
-    background: transparent !important; font-family: 'Outfit', sans-serif !important;
+/* Option items */
+[data-baseweb="select"] [role="option"],
+[data-baseweb="menu"] li {
+    color: #B8D4F0 !important;
+    font-size: 13px !important;
+    background: transparent !important;
 }
-[data-baseweb="select"] [role="option"]:hover, [data-baseweb="menu"] li:hover {
-    background: rgba(244,185,66,0.08) !important; color: var(--text-primary) !important;
+[data-baseweb="select"] [role="option"]:hover,
+[data-baseweb="menu"] li:hover {
+    background: rgba(56,189,248,0.15) !important;
+    color: #FFFFFF !important;
 }
 [data-baseweb="select"] [aria-selected="true"] {
-    background: rgba(244,185,66,0.12) !important; color: var(--gold-bright) !important;
+    background: rgba(56,189,248,0.22) !important;
+    color: #7DD3FC !important;
 }
 /* Multiselect tags */
 .stMultiSelect [data-baseweb="tag"] {
-    background: rgba(244,185,66,0.12) !important;
-    border: 1px solid rgba(244,185,66,0.35) !important;
-    border-radius: 6px !important; color: var(--gold) !important;
-    font-family: 'DM Mono', monospace !important; font-size: 11px !important;
+    background: rgba(56,189,248,0.22) !important;
+    border: 1px solid rgba(56,189,248,0.50) !important;
+    border-radius: 6px !important;
+    color: #7DD3FC !important;
+    font-family: var(--font-body) !important;
+    font-size: 12px !important;
 }
-.stMultiSelect [data-baseweb="tag"] span { color: var(--gold) !important; }
-/* Date picker */
+.stMultiSelect [data-baseweb="tag"] span { color: #7DD3FC !important; }
+/* Date picker popup */
 [data-baseweb="calendar"] {
-    background: #0D0F14 !important;
-    border: 1px solid rgba(244,185,66,0.30) !important;
+    background: rgba(2,10,32,0.99) !important;
+    border: 1.5px solid rgba(56,189,248,0.30) !important;
     border-radius: 12px !important;
 }
-[data-baseweb="calendar"] button { color: var(--text-primary) !important; }
+[data-baseweb="calendar"] button { color: #E8F4FF !important; }
 [data-baseweb="calendar"] [aria-selected="true"] {
-    background: var(--gold) !important; color: var(--ink) !important;
+    background: #38BDF8 !important; color: #020B18 !important;
 }
+/* Radio & Checkbox text */
 .stRadio [data-testid="stWidgetLabel"] p,
-.stRadio label span { color: var(--text-primary) !important; }
-.stCheckbox label span { color: var(--text-body) !important; }
+.stRadio label span { color: #E8F4FF !important; }
+.stCheckbox label span { color: #B8D4F0 !important; }
 
-/* Autofill override */
-input:-webkit-autofill, input:-webkit-autofill:hover,
-input:-webkit-autofill:focus, input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px rgba(12,15,22,0.95) inset !important;
-    -webkit-text-fill-color: var(--text-primary) !important;
-    border-color: rgba(244,185,66,0.50) !important;
+/* ═══════════════════════════════════════════════════════════
+   BUTTONS — layered glass + neon
+═══════════════════════════════════════════════════════════ */
+.stButton button {
+    background: linear-gradient(135deg, rgba(10,60,150,0.70), rgba(6,40,110,0.60)) !important;
+    border: 1.5px solid rgba(56,189,248,0.40) !important;
+    border-radius: 8px !important;
+    color: var(--text-body) !important;
+    font-family: var(--font-ui) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    letter-spacing: 0.3px !important;
+    text-transform: none !important;
+    padding: 8px 18px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+.stButton button:hover {
+    background: linear-gradient(135deg, rgba(14,80,180,0.85), rgba(8,52,140,0.75)) !important;
+    border-color: rgba(56,189,248,0.70) !important;
+    color: #FFFFFF !important;
+
+    box-shadow:
+        0 4px 16px rgba(0,0,0,0.4),
+        0 0 20px rgba(56,189,248,0.20),
+        inset 0 1px 0 rgba(255,255,255,0.12) !important;
+}
+
+/* Form submit buttons — themed, not white */
+.stFormSubmitButton button {
+    background: linear-gradient(135deg, rgba(14,165,233,0.90), rgba(6,80,180,0.80)) !important;
+    border: 1.5px solid rgba(56,189,248,0.70) !important;
+    border-radius: 8px !important;
+    color: #FFFFFF !important;
+    font-family: var(--font-ui) !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    letter-spacing: 0.5px !important;
+    box-shadow: 0 0 20px rgba(56,189,248,0.30), 0 4px 16px rgba(0,0,0,0.4) !important;
+}
+.stFormSubmitButton button:hover {
+    background: linear-gradient(135deg, rgba(56,189,248,0.95), rgba(14,80,200,0.90)) !important;
+    border-color: #38BDF8 !important;
+    box-shadow: 0 0 28px rgba(56,189,248,0.50), 0 4px 20px rgba(0,0,0,0.45) !important;
+    color: #020B18 !important;
+}
+
+/* Autofill — override browser default (yellow/white) with themed dark */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px rgba(4,16,48,0.95) inset !important;
+    -webkit-text-fill-color: #E8F4FF !important;
+    border-color: rgba(56,189,248,0.50) !important;
     transition: background-color 5000s ease-in-out 0s !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   BUTTONS — matches HTML .btn-primary / .btn-ghost / .form-submit
-═══════════════════════════════════════════════════════ */
-.stButton button {
-    background: rgba(30,35,52,0.75) !important;
-    border: 1px solid rgba(255,255,255,0.09) !important;
-    border-radius: 9px !important; color: var(--text-body) !important;
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 13px !important; font-weight: 600 !important;
-    transition: all 0.2s !important; letter-spacing: 0.2px !important;
-}
-.stButton button:hover {
-    border-color: rgba(244,185,66,0.36) !important;
-    color: var(--text-primary) !important;
-    background: rgba(244,185,66,0.09) !important;
-    transform: translateY(-1px) !important;
-}
-.stButton button[kind="primary"] {
-    background: linear-gradient(135deg, var(--gold-dim), var(--gold)) !important;
-    color: var(--ink) !important; border: 1px solid rgba(244,185,66,0.55) !important;
-    box-shadow: 0 0 24px rgba(244,185,66,0.22), 0 4px 16px rgba(0,0,0,0.4) !important;
-    font-weight: 700 !important; font-size: 14px !important;
-}
-.stButton button[kind="primary"]:hover {
-    background: linear-gradient(135deg, var(--gold), var(--gold-bright)) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 0 36px rgba(244,185,66,0.40), 0 4px 20px rgba(0,0,0,0.5) !important;
-    color: var(--ink) !important; border-color: rgba(244,185,66,0.55) !important;
-}
-.stButton button:active { transform: translateY(0) !important; }
+.stButton button:active {
 
-/* Form submit — matches .form-submit */
-.stFormSubmitButton button {
-    width: 100% !important; padding: 13px 24px !important; border-radius: 9px !important;
-    background: linear-gradient(135deg, var(--gold-dim), var(--gold)) !important;
-    color: var(--ink) !important; border: 1px solid rgba(244,185,66,0.55) !important;
-    box-shadow: 0 0 24px rgba(244,185,66,0.26), 0 4px 16px rgba(0,0,0,0.4) !important;
-    font-family: 'Outfit', sans-serif !important; font-size: 14px !important;
-    font-weight: 700 !important; transition: all 0.2s !important;
-}
-.stFormSubmitButton button:hover {
-    background: linear-gradient(135deg, var(--gold), var(--gold-bright)) !important;
-    box-shadow: 0 0 36px rgba(244,185,66,0.42), 0 4px 20px rgba(0,0,0,0.5) !important;
-    transform: translateY(-1px) !important; color: var(--ink) !important;
+    box-shadow: 0 1px 6px rgba(56,189,248,0.18) !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   FORMS — matches HTML .form-section
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   FORMS — glass containers
+═══════════════════════════════════════════════════════════ */
 .stForm {
-    background: rgba(14,17,26,0.88) !important;
-    border: 1px solid rgba(244,185,66,0.15) !important;
-    border-radius: 16px !important; padding: 24px !important;
-    box-shadow: var(--shadow-deep), 0 0 40px rgba(244,185,66,0.04) !important;
-    position: relative !important; overflow: hidden !important;
+    background: var(--bg-card) !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(32px) saturate(160%) !important;
+    padding: 24px !important;
+    box-shadow:
+        var(--shadow-deep),
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        0 0 40px rgba(56,189,248,0.06) !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
-.stForm::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(244,185,66,0.35), transparent);
-}
+
+/* Hide submit hint */
 .stForm small, .stForm [data-testid="InputInstructions"],
 div[data-testid="InputInstructions"], small[data-testid="InputInstructions"] {
-    display: none !important; visibility: hidden !important;
+    display: none !important;
+    visibility: hidden !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   PROGRESS BARS — matches HTML .progress-bar-fill
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   PROGRESS BARS
+═══════════════════════════════════════════════════════════ */
 .stProgress > div > div {
-    background: rgba(12,15,22,0.80) !important; border-radius: 6px !important;
-    height: 7px !important; overflow: hidden !important;
-    border: 1px solid rgba(244,185,66,0.09) !important;
+    background: rgba(4,14,38,0.80) !important;
+    border-radius: 6px !important;
+    height: 7px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(56,189,248,0.12) !important;
 }
 .stProgress > div > div > div {
-    background: linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-bright)) !important;
+    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan), var(--cyan-bright)) !important;
     border-radius: 6px !important;
-    box-shadow: 0 0 12px rgba(244,185,66,0.6), 0 0 28px rgba(244,185,66,0.22) !important;
+    box-shadow: 0 0 12px rgba(56,189,248,0.7), 0 0 24px rgba(56,189,248,0.3) !important;
 }
 
-/* ═══════════════════════════════════════════════════════
+
+/* ═══════════════════════════════════════════════════════════
    SLIDERS
-═══════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 .stSlider [data-baseweb="slider"] [role="slider"] {
-    background: var(--gold) !important;
+    background: var(--cyan) !important;
+    box-shadow: 0 0 10px rgba(56,189,248,0.7), 0 0 20px rgba(56,189,248,0.4) !important;
     border: 2px solid rgba(255,255,255,0.3) !important;
-    box-shadow: 0 0 10px rgba(244,185,66,0.6) !important;
 }
 .stSlider [data-baseweb="slider"] [data-testid="stSliderTrack"] {
-    background: linear-gradient(90deg, var(--gold-dim), var(--gold)) !important;
+    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan)) !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   ALERTS / MESSAGES — matches HTML .alert-*
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   DATAFRAME — precision table
+═══════════════════════════════════════════════════════════ */
+.stDataFrame {
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-card) !important;
+}
+[data-testid="stDataFrameResizable"] {
+    background: rgba(3,10,28,0.92) !important;
+    backdrop-filter: blur(20px) !important;
+}
+[data-testid="stDataFrameResizable"] th {
+    background: rgba(56,189,248,0.09) !important;
+    color: var(--text-body) !important;
+    font-family: var(--font-ui) !important;
+    font-size: 10px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.8px !important;
+    border-bottom: 1px solid var(--border) !important;
+    font-weight: 700 !important;
+}
+[data-testid="stDataFrameResizable"] td {
+    color: var(--text-body) !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    border-bottom: 1px solid rgba(56,189,248,0.05) !important;
+}
+[data-testid="stDataFrameResizable"] tr:hover td {
+    background: rgba(56,189,248,0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ALERTS / MESSAGES
+═══════════════════════════════════════════════════════════ */
 .stSuccess {
     background: rgba(52,211,153,0.08) !important;
-    border: 1px solid rgba(52,211,153,0.22) !important;
-    border-radius: 10px !important; color: var(--success) !important;
+    border: 1px solid rgba(52,211,153,0.35) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 18px rgba(52,211,153,0.10) !important;
+    color: #A7F3D0 !important;
 }
 .stError {
     background: rgba(248,113,113,0.08) !important;
-    border: 1px solid rgba(248,113,113,0.22) !important;
+    border: 1px solid rgba(248,113,113,0.35) !important;
     border-radius: 10px !important;
+    box-shadow: 0 0 18px rgba(248,113,113,0.10) !important;
 }
 .stInfo {
-    background: rgba(96,165,250,0.08) !important;
-    border: 1px solid rgba(96,165,250,0.22) !important;
-    border-radius: 10px !important; color: var(--info) !important;
+    background: rgba(56,189,248,0.07) !important;
+    border: 1px solid rgba(56,189,248,0.28) !important;
+    border-radius: 10px !important;
 }
 .stWarning {
-    background: rgba(244,185,66,0.08) !important;
-    border: 1px solid rgba(244,185,66,0.22) !important;
-    border-radius: 10px !important; color: var(--warning) !important;
+    background: rgba(251,191,36,0.08) !important;
+    border: 1px solid rgba(251,191,36,0.30) !important;
+    border-radius: 10px !important;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    CAPTION
-═══════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 .stCaption, [data-testid="stCaptionContainer"] p {
     color: var(--text-muted) !important;
-    font-family: 'DM Mono', monospace !important;
-    font-size: 10px !important; letter-spacing: 0.5px !important;
+    font-family: var(--font-body) !important;
+    font-size: 11px !important;
+    letter-spacing: 0.2px !important;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    CHECKBOXES
-═══════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 .stCheckbox [data-testid="stWidgetLabel"] {
-    color: var(--text-body) !important; font-family: 'Outfit', sans-serif !important;
+    color: var(--text-body) !important;
+    font-family: var(--font-body) !important;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    PLOTLY MODEBAR
-═══════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 .js-plotly-plot .plotly .modebar {
-    background: rgba(10,13,20,0.90) !important;
+    background: rgba(3,10,28,0.85) !important;
     border-radius: 8px !important;
-    border: 1px solid rgba(244,185,66,0.18) !important;
+    border: 1px solid var(--border) !important;
+    backdrop-filter: blur(20px) !important;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    DIVIDERS
-═══════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 hr {
-    border: none !important; height: 1px !important;
-    background: linear-gradient(90deg, transparent, rgba(244,185,66,0.25), transparent) !important;
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, var(--border-mid), transparent) !important;
     margin: 20px 0 !important;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    SPINNER
-═══════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════ */
 .stSpinner > div {
-    border-top-color: var(--gold) !important;
-    border-right-color: rgba(244,185,66,0.3) !important;
+    border-top-color: var(--cyan) !important;
+    border-right-color: rgba(56,189,248,0.3) !important;
     border-bottom-color: transparent !important;
     border-left-color: transparent !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   LEADERBOARD CARDS — .lb-card
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   LEADERBOARD CARDS
+═══════════════════════════════════════════════════════════ */
 .lb-card {
-    background: rgba(18,21,28,0.85);
-    border-radius: 12px; padding: 14px 18px; margin: 6px 0;
-    border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-    position: relative; overflow: hidden; box-shadow: var(--shadow-card);
-    transition: all 0.25s;
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin: 6px 0;
+    border: 1.5px solid var(--border);
+    backdrop-filter: blur(32px) saturate(160%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
 }
+
 .lb-card:hover {
-    border-color: rgba(244,185,66,0.20);
-    box-shadow: var(--shadow-deep), 0 0 24px rgba(244,185,66,0.08);
-    transform: translateY(-2px);
+    border-color: var(--border-mid);
+
+    box-shadow: var(--shadow-deep), 0 0 22px rgba(56,189,248,0.12);
 }
 
-/* ═══════════════════════════════════════════════════════
-   STAT PILLS — matches HTML .badge
-═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   STAT PILLS
+═══════════════════════════════════════════════════════════ */
 .stat-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: rgba(244,185,66,0.11); border: 1px solid rgba(244,185,66,0.28);
-    border-radius: 20px; padding: 3px 9px;
-    font-family: 'DM Mono', monospace; font-size: 10px;
-    color: var(--gold); letter-spacing: 0.4px; font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(56,189,248,0.10);
+    border: 1px solid rgba(56,189,248,0.22);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--cyan-bright);
 }
-.stat-pill:hover { background: rgba(244,185,66,0.18); }
+.stat-pill:hover {
+    background: rgba(56,189,248,0.18);
+    border-color: rgba(56,189,248,0.40);
+}
 
-/* ═══════════════════════════════════════════════════════
-   AUTH PAGE — matches HTML .auth-card
-═══════════════════════════════════════════════════════ */
-.brand-logo { text-align: center; padding: 36px 0 18px; }
+/* ═══════════════════════════════════════════════════════════
+   AUTH PAGE — brand identity
+═══════════════════════════════════════════════════════════ */
+.brand-logo {
+    text-align: center;
+    padding: 36px 0 18px;
+}
 .brand-title {
-    font-family: 'DM Serif Display', serif !important;
-    font-size: 28px !important; font-weight: 400 !important;
-    font-style: italic !important; color: var(--text-primary) !important;
-    letter-spacing: -0.4px !important; line-height: 1.2 !important;
+    font-family: var(--font-display) !important;
+    font-size: 30px !important;
+    font-weight: 900 !important;
+    color: var(--cyan-bright) !important;
+    letter-spacing: -0.5px !important;
+    line-height: 1.1 !important;
 }
 .brand-tagline {
-    font-family: 'DM Mono', monospace; font-size: 10px;
-    color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase;
-    margin-top: 4px;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 6px;
 }
 
-/* ═══════════════════════════════════════════════════════
-   SIDEBAR
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR (hidden but styled if ever shown)
+═══════════════════════════════════════════════════════════ */
 [data-testid="stSidebar"] {
-    background: rgba(13,15,20,0.98) !important;
+    background: rgba(1,6,18,0.98) !important;
     border-right: 1px solid var(--border) !important;
+    backdrop-filter: blur(40px) !important;
 }
 [data-testid="stSidebar"] * { color: var(--text-primary) !important; }
 
-/* ═══════════════════════════════════════════════════════
-   SUBJECT CARDS — matches HTML .subj-card
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   SUBJECT PROGRESS MINI-CARDS — in dashboard
+═══════════════════════════════════════════════════════════ */
 .subj-card {
-    background: rgba(18,21,28,0.85);
-    border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px 14px; text-align: center;
-    position: relative; overflow: hidden; transition: all 0.25s;
-}
-.subj-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    opacity: 0; transition: opacity 0.3s;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
 }
 .subj-card:hover {
-    border-color: rgba(244,185,66,0.20); transform: translateY(-3px);
-    box-shadow: var(--shadow-deep), 0 0 16px rgba(244,185,66,0.08);
-}
-.subj-card:hover::before { opacity: 1; }
 
-/* ═══════════════════════════════════════════════════════
-   TOPIC ROWS — matches HTML .topic-row
-═══════════════════════════════════════════════════════ */
+    border-color: var(--border-mid);
+    box-shadow: var(--shadow-deep), var(--glow-sm);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   TOPIC ROW CARDS — in revision tracker
+═══════════════════════════════════════════════════════════ */
 .topic-row {
-    background: rgba(18,21,28,0.85); border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px 14px; margin: 4px 0;
-    display: flex; align-items: center; gap: 12px;
-    position: relative; overflow: hidden; transition: all 0.2s;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
 }
-.topic-row:hover { border-color: rgba(244,185,66,0.16); background: rgba(24,28,38,0.92); }
+.topic-row:hover {
+    border-color: var(--border-mid);
+    background: var(--bg-card-hover);
 
-/* ═══════════════════════════════════════════════════════
-   BADGE PILLS — matches HTML .badge / .badge-*
-═══════════════════════════════════════════════════════ */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATUS BADGE PILLS
+═══════════════════════════════════════════════════════════ */
 .badge-pill {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 9px; border-radius: 20px;
-    font-size: 10px; font-weight: 700;
-    font-family: 'DM Mono', monospace; letter-spacing: 0.4px; border: 1px solid;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-ui);
+    letter-spacing: 0.4px;
+    border: 1px solid;
 }
-.badge-reading  { background: rgba(45,212,191,0.11); color: var(--teal);    border-color: rgba(45,212,191,0.26); }
-.badge-complete { background: rgba(52,211,153,0.11); color: var(--success); border-color: rgba(52,211,153,0.26); }
-.badge-pending  { background: rgba(148,163,184,0.08); color: #94A3B8;       border-color: rgba(148,163,184,0.20); }
-.badge-overdue  { background: rgba(248,113,113,0.11); color: var(--danger);  border-color: rgba(248,113,113,0.26); }
-.badge-due-today{ background: rgba(244,185,66,0.11);  color: var(--gold);    border-color: rgba(244,185,66,0.28); }
+.badge-reading  { background: rgba(56,189,248,0.14);  color: var(--cyan);  border-color: rgba(56,189,248,0.35); }
+.badge-complete { background: rgba(52,211,153,0.14);  color: var(--green); border-color: rgba(52,211,153,0.35); }
+.badge-pending  { background: rgba(148,163,184,0.10); color: #94A3B8;       border-color: rgba(148,163,184,0.25); }
+.badge-overdue  { background: rgba(248,113,113,0.14); color: var(--red);   border-color: rgba(248,113,113,0.35); }
+.badge-due-today{ background: rgba(251,191,36,0.14);  color: var(--gold);  border-color: rgba(251,191,36,0.35); }
 
-/* ═══════════════════════════════════════════════════════
-   DOWNLOAD BUTTONS — gold outline style
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   DOWNLOAD BUTTONS — match neon theme
+═══════════════════════════════════════════════════════════ */
 .stDownloadButton button {
-    background: rgba(30,35,52,0.75) !important;
-    border: 1px solid rgba(244,185,66,0.28) !important;
-    border-radius: 9px !important; color: var(--gold) !important;
-    font-family: 'DM Mono', monospace !important;
-    font-size: 11px !important; font-weight: 700 !important;
+    background: linear-gradient(135deg, rgba(6,30,100,0.80), rgba(4,20,70,0.70)) !important;
+    border: 1.5px solid rgba(56,189,248,0.45) !important;
+    border-radius: 8px !important;
+    color: #7DD3FC !important;
+    font-family: var(--font-ui) !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4), 0 0 16px rgba(56,189,248,0.10), inset 0 1px 0 rgba(255,255,255,0.07) !important;
 }
 .stDownloadButton button:hover {
-    background: rgba(244,185,66,0.10) !important;
-    border-color: rgba(244,185,66,0.55) !important; color: var(--gold-bright) !important;
+    background: linear-gradient(135deg, rgba(10,50,160,0.88), rgba(6,30,120,0.78)) !important;
+    border-color: rgba(56,189,248,0.75) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 24px rgba(56,189,248,0.25) !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   EXPANDERS
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   ACCOUNT/PROFILE — replace white glow with lite cyan blue
+═══════════════════════════════════════════════════════════ */
+/* Expander headers */
 .streamlit-expanderHeader {
-    background: rgba(18,21,28,0.85) !important;
-    border: 1px solid var(--border) !important; border-radius: 10px !important;
-    color: var(--text-primary) !important;
-    font-family: 'DM Mono', monospace !important; font-size: 11px !important;
+    background: rgba(4,16,48,0.88) !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
+    border-radius: 10px !important;
+    color: #E8F4FF !important;
 }
 .streamlit-expanderHeader:hover {
-    border-color: rgba(244,185,66,0.36) !important;
-    background: rgba(244,185,66,0.04) !important;
+    border-color: rgba(56,189,248,0.55) !important;
+    box-shadow: 0 0 16px rgba(56,189,248,0.18) !important;
 }
 .streamlit-expanderContent {
-    background: rgba(14,17,26,0.88) !important;
-    border: 1px solid var(--border) !important;
+    background: rgba(3,12,36,0.85) !important;
+    border: 1px solid rgba(56,189,248,0.18) !important;
     border-radius: 0 0 10px 10px !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   REFERRAL / PRICING CARD ELEMENT STYLES
-═══════════════════════════════════════════════════════ */
-.referral-card {
-    background: rgba(244,185,66,0.04); border: 1px solid rgba(244,185,66,0.18);
-    border-radius: 14px; padding: 20px; margin-bottom: 14px;
-}
-.referral-code-box {
-    background: rgba(12,15,22,0.90); border: 1px solid rgba(244,185,66,0.28);
-    border-radius: 10px; padding: 14px 18px;
-    display: flex; align-items: center; justify-content: space-between; margin: 12px 0;
-}
-.referral-code-text {
-    font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 700;
-    color: var(--gold); letter-spacing: 3px;
+/* Form containers in Account — replace generic white box-shadow */
+.stForm {
+    background: rgba(4,14,44,0.85) !important;
+    border: 1.5px solid rgba(56,189,248,0.22) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(32px) saturate(160%) !important;
+    padding: 24px !important;
+    box-shadow:
+        0 8px 40px rgba(0,0,0,0.70),
+        0 0 30px rgba(56,189,248,0.07),
+        inset 0 1px 0 rgba(56,189,248,0.08) !important;
 }
 
-/* ═══════════════════════════════════════════════════════
-   MOBILE
-═══════════════════════════════════════════════════════ */
+/* Mobile: increase tap target sizes */
 @media (max-width: 768px) {
     .stButton button, .stDownloadButton button {
-        min-height: 44px !important; font-size: 13px !important; padding: 10px 16px !important;
+        min-height: 44px !important;
+        font-size: 14px !important;
+        padding: 10px 16px !important;
     }
     .stTextInput input, .stNumberInput input,
     .stTextArea textarea, .stDateInput input {
-        font-size: 16px !important; min-height: 44px !important;
+        font-size: 16px !important; /* prevents iOS zoom */
+        min-height: 44px !important;
     }
-    .stSelectbox > div > div { min-height: 44px !important; font-size: 16px !important; }
-    .stTabs [data-baseweb="tab"] { font-size: 11px !important; padding: 10px 12px !important; }
-    h1 { font-size: 18px !important; }
-    h2 { font-size: 15px !important; }
+    .stSelectbox > div > div {
+        min-height: 44px !important;
+        font-size: 16px !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 12px !important;
+        padding: 6px 8px !important;
+    }
+    h1 { font-size: 22px !important; }
+    h2 { font-size: 18px !important; }
+    .neon-header { font-size: 13px !important; }
     [data-testid="column"] { min-width: 0 !important; }
 }
+/* Metric cards on mobile */
 @media (max-width: 600px) {
-    [data-testid="stMetric"] { padding: 12px !important; }
-    [data-testid="stMetricValue"] { font-size: 24px !important; }
+    [data-testid="stMetric"] {
+        padding: 8px !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 18px !important;
+    }
 }
 
 </style>
@@ -1347,71 +1584,72 @@ if "profile" not in st.session_state:
 def get_exam_date():
     return st.session_state.get("exam_date", date(2027, 1, 1))
 
-# ── PLOTLY DARK THEME — Scholarly Gold ───────────────────────────────────────
+# ── PLOTLY DARK THEME ─────────────────────────────────────────────────────────
 PLOTLY_LAYOUT = dict(
-    paper_bgcolor="rgba(10,13,20,0.98)",
-    plot_bgcolor ="rgba(10,13,20,0.98)",
-    font=dict(family="Outfit, sans-serif", color="#B8C4D8", size=12),
-    title_font=dict(family="DM Mono, monospace", size=14, color="#F0F2F7"),
+    paper_bgcolor="rgba(4,10,28,0.95)",
+    plot_bgcolor ="rgba(4,10,28,0.95)",
+    font=dict(family="DM Sans, sans-serif", color="#C8E5F8", size=12),
+    title_font=dict(family="DM Mono, monospace", size=14, color="#FFFFFF"),
     legend=dict(
-        bgcolor="rgba(18,21,28,0.90)",
-        bordercolor="rgba(244,185,66,0.22)",
+        bgcolor="rgba(6,14,38,0.7)",
+        bordercolor="rgba(56,189,248,0.2)",
         borderwidth=1,
         font=dict(size=11)
     ),
     margin=dict(t=50, b=40, l=40, r=20),
     xaxis=dict(
-        gridcolor="rgba(244,185,66,0.07)",
-        linecolor="rgba(244,185,66,0.20)",
-        tickfont=dict(size=10, family="DM Mono, monospace"),
-        zerolinecolor="rgba(244,185,66,0.10)"
+        gridcolor="rgba(14,60,140,0.12)",
+        linecolor="rgba(56,189,248,0.2)",
+        tickfont=dict(size=10),
+        zerolinecolor="rgba(56,189,248,0.1)"
     ),
     yaxis=dict(
-        gridcolor="rgba(244,185,66,0.07)",
-        linecolor="rgba(244,185,66,0.20)",
-        tickfont=dict(size=10, family="DM Mono, monospace"),
-        zerolinecolor="rgba(244,185,66,0.10)"
+        gridcolor="rgba(14,60,140,0.12)",
+        linecolor="rgba(56,189,248,0.2)",
+        tickfont=dict(size=10),
+        zerolinecolor="rgba(56,189,248,0.1)"
     )
 )
 
 def apply_theme(fig, title="", height=None, extra_layout=None):
     """
-    Safely apply the scholarly dark gold theme to any Plotly figure.
-    Matches ca-tracker-app.html exactly.
+    Safely apply the dark blue theme to any Plotly figure.
+    Uses update_layout with only scalar/safe values, then
+    update_xaxes/update_yaxes separately to avoid validator crashes.
     """
     fig.update_layout(
-        paper_bgcolor="rgba(10,13,20,0.98)",
-        plot_bgcolor ="rgba(10,13,20,0.98)",
+        paper_bgcolor="rgba(4,10,28,0.95)",
+        plot_bgcolor ="rgba(4,10,28,0.95)",
         margin       =dict(t=50, b=40, l=40, r=20),
-        font         =dict(family="Outfit, sans-serif", color="#B8C4D8", size=12),
+        font         =dict(family="DM Sans, sans-serif", color="#C8E5F8", size=12),
         legend       =dict(
-            bgcolor="rgba(18,21,28,0.90)",
-            bordercolor="rgba(244,185,66,0.22)",
+            bgcolor="rgba(6,14,38,0.8)",
+            bordercolor="rgba(56,189,248,0.2)",
             borderwidth=1,
-            font=dict(size=11, color="#B8C4D8")
+            font=dict(size=11, color="#C8E5F8")
         ),
         transition   =dict(duration=0),
     )
     if title:
         fig.update_layout(
             title=dict(text=title,
-                       font=dict(family="DM Mono, monospace", size=14, color="#F0F2F7"))
+                       font=dict(family="DM Mono, monospace", size=14, color="#FFFFFF"))
         )
     if height:
         fig.update_layout(height=height)
     if extra_layout:
         fig.update_layout(**extra_layout)
     fig.update_xaxes(
-        gridcolor="rgba(244,185,66,0.07)",
-        linecolor="rgba(244,185,66,0.20)",
-        tickfont=dict(size=10, family="DM Mono, monospace"),
-        zerolinecolor="rgba(244,185,66,0.10)"
+        gridcolor="rgba(56,189,248,0.07)",
+        linecolor="rgba(56,189,248,0.2)",
+        tickfont=dict(size=10),
+        zerolinecolor="rgba(56,189,248,0.1)"
     )
     fig.update_yaxes(
-        gridcolor="rgba(244,185,66,0.07)",
-        linecolor="rgba(244,185,66,0.20)",
-        tickfont=dict(size=10, family="DM Mono, monospace"),
-        zerolinecolor="rgba(244,185,66,0.10)"
+        gridcolor="rgba(56,189,248,0.07)",
+        linecolor="rgba(56,189,248,0.2)",
+        tickfont=dict(size=10),
+        zerolinecolor="rgba(56,189,248,0.1)"
     )
     return fig
 
@@ -1924,22 +2162,22 @@ def dark_table(df, caption=""):
     cols  = list(df.columns)
     hdr   = "".join(
         f'<th style="padding:9px 14px;text-align:left;font-size:10px;font-weight:700;'
-        f'letter-spacing:0.9px;text-transform:uppercase;color:#FFD166;'
+        f'letter-spacing:0.9px;text-transform:uppercase;color:#7DD3FC;'
         f'background:rgba(6,20,58,0.98);white-space:nowrap;'
-        f'border-bottom:2px solid rgba(244,185,66,0.35)">{c}</th>'
+        f'border-bottom:2px solid rgba(56,189,248,0.35)">{c}</th>'
         for c in cols
     )
     rows_html = ""
     for i, (_, row) in enumerate(df.iterrows()):
         bg = "rgba(8,22,60,0.85)" if i % 2 == 0 else "rgba(4,14,44,0.75)"
         cells = "".join(
-            f'<td style="padding:8px 14px;font-size:12px;color:#F0F2F7;font-weight:500;'
-            f'border-bottom:1px solid rgba(244,185,66,0.10);white-space:nowrap">{str(v)}</td>'
+            f'<td style="padding:8px 14px;font-size:12px;color:#E8F4FF;font-weight:500;'
+            f'border-bottom:1px solid rgba(56,189,248,0.10);white-space:nowrap">{str(v)}</td>'
             for v in row.values
         )
         rows_html += (
             f'<tr style="background:{bg};" '
-            f'onmouseover="this.style.background=\'rgba(244,185,66,0.13)\'" '
+            f'onmouseover="this.style.background=\'rgba(56,189,248,0.13)\'" '
             f'onmouseout="this.style.background=\'{bg}\'">'
             f'{cells}</tr>'
         )
@@ -1948,9 +2186,9 @@ def dark_table(df, caption=""):
         if caption else ""
     )
     st.markdown(f"""
-    <div style="overflow-x:auto;border:1.5px solid rgba(244,185,66,0.25);
+    <div style="overflow-x:auto;border:1.5px solid rgba(56,189,248,0.25);
                 border-radius:10px;background:rgba(4,12,36,0.92);margin-top:6px;
-                box-shadow:0 0 20px rgba(244,185,66,0.08)">
+                box-shadow:0 0 20px rgba(56,189,248,0.08)">
         <table style="width:100%;border-collapse:collapse">
             <thead>
                 <tr>{hdr}</tr>
@@ -3094,10 +3332,10 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         preview_gaps = get_cgsm_gaps(new_r1_days, new_r2_days, new_nrev, new_gf, new_maxg, days_left_preview)
         gaps_str = " → ".join([f"R{i+1}:{g}d" for i, g in enumerate(preview_gaps)])
         st.markdown(f"""
-        <div style="background:rgba(244,185,66,0.07);border:1.5px solid rgba(244,185,66,0.20);
+        <div style="background:rgba(56,189,248,0.07);border:1.5px solid rgba(56,189,248,0.20);
                     border-radius:10px;padding:10px 14px;margin:6px 0;font-size:11px">
             <span style="color:#7BA7CC;font-weight:700">Gap Preview → </span>
-            <span style="color:#FFD166;font-family:'DM Mono',monospace">{gaps_str}</span>
+            <span style="color:#7DD3FC;font-family:'DM Mono',monospace">{gaps_str}</span>
             <span style="color:#6B91B8;margin-left:12px">(capped at {new_maxg}d)</span>
         </div>
         """, unsafe_allow_html=True)
@@ -3311,16 +3549,16 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         if _ref_code:
             _wa_ref_link = f"https://wa.me/?text=Hey!+I%27m+using+CA+Final+Tracker+to+track+my+prep.+Use+my+referral+code+{_ref_code}+when+you+sign+up+%F0%9F%8E%93+Link%3A+YOUR_APP_URL"
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(244,185,66,0.06));
+            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(56,189,248,0.06));
                         border:2px solid rgba(52,211,153,0.40);border-radius:16px;padding:20px;margin-bottom:16px">
                 <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
                             color:#34D399;letter-spacing:2px;margin-bottom:8px">YOUR REFERRAL CODE</div>
                 <div style="font-family:'DM Mono',monospace;font-size:32px;font-weight:900;
-                            color:#F0F2F7;letter-spacing:4px;text-shadow:0 0 20px rgba(52,211,153,0.5);
+                            color:#E8F4FF;letter-spacing:4px;text-shadow:0 0 20px rgba(52,211,153,0.5);
                             margin-bottom:10px">{_ref_code}</div>
                 <div style="font-size:12px;color:#7BA7CC;margin-bottom:14px">
                     Share this code with friends. Earn <b style="color:#FBBF24">+{_bonus_days} bonus days</b> for every friend
-                    who signs up AND subscribes to a <b style="color:#F4B942">{_plan_labels.get(_min_plan,'paid')} plan or higher</b>.
+                    who signs up AND subscribes to a <b style="color:#38BDF8">{_plan_labels.get(_min_plan,'paid')} plan or higher</b>.
                 </div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap">
                     <a href="{_wa_ref_link}" target="_blank" style="text-decoration:none">
@@ -3413,7 +3651,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 with cols[idx % 5]:
                     if is_unlocked:
                         st.markdown(f"""
-                        <div style="background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(244,185,66,0.10));
+                        <div style="background:linear-gradient(135deg,rgba(52,211,153,0.15),rgba(56,189,248,0.10));
                                     border:2px solid rgba(52,211,153,0.50);border-radius:16px;
                                     padding:16px 10px;text-align:center;cursor:default">
                             <div style="font-size:32px;margin-bottom:6px">{item["icon"]}</div>
@@ -3424,7 +3662,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                     else:
                         # Show locked with popover hint
                         st.markdown(f"""
-                        <div style="background:rgba(6,14,38,0.80);border:2px solid rgba(244,185,66,0.12);
+                        <div style="background:rgba(6,14,38,0.80);border:2px solid rgba(56,189,248,0.12);
                                     border-radius:16px;padding:16px 10px;text-align:center;
                                     opacity:0.55;cursor:default" title="{item['desc']}">
                             <div style="font-size:32px;margin-bottom:6px;filter:grayscale(1)">🔒</div>
@@ -3455,7 +3693,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         <div style="text-align:center;padding:60px 30px">
             <div style="font-size:64px;margin-bottom:20px">🚀</div>
             <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;
-                        color:#F4B942;margin-bottom:12px">COMING SOON</div>
+                        color:#38BDF8;margin-bottom:12px">COMING SOON</div>
             <div style="font-size:14px;color:#7BA7CC;max-width:380px;margin:0 auto;line-height:1.8">
                 The Global Leaderboard is under construction.<br>
                 Compete with CA Final students across India.<br><br>
@@ -3464,10 +3702,10 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 📊 Subject-wise leaderboards<br>
                 🎖️ Weekly &amp; all-time rankings
             </div>
-            <div style="margin-top:24px;background:rgba(244,185,66,0.07);
-                        border:2px solid rgba(244,185,66,0.20);border-radius:14px;
+            <div style="margin-top:24px;background:rgba(56,189,248,0.07);
+                        border:2px solid rgba(56,189,248,0.20);border-radius:14px;
                         padding:14px 20px;display:inline-block">
-                <div style="font-size:11px;color:#F4B942;font-family:Helvetica,sans-serif">
+                <div style="font-size:11px;color:#38BDF8;font-family:Helvetica,sans-serif">
                     Stay tuned for the next update!
                 </div>
             </div>
@@ -3484,20 +3722,20 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         st.markdown('<p style="font-size:12px;color:#7BA7CC;margin-bottom:20px">Complete guide to getting the most out of every feature. Bookmark this tab!</p>', unsafe_allow_html=True)
 
         steps = [
-            ("⚙️", "STEP 1 — Account Setup", "#F4B942",
-             "Go to <b style='color:#FFD166'>Settings</b> (this tab) and set your exam month & year. "
+            ("⚙️", "STEP 1 — Account Setup", "#38BDF8",
+             "Go to <b style='color:#7DD3FC'>Settings</b> (this tab) and set your exam month & year. "
              "The countdown timer starts immediately. Customize daily study hour targets per subject if needed. "
              "Your username appears on the dashboard header — make it something motivating!"),
             ("📝", "STEP 2 — Log Study Hours", "#FBBF24",
-             "Every study session → <b style='color:#FFD166'>📝 Log Study</b> tab. Select subject, topic, hours, "
+             "Every study session → <b style='color:#7DD3FC'>📝 Log Study</b> tab. Select subject, topic, hours, "
              "difficulty, and session type. Logging earns XP and advances your level. "
              "Mark topics as <b>Completed</b> when done — this unlocks revision scheduling."),
             ("🔄", "STEP 3 — Track Revisions", "#34D399",
-             "After completing topics, go to <b style='color:#FFD166'>🔄 Revision</b> tab. "
+             "After completing topics, go to <b style='color:#7DD3FC'>🔄 Revision</b> tab. "
              "Your daily revision agenda shows overdue and upcoming topics. Log revision sessions to build memory strength. "
              "The Memory Strength chart shows which topics need re-revision most urgently."),
             ("🏆", "STEP 4 — Add Test Scores", "#818CF8",
-             "After every mock test → <b style='color:#FFD166'>🏆 Add Score</b>. Log subject, score, and action plan. "
+             "After every mock test → <b style='color:#7DD3FC'>🏆 Add Score</b>. Log subject, score, and action plan. "
              "The Dashboard shows score trends so you can see if preparation translates into marks. "
              "Note weak and strong areas for targeted revision."),
             ("📊", "STEP 5 — Read Your Dashboard", "#F87171",
@@ -3505,14 +3743,14 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
              "Subject progress rings show hours vs target. Donut charts in Revision tab show coverage at a glance. "
              "Use 🔄 Refresh button to sync latest data."),
             ("📤", "STEP 6 — Export & Backup", "#60A5FA",
-             "Go to <b style='color:#FFD166'>Settings → Export My Data</b> for CSV downloads of all study logs, "
+             "Go to <b style='color:#7DD3FC'>Settings → Export My Data</b> for CSV downloads of all study logs, "
              "test scores, and revision data. Export regularly to back up your progress. "
              "All data is also stored securely in the cloud (Supabase on AWS)."),
         ]
 
         for i, (icon, title, clr, desc) in enumerate(steps):
             st.markdown(f"""
-            <div style="background:rgba(4,14,44,0.88);border:1.5px solid rgba(244,185,66,0.22);
+            <div style="background:rgba(4,14,44,0.88);border:1.5px solid rgba(56,189,248,0.22);
                         border-left:4px solid {clr};border-radius:14px;padding:18px 20px;margin-bottom:12px;
                         box-shadow:0 2px 12px rgba(0,0,0,0.30)">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -3526,22 +3764,22 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
 
         st.markdown("---")
         st.markdown("""
-        <div style="background:rgba(244,185,66,0.06);border:1px solid rgba(244,185,66,0.25);
+        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.25);
                     border-radius:14px;padding:16px 20px">
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#F4B942;
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#38BDF8;
                         letter-spacing:1.5px;font-weight:700;margin-bottom:12px">❓ FREQUENTLY ASKED QUESTIONS</div>
             <div style="font-size:13px;color:#C8E5F8;line-height:1.8">
-                <b style="color:#FFD166">Q: Can I use CA Final Tracker on mobile?</b><br>
+                <b style="color:#7DD3FC">Q: Can I use CA Final Tracker on mobile?</b><br>
                 A: Yes — the app is mobile-responsive and works in any browser. Just open it on your phone.<br><br>
-                <b style="color:#FFD166">Q: Is my data secure?</b><br>
+                <b style="color:#7DD3FC">Q: Is my data secure?</b><br>
                 A: All data is stored securely on Supabase (hosted on AWS). Private to your account only.<br><br>
-                <b style="color:#FFD166">Q: Can I log hours retroactively?</b><br>
+                <b style="color:#7DD3FC">Q: Can I log hours retroactively?</b><br>
                 A: Yes — enable backdating in Settings to log sessions for past dates.<br><br>
-                <b style="color:#FFD166">Q: How are XP levels calculated?</b><br>
+                <b style="color:#7DD3FC">Q: How are XP levels calculated?</b><br>
                 A: XP = total study + revision hours. Level 25 (Legend) = 890h — the full CA Final target.<br><br>
-                <b style="color:#FFD166">Q: What if I preparing for both groups?</b><br>
+                <b style="color:#7DD3FC">Q: What if I preparing for both groups?</b><br>
                 A: Log all 5 subjects — the app is designed for the full CA Final curriculum simultaneously.<br><br>
-                <b style="color:#FFD166">Q: How to reset if I start over?</b><br>
+                <b style="color:#7DD3FC">Q: How to reset if I start over?</b><br>
                 A: Go to Settings → Danger Zone → Reset Account Data. Profile and login are preserved.
             </div>
         </div>
@@ -3550,8 +3788,8 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
         <div style="text-align:center;padding:16px 0">
-            <span style="font-size:32px;filter:drop-shadow(0 0 14px rgba(244,185,66,0.9))">🎓</span>
-            <div style="font-family:'DM Mono',monospace;font-size:13px;color:#FFD166;margin-top:8px;font-weight:700">
+            <span style="font-size:32px;filter:drop-shadow(0 0 14px rgba(56,189,248,0.9))">🎓</span>
+            <div style="font-family:'DM Mono',monospace;font-size:13px;color:#7DD3FC;margin-top:8px;font-weight:700">
                 CA Final Tracker — Your exam. Your data. Your win.
             </div>
         </div>
@@ -3736,12 +3974,12 @@ def _render_admin_panel():
                     _end_v = _end_date(_plan_sel, _start_sel)
                     _exp_p = _expire_label(_plan_sel, _end_v)
                     st.markdown(f"""
-                    <div style="margin-top:26px;background:rgba(244,185,66,0.08);
-                                border:1px solid rgba(244,185,66,0.30);border-radius:8px;
+                    <div style="margin-top:26px;background:rgba(56,189,248,0.08);
+                                border:1px solid rgba(56,189,248,0.30);border-radius:8px;
                                 padding:8px 12px;text-align:center">
                         <div style="font-size:9px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:2px">EXPIRES</div>
                         <div style="font-size:13px;font-weight:800;
-                                    color:{'#FBBF24' if _PLAN_DUR.get(_plan_sel) is None else '#F4B942'}">{_exp_p}</div>
+                                    color:{'#FBBF24' if _PLAN_DUR.get(_plan_sel) is None else '#38BDF8'}">{_exp_p}</div>
                     </div>""", unsafe_allow_html=True)
 
                 _note_inp = st.text_input("Payment note (optional)",
@@ -3769,7 +4007,7 @@ def _render_admin_panel():
                             st.rerun()
                         except Exception as _de:
                             st.error(f"Error: {_de}")
-                st.markdown("<hr style='border-color:rgba(244,185,66,0.10);margin:8px 0'>", unsafe_allow_html=True)
+                st.markdown("<hr style='border-color:rgba(56,189,248,0.10);margin:8px 0'>", unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -3803,8 +4041,8 @@ def _render_admin_panel():
                 <div style="background:rgba(4,14,38,0.80);border:1px solid rgba(52,211,153,0.20);
                             border-radius:10px;padding:10px 14px;margin-bottom:4px">
                     <span style="color:#34D399;font-size:13px;font-weight:600">{_em}</span>
-                    <span style="color:#F4B942;font-size:11px;margin-left:10px;
-                                 background:rgba(244,185,66,0.10);padding:2px 8px;border-radius:6px">{_plan_lbl}</span>
+                    <span style="color:#38BDF8;font-size:11px;margin-left:10px;
+                                 background:rgba(56,189,248,0.10);padding:2px 8px;border-radius:6px">{_plan_lbl}</span>
                     <span style="color:{_ec};font-size:11px;margin-left:8px;font-weight:700">{_ei} {_et}</span>
                     <span style="color:#7BA7CC;font-size:10px;margin-left:8px">{f'until {_end_str}' if not _is_life else ''}</span>
                     <span style="color:#3A5A7A;font-size:10px;margin-left:8px">approved:{_at}</span>
@@ -3846,7 +4084,7 @@ def _render_admin_panel():
                             st.rerun()
                         except Exception as _de:
                             st.error(f"Error: {_de}")
-                st.markdown("<hr style='border-color:rgba(244,185,66,0.08);margin:4px 0'>", unsafe_allow_html=True)
+                st.markdown("<hr style='border-color:rgba(56,189,248,0.08);margin:4px 0'>", unsafe_allow_html=True)
 
         # ══════════════════════════════════════════════════════════════════
         # REVOKED USERS
@@ -3890,10 +4128,10 @@ def _render_admin_panel():
 
         st.markdown("---")
         st.markdown("""
-        <div style="background:rgba(244,185,66,0.06);border:1px solid rgba(244,185,66,0.22);
+        <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);
                     border-radius:12px;padding:14px 18px">
             <div style="font-size:12px;color:#7BA7CC;line-height:1.9">
-                ℹ️ <b style="color:#F4B942">Workflow:</b><br>
+                ℹ️ <b style="color:#38BDF8">Workflow:</b><br>
                 1. User signs up → auto-added as <b style="color:#FBBF24">Pending</b> (free trial starts)<br>
                 2. User pays via UPI → sends payment screenshot to WhatsApp / Email<br>
                 3. You verify → select plan + date → click <b>✅ Approve</b> (referral bonus auto-applied)<br>
@@ -3946,7 +4184,7 @@ def _render_admin_panel():
                     "original_price": _p_orig,
                     "discount_pct":   _p_disc,
                     "badge":          _p_badge,
-                    "color":          _pp.get("color", "#F4B942"),
+                    "color":          _pp.get("color", "#38BDF8"),
                 }
 
             st.markdown("---")
@@ -4049,7 +4287,7 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
 
     heading_html = f"""
       <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:900;
-                  color:#F0F2F7;text-align:center;margin-bottom:6px">Choose Your Plan</div>
+                  color:#E8F4FF;text-align:center;margin-bottom:6px">Choose Your Plan</div>
       <div style="font-size:12px;color:#7BA7CC;text-align:center;
                   margin-bottom:{'6' if fomo_on and fomo else '20'}px">
         One-time payment &middot; No auto-renewal &middot; Lifetime access stays forever
@@ -4072,13 +4310,13 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
         price        = int(p.get("price", 0))
         orig         = int(p.get("original_price", price))
         badge        = p.get("badge", "")
-        color        = p.get("color", "#F4B942")
+        color        = p.get("color", "#38BDF8")
         disc         = int(p.get("discount_pct", 0))
         is_pop       = (pk == "1yr")
         border       = f"2px solid {color}b3" if is_pop else f"1.5px solid {color}66"
         shadow       = f"box-shadow:0 0 28px {color}40;" if is_pop else ""
         pop_tag      = f"""<div style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);
-                            background:linear-gradient(90deg,#C4922A,#F4B942);color:#0D0F14;
+                            background:linear-gradient(90deg,#0EA5E9,#38BDF8);color:#020B18;
                             font-size:9px;font-weight:800;padding:3px 13px;border-radius:20px;
                             letter-spacing:1px;white-space:nowrap">&#11088; MOST POPULAR</div>""" if is_pop else ""
         disc_tag     = f"""<div style="position:absolute;top:-10px;right:10px;background:#F87171;
@@ -4115,7 +4353,7 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
           {disc_tag}
           <div style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;
                       color:{color};letter-spacing:2px;margin-bottom:10px;{mt}">{badge}</div>
-          <div style="font-size:28px;font-weight:900;color:#F0F2F7;line-height:1.1">
+          <div style="font-size:28px;font-weight:900;color:#E8F4FF;line-height:1.1">
             {strike}&#8377;{price}
           </div>
           <div style="font-size:11px;color:#7BA7CC;margin:5px 0 14px">{label}</div>
@@ -4127,7 +4365,7 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
           </div>
           <div style="font-size:10px;color:{color};font-weight:600;margin-bottom:14px">{rate}</div>
           <a href="{rzp_url}" target="_blank" style="
-              display:block;background:{color};color:#0D0F14;
+              display:block;background:{color};color:#020B18;
               font-weight:800;font-size:12px;text-align:center;
               padding:10px 0;border-radius:8px;text-decoration:none;">
             Subscribe Now
@@ -4143,15 +4381,15 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
     &middot; Access granted <b style="color:#34D399">automatically</b> within seconds.<br>
     <span style="font-size:10px;color:#3A5A7A">
       Pay with the same email as your CA Tracker account:
-      <b style="color:#F4B942">{wa_email}</b>
+      <b style="color:#38BDF8">{wa_email}</b>
     </span>
   </div>"""
     else:
         _payment_html = f"""
-  <div style="background:rgba(244,185,66,0.07);border:1px solid rgba(244,185,66,0.28);
+  <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.28);
               border-radius:12px;padding:14px 16px;margin-top:4px">
     <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
-                color:#F4B942;letter-spacing:1.5px;margin-bottom:10px">HOW TO SUBSCRIBE</div>
+                color:#38BDF8;letter-spacing:1.5px;margin-bottom:10px">HOW TO SUBSCRIBE</div>
     <div style="font-size:12px;color:#C8E5F8;line-height:2.0">
       <b style="color:#34D399">Step 1:</b> Pay via UPI / GPay / PhonePe to <b style="color:#FBBF24">8700428090</b><br>
       <b style="color:#34D399">Step 2:</b> Screenshot the payment confirmation<br>
@@ -4159,7 +4397,7 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
       &nbsp;&nbsp;&#128241; <a href="{wa_msg}" target="_blank"
            style="color:#25D366;font-weight:700">WhatsApp: +91 8700428090</a><br>
       &nbsp;&nbsp;&#128231; <a href="{mail_to}"
-           style="color:#F4B942;font-weight:700">{PAYMENT_EMAIL}</a><br>
+           style="color:#38BDF8;font-weight:700">{PAYMENT_EMAIL}</a><br>
       <b style="color:#34D399">Step 4:</b> Admin approves &mdash; you get instant access!
     </div>
   </div>
@@ -4247,7 +4485,7 @@ def auth_page():
             st.markdown("""
             <div class="brand-logo">
                 <div style="font-size:52px;margin-bottom:8px;line-height:1;
-                            filter:drop-shadow(0 0 18px rgba(244,185,66,0.90)) drop-shadow(0 0 36px rgba(244,185,66,0.55));">
+                            filter:drop-shadow(0 0 18px rgba(56,189,248,0.90)) drop-shadow(0 0 36px rgba(56,189,248,0.55));">
                     🎓
                 </div>
                 <div class="brand-title">CA FINAL TRACKER</div>
@@ -4258,7 +4496,7 @@ def auth_page():
             _cfg  = get_pricing_cfg()
             _fomo = _cfg.get("fomo_message","") if _cfg.get("fomo_enabled", True) else ""
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(244,185,66,0.08));
+            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(56,189,248,0.08));
                         border:1px solid rgba(52,211,153,0.35);
                         border-radius:12px;padding:10px 16px;margin-bottom:{'4' if _fomo else '12'}px;text-align:center">
                 <div style="font-size:13px;color:#34D399;font-weight:700;line-height:1.6">
@@ -4380,12 +4618,12 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
     from reportlab.platypus.flowables import Flowable
 
     # ── Palette ────────────────────────────────────────────────────────────────
-    BG     = colors.HexColor("#0D0F14")
+    BG     = colors.HexColor("#020B18")
     CARD   = colors.HexColor("#061434")
     CARD2  = colors.HexColor("#071838")
     NAVY2  = colors.HexColor("#0A1F55")
-    CYAN   = colors.HexColor("#F4B942")
-    CYAN_L = colors.HexColor("#FFD166")
+    CYAN   = colors.HexColor("#38BDF8")
+    CYAN_L = colors.HexColor("#7DD3FC")
     GREEN  = colors.HexColor("#34D399")
     GOLD   = colors.HexColor("#FBBF24")
     RED    = colors.HexColor("#F87171")
@@ -5293,7 +5531,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
     st.markdown('<div class="neon-header neon-header-glow">📖 First Reading Progress</div>', unsafe_allow_html=True)
     cols = st.columns(5)
     subj_bg = {
-        "FR":  ("rgba(125,211,252,0.12)", "#FFD166", "rgba(125,211,252,0.5)"),
+        "FR":  ("rgba(125,211,252,0.12)", "#7DD3FC", "rgba(125,211,252,0.5)"),
         "AFM": ("rgba(52,211,153,0.12)",  "#34D399", "rgba(52,211,153,0.5)"),
         "AA":  ("rgba(251,191,36,0.12)",  "#FBBF24", "rgba(251,191,36,0.5)"),
         "DT":  ("rgba(248,113,113,0.12)", "#F87171", "rgba(248,113,113,0.5)"),
@@ -5330,14 +5568,14 @@ def dashboard(log, tst, rev, rev_sess, pend):
                             margin-bottom:10px">{SUBJ_FULL[s]}</div>
                 <div style="background:rgba(14,60,140,0.30);border-radius:6px;
                             height:8px;overflow:hidden;margin-bottom:8px;
-                            border:1px solid rgba(244,185,66,0.12)">
+                            border:1px solid rgba(56,189,248,0.12)">
                     <div style="width:{pct:.0f}%;height:100%;border-radius:6px;
                                 background:linear-gradient(90deg,{clr}99,{clr});
                                 box-shadow:0 0 12px {glow};"></div>
                 </div>
                 <div style="font-family:'DM Mono',monospace;font-size:17px;
                             font-weight:700;color:#FFFFFF;
-                            text-shadow:0 0 18px rgba(244,185,66,0.65)">{pct:.0f}%</div>
+                            text-shadow:0 0 18px rgba(56,189,248,0.65)">{pct:.0f}%</div>
                 <div style="font-size:10px;color:#93C8E8;margin-top:3px;font-weight:600">
                     {done:.0f}h / {tgt}h
                 </div>
@@ -5395,7 +5633,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                                 text-shadow:0 0 12px {glow_rev}">{s}</div>
                     <div style="background:rgba(14,60,140,0.30);border-radius:5px;
                                 height:6px;overflow:hidden;margin-bottom:6px;
-                                border:1px solid rgba(244,185,66,0.12)">
+                                border:1px solid rgba(56,189,248,0.12)">
                         <div style="width:{rev_pct:.0f}%;height:100%;border-radius:5px;
                                     background:linear-gradient(90deg,#34D39988,#34D399);
                                     box-shadow:0 0 10px rgba(52,211,153,0.7)"></div>
@@ -5405,8 +5643,8 @@ def dashboard(log, tst, rev, rev_sess, pend):
                     <div style="font-size:10px;color:#93C8E8;margin-top:2px;font-weight:600">
                         {rev_rounds}/{max_rounds} rounds
                     </div>
-                    <div style="font-size:10px;color:#F4B942;margin-top:3px;font-weight:600;
-                                text-shadow:0 0 8px rgba(244,185,66,0.7)">
+                    <div style="font-size:10px;color:#38BDF8;margin-top:3px;font-weight:600;
+                                text-shadow:0 0 8px rgba(56,189,248,0.7)">
                         ⏱ {rev_hrs:.1f}h / {total_req_hrs:.1f}h
                     </div>
                 </div>
@@ -5451,12 +5689,12 @@ def dashboard(log, tst, rev, rev_sess, pend):
                     <div style="display:flex;justify-content:space-around">
                         <div>
                             <div style="font-size:16px;font-weight:700;color:#FFFFFF;
-                                        text-shadow:0 0 10px rgba(244,185,66,0.5)">{topics_studied}</div>
+                                        text-shadow:0 0 10px rgba(56,189,248,0.5)">{topics_studied}</div>
                             <div style="font-size:9px;color:#7BA7CC">Topics</div>
                         </div>
                         <div>
-                            <div style="font-size:16px;font-weight:700;color:#F4B942;
-                                        text-shadow:0 0 10px rgba(244,185,66,0.7)">{total_revs}</div>
+                            <div style="font-size:16px;font-weight:700;color:#38BDF8;
+                                        text-shadow:0 0 10px rgba(56,189,248,0.7)">{total_revs}</div>
                             <div style="font-size:9px;color:#7BA7CC">Revisions</div>
                         </div>
                         <div>
@@ -5524,14 +5762,14 @@ def dashboard(log, tst, rev, rev_sess, pend):
                             font-weight:800;color:{_pc};margin-bottom:6px">{_phase_info["label"]}</div>
                 <div style="font-size:11px;color:#93C8E8;line-height:1.5">{_phase_info["desc"]}</div>
                 <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
-                    <div style="font-size:10px;background:rgba(244,185,66,0.08);
-                                border:1px solid rgba(244,185,66,0.20);border-radius:6px;
-                                padding:3px 8px;color:#FFD166">
+                    <div style="font-size:10px;background:rgba(56,189,248,0.08);
+                                border:1px solid rgba(56,189,248,0.20);border-radius:6px;
+                                padding:3px 8px;color:#7DD3FC">
                         📊 Syllabus: {_frp*100:.0f}% complete
                     </div>
-                    <div style="font-size:10px;background:rgba(244,185,66,0.08);
-                                border:1px solid rgba(244,185,66,0.20);border-radius:6px;
-                                padding:3px 8px;color:#FFD166">
+                    <div style="font-size:10px;background:rgba(56,189,248,0.08);
+                                border:1px solid rgba(56,189,248,0.20);border-radius:6px;
+                                padding:3px 8px;color:#7DD3FC">
                         📅 Max gap: {_phase_info["effective_max_gap"]}d
                     </div>
                 </div>
@@ -5539,7 +5777,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
             """, unsafe_allow_html=True)
 
         with pw_col:
-            _rv_c = "#34D399" if _pwdam["revision_hrs"] > _pwdam["first_read_hrs"] else "#F4B942"
+            _rv_c = "#34D399" if _pwdam["revision_hrs"] > _pwdam["first_read_hrs"] else "#38BDF8"
             st.markdown(f"""
             <div style="background:rgba(6,14,38,0.85);border:2px solid rgba(52,211,153,0.30);
                         border-radius:14px;padding:16px 18px;height:100%;
@@ -5559,7 +5797,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                     <div style="font-size:16px;color:#3A5A7A">+</div>
                     <div style="text-align:center">
                         <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;
-                                    color:#F4B942;text-shadow:0 0 14px rgba(244,185,66,0.8)">
+                                    color:#38BDF8;text-shadow:0 0 14px rgba(56,189,248,0.8)">
                             {_pwdam["first_read_hrs"]:.1f}h</div>
                         <div style="font-size:9px;color:#7BA7CC;letter-spacing:0.5px">FIRST READ</div>
                     </div>
@@ -5687,11 +5925,11 @@ def dashboard(log, tst, rev, rev_sess, pend):
                 <div style="display:flex;flex-direction:column;gap:5px;font-size:10px">
                     <div style="display:flex;justify-content:space-between">
                         <span style="color:#7BA7CC">Coverage</span>
-                        <span style="color:#F0F2F7;font-weight:700">{rcomp["coverage"]:.0f}%</span>
+                        <span style="color:#E8F4FF;font-weight:700">{rcomp["coverage"]:.0f}%</span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
                         <span style="color:#7BA7CC">Revision Depth</span>
-                        <span style="color:#F0F2F7;font-weight:700">{rcomp["revision_depth"]:.0f}%</span>
+                        <span style="color:#E8F4FF;font-weight:700">{rcomp["revision_depth"]:.0f}%</span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
                         <span style="color:#7BA7CC">Retention Density</span>
@@ -5699,7 +5937,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                     </div>
                     <div style="display:flex;justify-content:space-between">
                         <span style="color:#7BA7CC">Consistency</span>
-                        <span style="color:#F0F2F7;font-weight:700">{rcomp["consistency"]:.0f}%</span>
+                        <span style="color:#E8F4FF;font-weight:700">{rcomp["consistency"]:.0f}%</span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
                         <span style="color:#7BA7CC">Exposure Risk</span>
@@ -5767,7 +6005,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                         border-radius:14px;padding:14px 16px;
                         box-shadow:0 0 16px {_proj_c44}">
                 <div style="font-size:10px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:6px">EXAM READINESS PROJECTION</div>
-                <div style="font-size:11px;color:#F0F2F7;line-height:1.5;margin-bottom:8px">{_projection["message"]}</div>
+                <div style="font-size:11px;color:#E8F4FF;line-height:1.5;margin-bottom:8px">{_projection["message"]}</div>
                 <div style="display:flex;gap:16px;flex-wrap:wrap">
                     <div style="text-align:center">
                         <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:{_proj_c}">{_p_frp:.0f}%</div>
@@ -5833,7 +6071,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                                     border-radius:8px;padding:8px 12px;margin:4px 0;
                                     display:flex;justify-content:space-between;align-items:center">
                             <div>
-                                <div style="font-size:11px;color:#F0F2F7;font-weight:600">{str(row["topic"])[:40]}</div>
+                                <div style="font-size:11px;color:#E8F4FF;font-weight:600">{str(row["topic"])[:40]}</div>
                                 <div style="font-size:9px;color:#7BA7CC">{row["subject"]} · {row["round_label"]}</div>
                             </div>
                             <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
@@ -5849,7 +6087,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
                                         border-radius:8px;padding:8px 12px;margin:4px 0;
                                         display:flex;justify-content:space-between;align-items:center">
                                 <div>
-                                    <div style="font-size:11px;color:#F0F2F7;font-weight:600">{str(row["topic"])[:40]}</div>
+                                    <div style="font-size:11px;color:#E8F4FF;font-weight:600">{str(row["topic"])[:40]}</div>
                                     <div style="font-size:9px;color:#7BA7CC">{row["subject"]} · Not yet revised</div>
                                 </div>
                                 <div style="font-size:10px;font-weight:700;color:#FBBF24">R1 due</div>
@@ -5917,7 +6155,7 @@ def log_study(existing_log, rev_df, rev_sess):
     # ── Status badge ──────────────────────────────────────────────────────────
     status_badges = {
         "not_started": ("⬜ Not Started",  "#94A3B8"),
-        "reading":     ("📖 In Progress",  "#F4B942"),
+        "reading":     ("📖 In Progress",  "#38BDF8"),
         "completed":   ("✅ First Read Complete", "#34D399"),
     }
     badge_txt, badge_clr = status_badges.get(t_status, ("⬜", "#94A3B8"))
@@ -5929,7 +6167,7 @@ def log_study(existing_log, rev_df, rev_sess):
     _badge_cls = _badge_map.get(t_status, "badge-pending")
     st.markdown(
         f'<div style="display:flex;align-items:center;gap:12px;'
-        f'background:var(--bg-card);border:1.5px solid rgba(244,185,66,0.18);'
+        f'background:var(--bg-card);border:1.5px solid rgba(56,189,248,0.18);'
         f'border-radius:10px;padding:10px 16px;margin:8px 0">'
         f'<span class="badge-pill {_badge_cls}">{badge_txt}</span>'
         f'<span style="font-size:12px;color:var(--text-muted)">TFR so far:</span>'
@@ -6323,7 +6561,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                 for _rank, (_, _row) in enumerate(_urgent.iterrows(), 1):
                     _badge_clr = "#F87171" if _row["days_overdue"] > 0 else "#FBBF24"
                     _badge_txt = f"+{_row['days_overdue']}d overdue" if _row["days_overdue"] > 0 else "DUE TODAY"
-                    _subj_clr  = COLORS.get(_row["subject"], "#F4B942")
+                    _subj_clr  = COLORS.get(_row["subject"], "#38BDF8")
                     st.markdown(f"""
                     <div style="display:flex;align-items:center;gap:12px;
                                 padding:10px 14px;margin:5px 0;
@@ -6357,7 +6595,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                 """, unsafe_allow_html=True)
                 for _, _row in _soon.iterrows():
                     _days_away = abs(_row["days_overdue"])
-                    _subj_clr  = COLORS.get(_row["subject"], "#F4B942")
+                    _subj_clr  = COLORS.get(_row["subject"], "#38BDF8")
                     st.markdown(f"""
                     <div style="display:flex;align-items:center;gap:12px;
                                 padding:10px 14px;margin:5px 0;
@@ -6381,7 +6619,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
             _total_agenda = len(_urgent) + len(_soon)
             _est_hrs = round(_total_agenda * 0.75, 1)
             st.markdown(f"""
-            <div style="background:rgba(244,185,66,0.06);border:2px solid rgba(244,185,66,0.20);
+            <div style="background:rgba(56,189,248,0.06);border:2px solid rgba(56,189,248,0.20);
                         border-radius:12px;padding:12px 18px;margin-top:6px;
                         display:flex;justify-content:space-between;align-items:center">
                 <div style="font-size:12px;color:#C8E5F8">
@@ -6443,7 +6681,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
     def _make_donut(vals, labels, colors, title, center_text):
         if sum(vals) == 0:
             vals, labels, colors = [1], ["No Data"], ["#2D3748"]
-        glow_clr = colors[0] if colors else "#F4B942"
+        glow_clr = colors[0] if colors else "#38BDF8"
         fig_d = go.Figure(go.Pie(
             values=vals, labels=labels,
             marker=dict(colors=colors, line=dict(color="rgba(0,0,0,0)", width=0)),
@@ -6504,7 +6742,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
     with _dc1:
         _pct_r = f"{int(_dn_read/_dn_all_topics*100)}%" if _dn_all_topics > 0 else "0%"
         _f1, _gc1 = _make_donut([_dn_read, _dn_not_read], ["Read","Not Read"],
-                                 ["#F4B942","#1E3A5F"], "📖 Topics Read", _pct_r)
+                                 ["#38BDF8","#1E3A5F"], "📖 Topics Read", _pct_r)
         st.plotly_chart(_f1, width='stretch')
     with _dc2:
         _pct_rv = f"{int(_dn_revised/_dn_comp_count*100)}%" if _dn_comp_count > 0 else "0%"
@@ -6533,7 +6771,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
             upcoming_df["days_away"] = upcoming_df["days_overdue"].abs()
 
             def _pend_row_html(row, clr, badge):
-                sc = COLORS.get(row["subject"], "#F4B942")
+                sc = COLORS.get(row["subject"], "#38BDF8")
                 # Get duration from schedule if possible
                 info = completion_info.get((row["subject"], row["topic"]), {})
                 tfr_v = float(info.get("tfr") or 0)
@@ -6621,7 +6859,7 @@ def revision(log_df, rev_df, rev_sess_df, pend):
             stat_lbl  = {"not_started":"⬜ Not Started","reading":"📖 Reading","completed":"✅ Completed"}.get(status, "⬜")
 
             st.markdown(f"""
-            <div style="background:rgba(8,18,50,0.80);border:2px solid rgba(244,185,66,0.25);
+            <div style="background:rgba(8,18,50,0.80);border:2px solid rgba(56,189,248,0.25);
                         border-radius:12px;padding:14px 18px;margin-bottom:12px;
                         display:flex;gap:24px;flex-wrap:wrap">
                 <div><span style="font-size:10px;color:#7BA7CC">Status</span>
@@ -6648,11 +6886,11 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                         hrs = float(row.get("hours", 0))
                         st.markdown(f"""
                         <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
-                                    background:rgba(244,185,66,0.05);border:1px solid rgba(244,185,66,0.15);
-                                    border-left:3px solid #F4B942;border-radius:8px;margin:3px 0">
+                                    background:rgba(56,189,248,0.05);border:1px solid rgba(56,189,248,0.15);
+                                    border-left:3px solid #38BDF8;border-radius:8px;margin:3px 0">
                             <div style="font-size:16px">📖</div>
                             <div style="flex:1;font-size:12px;color:#FFFFFF">{d}</div>
-                            <div style="font-size:11px;color:#F4B942;font-weight:600">⏱ {hrs:.1f}h</div>
+                            <div style="font-size:11px;color:#38BDF8;font-weight:600">⏱ {hrs:.1f}h</div>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -6739,10 +6977,17 @@ def revision(log_df, rev_df, rev_sess_df, pend):
                 key="ms_sort_order"
             )
         with _ms_fc3:
-            _ms_n = st.slider(
-                "Topics to show", min_value=5, max_value=min(len(_ms_labels), 50),
-                value=min(8, len(_ms_labels)), step=1, key="ms_n_bars"
-            )
+            _ms_max = min(len(_ms_labels), 50)
+            _ms_min = min(5, _ms_max)
+            if _ms_min < _ms_max:
+                _ms_n = st.slider(
+                    "Topics to show", min_value=_ms_min, max_value=_ms_max,
+                    value=min(8, _ms_max), step=1, key="ms_n_bars"
+                )
+            else:
+                _ms_n = _ms_max
+                if _ms_max > 0:
+                    st.caption(f"Showing all {_ms_max} topic(s)")
 
         # ── Build filtered + sorted list ─────────────────────────────────────
         _ms_data = list(zip(_ms_labels, _ms_vals, _ms_clrs))
@@ -6839,7 +7084,7 @@ def leaderboard():
             <h2 style="color:#FFFFFF;margin-bottom:10px">Leaderboard is Locked</h2>
             <p style="color:#7BA7CC;max-width:380px;margin:0 auto 20px">
                 You haven't opted in to the leaderboard yet. 
-                Opt in from your <b style='color:#F4B942'>Profile</b> tab to appear on the 
+                Opt in from your <b style='color:#38BDF8'>Profile</b> tab to appear on the 
                 leaderboard and see how others are performing.
             </p>
         </div>
@@ -6879,9 +7124,9 @@ def leaderboard():
     for i, row in lb.iterrows():
         is_me  = row["username"] == my_user
         medal  = medals[i] if i < 3 else f"#{i + 1}"
-        border = "#F4B942" if is_me else (medal_colors.get(i, "rgba(244,185,66,0.15)"))
-        glow   = "rgba(244,185,66,0.2)" if is_me else neon_glow.get(i, "transparent")
-        you    = " · <span style='color:#F4B942;font-size:11px;letter-spacing:1px'>YOU</span>" if is_me else ""
+        border = "#38BDF8" if is_me else (medal_colors.get(i, "rgba(56,189,248,0.15)"))
+        glow   = "rgba(56,189,248,0.2)" if is_me else neon_glow.get(i, "transparent")
+        you    = " · <span style='color:#38BDF8;font-size:11px;letter-spacing:1px'>YOU</span>" if is_me else ""
         rank_style = f"color:{medal_colors.get(i, '#C8D8EE')};font-size:22px" if i < 3 else "color:#7BA7CC;font-size:14px;font-family:'DM Mono',monospace"
 
         st.markdown(f"""
@@ -6907,7 +7152,7 @@ def leaderboard():
     fig = px.bar(
         lb.head(10), x="username", y="total_hours",
         color="total_hours",
-        color_continuous_scale=["#0C2060", "#1D6FD8", "#F4B942"],
+        color_continuous_scale=["#0C2060", "#1D6FD8", "#38BDF8"],
         title="Top 10 — Study Hours",
         text="total_hours"
     )
@@ -6921,44 +7166,6 @@ def leaderboard():
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown(GLASSY_CSS, unsafe_allow_html=True)
-
-# ── TICKER BAR — matches ca-tracker-app.html .ticker-bar exactly ─────────────
-st.markdown("""
-<style>
-@keyframes ticker-scroll {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-}
-.ca-ticker-bar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 999;
-    height: 34px; overflow: hidden;
-    background: rgba(244,185,66,0.06);
-    border-bottom: 1px solid rgba(244,185,66,0.16);
-    display: flex; align-items: center;
-}
-.ca-ticker-track {
-    display: flex; white-space: nowrap;
-    animation: ticker-scroll 30s linear infinite;
-}
-.ca-ticker-item {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 0 40px; font-size: 11px;
-    font-family: 'DM Mono', monospace;
-    color: #F4B942; letter-spacing: 0.4px;
-}
-.ca-ticker-dot { font-size: 5px; opacity: 0.7; }
-</style>
-<div class="ca-ticker-bar">
-  <div class="ca-ticker-track">
-    <span class="ca-ticker-item"><span class="ca-ticker-dot">●</span> Track every hour · Analyse every score · Conquer every exam</span>
-    <span class="ca-ticker-item"><span class="ca-ticker-dot">●</span> CA Final · CA Inter · JEE · NEET</span>
-    <span class="ca-ticker-item"><span class="ca-ticker-dot">●</span> CGSM Revision Engine · XP Gamification · Smart Pendency Alerts</span>
-    <span class="ca-ticker-item"><span class="ca-ticker-dot">●</span> Track every hour · Analyse every score · Conquer every exam</span>
-    <span class="ca-ticker-item"><span class="ca-ticker-dot">●</span> CA Final · CA Inter · JEE · NEET</span>
-    <span class="ca-ticker-item"><span class="ca-ticker-dot">●</span> CGSM Revision Engine · XP Gamification · Smart Pendency Alerts</span>
-  </div>
-</div>
-""", unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
     auth_page()
@@ -6999,7 +7206,7 @@ else:
     _lvl     = _lvl_info["level"]
     _lvl_clr = (
         "#34D399" if _lvl >= 20 else "#60A5FA" if _lvl >= 15 else
-        "#FBBF24" if _lvl >= 10 else "#F4B942" if _lvl >= 5  else "#94A3B8"
+        "#FBBF24" if _lvl >= 10 else "#38BDF8" if _lvl >= 5  else "#94A3B8"
     )
     _lvl_pct = _lvl_info["pct"]
 
@@ -7008,7 +7215,7 @@ else:
         "#34D399": "52,211,153",
         "#60A5FA": "96,165,250",
         "#FBBF24": "251,191,36",
-        "#F4B942": "56,189,248",
+        "#38BDF8": "56,189,248",
         "#94A3B8": "148,163,184",
     }.get(_lvl_clr, "56,189,248")
     _circ = 219.91   # circumference of r=35 circle
@@ -7035,23 +7242,23 @@ else:
         '<svg width="76" height="76" style="position:absolute;top:0;left:0;transform:rotate(-90deg)">'
         '<defs>'
         '<linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">'
-        '<stop offset="0%"   stop-color="#C4922A"/>'
+        '<stop offset="0%"   stop-color="#0EA5E9"/>'
         '<stop offset="50%"  stop-color="#FFFFFF"/>'
-        '<stop offset="100%" stop-color="#FFD166"/>'
+        '<stop offset="100%" stop-color="#7DD3FC"/>'
         '</linearGradient>'
         '</defs>'
-        '<circle cx="38" cy="38" r="35" fill="none" stroke="rgba(244,185,66,0.12)" stroke-width="5"/>'
+        '<circle cx="38" cy="38" r="35" fill="none" stroke="rgba(56,189,248,0.12)" stroke-width="5"/>'
         f'<circle cx="38" cy="38" r="35" fill="none" stroke="url(#ringGrad)" stroke-width="5"'
         f' stroke-linecap="round" stroke-dasharray="{_filled:.2f} {_circ:.2f}"'
-        f' style="filter:drop-shadow(0 0 8px rgba(244,185,66,0.9))">'
+        f' style="filter:drop-shadow(0 0 8px rgba(56,189,248,0.9))">'
         '</circle>'
         '</svg>'
         '<div style="position:absolute;top:6px;left:6px;width:64px;height:64px;'
         'border-radius:50%;background:linear-gradient(135deg,#0C2A6E,#1D5FA8);'
         'display:flex;align-items:center;justify-content:center;'
-        'box-shadow:0 0 18px rgba(244,185,66,0.5)">'
+        'box-shadow:0 0 18px rgba(56,189,248,0.5)">'
         f'<span style="font-family:DM Mono,monospace;font-size:26px;font-weight:900;'
-        f'color:#FFFFFF;text-shadow:0 0 12px rgba(244,185,66,0.8)">{_initial}</span>'
+        f'color:#FFFFFF;text-shadow:0 0 12px rgba(56,189,248,0.8)">{_initial}</span>'
         '</div>'
         '</div>'
     )
@@ -7064,9 +7271,10 @@ else:
         st.markdown(f"""
         <div style="padding:4px 0 0 4px">
             <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:1px">
-                <div style="font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;
-                            font-style:italic;color:var(--text-primary);
-                            letter-spacing:-0.3px;line-height:1.1">{name}</div>
+                <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;
+                            color:#7DD3FC;
+                            text-shadow:0 0 18px rgba(56,189,248,0.7);
+                            letter-spacing:-0.5px;line-height:1.1">{name}</div>
                 <div style="font-size:10px;color:#7BA7CC;align-self:center">@{profile.get("username","")}</div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
@@ -7084,8 +7292,8 @@ else:
                         height:12px;overflow:hidden;position:relative;
                         border:1px solid rgba({_glow_rgb},0.15)">
                 <div style="width:{_lvl_pct:.1f}%;height:100%;border-radius:8px;
-                            background:linear-gradient(90deg,#C4922A,#F4B942,#FFD166);
-                            box-shadow:0 0 14px rgba(244,185,66,0.9),0 0 28px rgba(244,185,66,0.4)">
+                            background:linear-gradient(90deg,#0EA5E9,#38BDF8,#7DD3FC);
+                            box-shadow:0 0 14px rgba(56,189,248,0.9),0 0 28px rgba(56,189,248,0.4)">
                 </div>
             </div>
             <div style="font-size:9px;color:#7BA7CC;margin-top:3px">
@@ -7100,16 +7308,16 @@ else:
         <div style="background:var(--bg-card);border:1.5px solid var(--border-mid);
                     border-radius:14px;padding:8px 10px;text-align:center;
                     position:relative;overflow:hidden;margin-top:4px;
-                    box-shadow:0 0 20px rgba(244,185,66,0.18),var(--shadow-card)">
+                    box-shadow:0 0 20px rgba(56,189,248,0.18),var(--shadow-card)">
             <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:800;
                         color:#FFFFFF;line-height:1;
-                        text-shadow:0 0 20px rgba(244,185,66,0.9),0 0 40px rgba(244,185,66,0.5)">{days_left}</div>
+                        text-shadow:0 0 20px rgba(56,189,248,0.9),0 0 40px rgba(56,189,248,0.5)">{days_left}</div>
             <div style="font-size:8px;color:var(--text-muted);letter-spacing:2.5px;margin-top:3px;font-weight:700">DAYS</div>
-            <div style="font-size:9px;color:var(--gold);margin-top:2px;font-weight:600">{_exam_label}</div>
+            <div style="font-size:9px;color:var(--cyan);margin-top:2px;font-weight:600">{_exam_label}</div>
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<div style='border-bottom:1px solid rgba(244,185,66,0.12);margin:6px 0 10px'></div>",
+    st.markdown("<div style='border-bottom:1px solid rgba(56,189,248,0.12);margin:6px 0 10px'></div>",
                 unsafe_allow_html=True)
 
     # ── FREE TRIAL / SUBSCRIPTION BANNER ─────────────────────────────────────
@@ -7220,14 +7428,14 @@ else:
         st.markdown("---")
         with st.container():
             st.markdown("""
-            <div style="background:rgba(4,20,64,0.95);border:2px solid rgba(244,185,66,0.50);
+            <div style="background:rgba(4,20,64,0.95);border:2px solid rgba(56,189,248,0.50);
                         border-radius:20px;padding:28px 32px;margin-bottom:24px;
-                        box-shadow:0 0 40px rgba(244,185,66,0.20),0 8px 40px rgba(0,0,0,0.60)">
+                        box-shadow:0 0 40px rgba(56,189,248,0.20),0 8px 40px rgba(0,0,0,0.60)">
                 <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-                    <span style="font-size:32px;filter:drop-shadow(0 0 12px rgba(244,185,66,0.8))">🎓</span>
+                    <span style="font-size:32px;filter:drop-shadow(0 0 12px rgba(56,189,248,0.8))">🎓</span>
                     <div>
                         <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:900;
-                                    color:#FFD166;letter-spacing:-0.3px">Welcome to CA Final Tracker!</div>
+                                    color:#7DD3FC;letter-spacing:-0.3px">Welcome to CA Final Tracker!</div>
                         <div style="font-size:12px;color:#7BA7CC;margin-top:2px">Quick start guide — read once, track forever</div>
                     </div>
                 </div>
@@ -7236,63 +7444,63 @@ else:
             _how_cols = st.columns(2)
             with _how_cols[0]:
                 st.markdown("""
-                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(244,185,66,0.25);
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
                             border-radius:14px;padding:18px 20px;height:100%">
-                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#F4B942;
+                    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#38BDF8;
                                 letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 1 — SETUP</div>
                     <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
-                        Go to <b style="color:#FFD166">👤 Account → Settings</b> and set your exam month &amp; year.
+                        Go to <b style="color:#7DD3FC">👤 Account → Settings</b> and set your exam month &amp; year.
                         The countdown timer will start immediately. Set your target hours per subject if they differ from defaults.
                     </div>
                 </div>""", unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("""
-                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(244,185,66,0.25);
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
                             border-radius:14px;padding:18px 20px;height:100%">
                     <div style="font-family:'DM Mono',monospace;font-size:11px;color:#34D399;
                                 letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 3 — LOG REVISION</div>
                     <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
-                        After completing a topic, go to <b style="color:#FFD166">📝 Log Study</b> and mark it as
-                        <b>Completed</b>. Then use <b style="color:#FFD166">🔄 Revision</b> tab to track each revision session.
+                        After completing a topic, go to <b style="color:#7DD3FC">📝 Log Study</b> and mark it as
+                        <b>Completed</b>. Then use <b style="color:#7DD3FC">🔄 Revision</b> tab to track each revision session.
                         The pendency engine will alert you when topics are due for revision.
                     </div>
                 </div>""", unsafe_allow_html=True)
             with _how_cols[1]:
                 st.markdown("""
-                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(244,185,66,0.25);
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
                             border-radius:14px;padding:18px 20px;height:100%">
                     <div style="font-family:'DM Mono',monospace;font-size:11px;color:#FBBF24;
                                 letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 2 — LOG STUDY HOURS</div>
                     <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
-                        Every study session → <b style="color:#FFD166">📝 Log Study</b> tab.
+                        Every study session → <b style="color:#7DD3FC">📝 Log Study</b> tab.
                         Select subject, topic, hours studied, and difficulty. Logging earns XP and advances your level.
                         The Dashboard updates in real time to show progress rings and hours remaining per subject.
                     </div>
                 </div>""", unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("""
-                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(244,185,66,0.25);
+                <div style="background:rgba(4,14,44,0.90);border:1px solid rgba(56,189,248,0.25);
                             border-radius:14px;padding:18px 20px;height:100%">
                     <div style="font-family:'DM Mono',monospace;font-size:11px;color:#818CF8;
                                 letter-spacing:1.5px;font-weight:700;margin-bottom:12px">STEP 4 — TRACK SCORES</div>
                     <div style="font-size:13px;color:#C8E5F8;line-height:1.7">
-                        After every mock test → <b style="color:#FFD166">🏆 Add Score</b> tab. Log marks, subject,
+                        After every mock test → <b style="color:#7DD3FC">🏆 Add Score</b> tab. Log marks, subject,
                         weak/strong areas, and action plan. The Dashboard shows score trends so you can see
                         if your preparation is translating into marks.
                     </div>
                 </div>""", unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("""
-            <div style="background:rgba(244,185,66,0.06);border:1px solid rgba(244,185,66,0.25);
+            <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.25);
                         border-radius:12px;padding:14px 18px;margin-bottom:14px">
                 <div style="font-size:12px;color:#93C8E8;line-height:1.7">
-                    💡 <b style="color:#F4B942">Daily habit tip:</b> Check Dashboard every morning · Log each session immediately after studying ·
+                    💡 <b style="color:#38BDF8">Daily habit tip:</b> Check Dashboard every morning · Log each session immediately after studying ·
                     Review Revision tab weekly · Never let more than 20 topics go unrevised ·
                     Use 🔄 Refresh (top of Dashboard) to sync latest data.
                 </div>
             </div>
             <div style="font-size:11px;color:#7BA7CC;text-align:center">
-                📖 Full guide available anytime in <b style="color:#F4B942">👤 Account → How to Use</b>
+                📖 Full guide available anytime in <b style="color:#38BDF8">👤 Account → How to Use</b>
             </div>
             """, unsafe_allow_html=True)
             if st.button("✅ Got it! Let's go →", key="dismiss_how_to_use", use_container_width=True):
