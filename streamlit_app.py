@@ -1793,7 +1793,7 @@ def do_login(email, password):
         st.session_state["trial_days_left"] = days_left_in_trial(email_clean)
         st.session_state["sub_info"]        = get_subscription_info(email_clean)
 
-        # ── Course module: migrate legacy CA Final users silently ─────────────
+        # ── Course module: migrate legacy users silently ────────────────────────
         if _MODULES_OK:
             ensure_legacy_migration(uid_val)
 
@@ -4443,7 +4443,7 @@ def auth_page():
                             filter:drop-shadow(0 0 18px rgba(56,189,248,0.90)) drop-shadow(0 0 36px rgba(56,189,248,0.55));">
                     🎓
                 </div>
-                <div class="brand-title">CA FINAL TRACKER</div>
+                <div class="brand-title">STUDY TRACKER</div>
                 <div class="brand-tagline">Track · Analyse · Conquer</div>
             </div>
             """, unsafe_allow_html=True)
