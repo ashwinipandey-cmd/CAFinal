@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 st.set_page_config(
     page_title="StudyTracker",
-    page_icon="📚",
+    page_icon="🎓",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -512,7 +512,7 @@ GLASSY_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;700&display=swap');
 
 /* ═══════════════════════════════════════════════════════════
-   ROOT DESIGN TOKENS — Mission Control for CA Finals
+   ROOT DESIGN TOKENS — Mission Control for Exam Prep
    Deep navy base · Electric cyan accents · Precision layout
 ═══════════════════════════════════════════════════════════ */
 :root {
@@ -2163,7 +2163,7 @@ def dark_table(df, caption=""):
 
 # ══════════════════════════════════════════════════════════════════════════════
 # REVISION ENGINE — Controlled Growth Spaced Model (CGSM)
-# Based on the mathematical framework from the CA Final Strategy document.
+# Based on the mathematical framework from the Study Strategy document.
 #
 # Core formula (non-exploding linear acceleration):
 #   d    = g2 − g1            (increment)
@@ -2436,7 +2436,7 @@ def compute_rpi(log_df: pd.DataFrame, rev_df: pd.DataFrame,
                 rev_sess_df: pd.DataFrame, pend_df: pd.DataFrame,
                 prof: dict) -> dict:
     """
-    Readiness Probability Index (RPI) — the elite-level CA Final score.
+    Readiness Probability Index (RPI) — the elite-level exam readiness score.
 
     RPI = 0.30×C + 0.30×RD + 0.20×RDen + 0.10×Cons + 0.10×(1−ExpRisk)
     (Range 0–1, displayed as 0–100)
@@ -2746,7 +2746,7 @@ def compute_exam_projection(log_df: pd.DataFrame, rev_df: pd.DataFrame,
     elif est_cycles < 2:
         status = "at_risk"
         color  = "#FBBF24"
-        msg    = f"Projected only {est_cycles:.1f} revision cycles before exam. CA Final needs minimum 3. Increase revision pace."
+        msg    = f"Projected only {est_cycles:.1f} revision cycles before exam. Most exams need minimum 3. Increase revision pace."
     else:
         status = "on_track"
         color  = "#34D399"
@@ -3653,7 +3653,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                         color:#38BDF8;margin-bottom:12px">COMING SOON</div>
             <div style="font-size:14px;color:#7BA7CC;max-width:380px;margin:0 auto;line-height:1.8">
                 The Global Leaderboard is under construction.<br>
-                Compete with CA Final students across India.<br><br>
+                Compete with students across India.<br><br>
                 <span style="color:#93C8E8">Features planned:</span><br>
                 🏆 Rank by study hours &amp; test scores<br>
                 📊 Subject-wise leaderboards<br>
@@ -3675,7 +3675,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
     # TAB 4 — How to Use
     # ════════════════════════════════
     with ptab4:
-        st.markdown('<div class="neon-header neon-header-glow">ℹ️ How to Use CA Final Tracker</div>', unsafe_allow_html=True)
+        st.markdown('<div class="neon-header neon-header-glow">ℹ️ How to Use StudyTracker</div>', unsafe_allow_html=True)
         st.markdown('<p style="font-size:12px;color:#7BA7CC;margin-bottom:20px">Complete guide to getting the most out of every feature. Bookmark this tab!</p>', unsafe_allow_html=True)
 
         steps = [
@@ -3726,16 +3726,16 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
             <div style="font-family:'DM Mono',monospace;font-size:11px;color:#38BDF8;
                         letter-spacing:1.5px;font-weight:700;margin-bottom:12px">❓ FREQUENTLY ASKED QUESTIONS</div>
             <div style="font-size:13px;color:#C8E5F8;line-height:1.8">
-                <b style="color:#7DD3FC">Q: Can I use CA Final Tracker on mobile?</b><br>
+                <b style="color:#7DD3FC">Q: Can I use StudyTracker on mobile?</b><br>
                 A: Yes — the app is mobile-responsive and works in any browser. Just open it on your phone.<br><br>
                 <b style="color:#7DD3FC">Q: Is my data secure?</b><br>
                 A: All data is stored securely on Supabase (hosted on AWS). Private to your account only.<br><br>
                 <b style="color:#7DD3FC">Q: Can I log hours retroactively?</b><br>
                 A: Yes — enable backdating in Settings to log sessions for past dates.<br><br>
                 <b style="color:#7DD3FC">Q: How are XP levels calculated?</b><br>
-                A: XP = total study + revision hours. Level 25 (Legend) = 890h — the full CA Final target.<br><br>
+                A: XP = total study + revision hours. Level 25 (Legend) = 890h — the full exam target.<br><br>
                 <b style="color:#7DD3FC">Q: What if I preparing for both groups?</b><br>
-                A: Log all 5 subjects — the app is designed for the full CA Final curriculum simultaneously.<br><br>
+                A: Log all 5 subjects — the app is designed for the full curriculum simultaneously.<br><br>
                 <b style="color:#7DD3FC">Q: How to reset if I start over?</b><br>
                 A: Go to Settings → Danger Zone → Reset Account Data. Profile and login are preserved.
             </div>
@@ -3747,7 +3747,7 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         <div style="text-align:center;padding:16px 0">
             <span style="font-size:32px;filter:drop-shadow(0 0 14px rgba(56,189,248,0.9))">🎓</span>
             <div style="font-family:'DM Mono',monospace;font-size:13px;color:#7DD3FC;margin-top:8px;font-weight:700">
-                CA Final Tracker — Your exam. Your data. Your win.
+                StudyTracker — Your exam. Your data. Your win.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -4414,7 +4414,7 @@ def _trial_expired_screen(email: str):
           Your Free Trial Has Ended
         </div>
         <div style="font-size:13px;color:#7BA7CC">
-          You've used your free trial. Subscribe to continue your CA Final journey.
+          You've used your free trial. Subscribe to continue your study journey.
         </div>
       </div>
     """, unsafe_allow_html=True)
@@ -4509,7 +4509,7 @@ def auth_page():
                     )
 
                     st.markdown("---")
-                    st.markdown("**📅 Your CA Final Exam**")
+                    st.markdown("**📅 Your Exam**")
                     ec1, ec2  = st.columns(2)
                     exam_month = ec1.selectbox("Month", ["January", "May", "September"])
                     exam_year  = ec2.selectbox("Year",  [2025, 2026, 2027, 2028], index=2)
@@ -4766,7 +4766,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         cv.setFillColor(MUTED)
         cv.setFont("Helvetica", 6.5)
         cv.drawString(LM, 3*mm,
-            f"CA Final Tracker  |  {name_str}  |  "
+            f"StudyTracker  |  {name_str}  |  "
             f"Generated {date.today().strftime('%d %B %Y')}")
         cv.drawRightString(PW - RM, 3*mm, f"Page {doc_obj.page}")
         cv.restoreState()
@@ -4787,7 +4787,7 @@ def generate_dashboard_pdf(log, tst, rev, rev_sess, pend,
         av,
         [
             Paragraph(name_str, S_H1),
-            Paragraph(f"@{uname_str}  |  CA Final Dashboard Report",
+            Paragraph(f"@{uname_str}  |  StudyTracker Dashboard Report",
                       PS("hs", fontSize=8, textColor=MUTED)),
             sp(2),
             Paragraph(f"Exam: <b>{exam_date.strftime('%B %Y')}</b>  |  "
@@ -7393,7 +7393,7 @@ else:
                     <span style="font-size:32px;filter:drop-shadow(0 0 12px rgba(56,189,248,0.8))">🎓</span>
                     <div>
                         <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:900;
-                                    color:#7DD3FC;letter-spacing:-0.3px">Welcome to CA Final Tracker!</div>
+                                    color:#7DD3FC;letter-spacing:-0.3px">Welcome to StudyTracker!</div>
                         <div style="font-size:12px;color:#7BA7CC;margin-top:2px">Quick start guide — read once, track forever</div>
                     </div>
                 </div>
