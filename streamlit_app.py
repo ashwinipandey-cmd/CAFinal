@@ -4434,53 +4434,85 @@ def _trial_expired_screen(email: str):
 
 def auth_page():
     _auth_slot = st.empty()
+
+    # ── Auth page CSS ─────────────────────────────────────────────────────────
+    st.markdown("""
+    <style>
+    /* Tighten Streamlit default padding on auth page inputs */
+    .auth-wrap .stTextInput > div > div { border-radius:8px !important; }
+    .auth-wrap .stFormSubmitButton button {
+        background:linear-gradient(135deg,#0EA5E9,#38BDF8) !important;
+        color:#fff !important; font-weight:700 !important;
+        border:none !important; border-radius:8px !important;
+        font-size:13px !important; letter-spacing:0.5px !important;
+    }
+    .auth-wrap .stFormSubmitButton button:hover {
+        background:linear-gradient(135deg,#0284C7,#0EA5E9) !important;
+    }
+    /* Compact tab labels */
+    .auth-wrap .stTabs [data-baseweb="tab"] {
+        font-size:12px !important; padding:6px 18px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     with _auth_slot.container():
-        col1, col2, col3 = st.columns([1, 1.8, 1])
-        with col2:
+        # ── 3-column centering: narrow card in middle ─────────────────────────
+        _, mid, _ = st.columns([1, 1.4, 1])
+        with mid:
+            st.markdown('<div class="auth-wrap">', unsafe_allow_html=True)
+
+            # ── Brand header ─────────────────────────────────────────────────
             st.markdown("""
-            <div class="brand-logo">
-                <div style="font-size:52px;margin-bottom:8px;line-height:1;
-                            filter:drop-shadow(0 0 18px rgba(56,189,248,0.90)) drop-shadow(0 0 36px rgba(56,189,248,0.55));">
-                    🎓
-                </div>
-                <div class="brand-title">STUDY TRACKER</div>
-                <div class="brand-tagline">Track · Analyse · Conquer</div>
+            <div style="text-align:center;padding:28px 0 16px">
+                <div style="font-size:44px;line-height:1;margin-bottom:6px;
+                            filter:drop-shadow(0 0 16px rgba(56,189,248,0.85))">🎓</div>
+                <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;
+                            letter-spacing:4px;color:#E0F2FE">STUDY TRACKER</div>
+                <div style="font-size:11px;color:#4A90B8;letter-spacing:2px;
+                            margin-top:4px;text-transform:uppercase">Track · Analyse · Conquer</div>
             </div>
             """, unsafe_allow_html=True)
 
+            # ── Free trial banner ────────────────────────────────────────────
             _cfg  = get_pricing_cfg()
             _fomo = _cfg.get("fomo_message","") if _cfg.get("fomo_enabled", True) else ""
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(56,189,248,0.08));
-                        border:1px solid rgba(52,211,153,0.35);
-                        border-radius:12px;padding:10px 16px;margin-bottom:{'4' if _fomo else '12'}px;text-align:center">
-                <div style="font-size:13px;color:#34D399;font-weight:700;line-height:1.6">
-                    🎁 <b>First {get_free_trial_days()} Days FREE</b> for everyone!
-                </div>
-                <div style="font-size:11px;color:#7BA7CC;margin-top:3px">
-                    Sign up now — no payment needed. Subscribe anytime to continue.
-                </div>
+            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.10),rgba(56,189,248,0.06));
+                        border:1px solid rgba(52,211,153,0.30);border-radius:10px;
+                        padding:8px 14px;margin-bottom:{'4' if _fomo else '10'}px;text-align:center">
+                <span style="font-size:12px;color:#34D399;font-weight:700">
+                    🎁 {get_free_trial_days()} Days FREE
+                </span>
+                <span style="font-size:11px;color:#5A8FAA;margin-left:8px">
+                    · No payment needed to start
+                </span>
             </div>
             """, unsafe_allow_html=True)
+
             if _fomo:
                 st.markdown(f"""
-                <div style="background:linear-gradient(135deg,rgba(248,113,113,0.15),rgba(251,191,36,0.10));
-                            border:1.5px solid rgba(248,113,113,0.45);border-radius:10px;
-                            padding:7px 14px;margin-bottom:12px;text-align:center">
-                    <span style="font-size:12px;font-weight:700;color:#FCA5A5">{_fomo}</span>
+                <div style="background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.35);
+                            border-radius:8px;padding:6px 12px;margin-bottom:8px;text-align:center">
+                    <span style="font-size:11px;font-weight:700;color:#FCA5A5">{_fomo}</span>
                 </div>
                 """, unsafe_allow_html=True)
 
-            tab1, tab2 = st.tabs(["⚡  LOGIN", "🚀  SIGN UP"])
+            # ── Login / Signup tabs ──────────────────────────────────────────
+            tab1, tab2 = st.tabs(["⚡ Login", "🚀 Sign Up"])
 
+            # ── LOGIN ────────────────────────────────────────────────────────
             with tab1:
                 with st.form("login_form"):
-                    email    = st.text_input("Email Address", placeholder="your@email.com")
-                    password = st.text_input("Password", type="password", placeholder="Enter password")
+                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                    email    = st.text_input("Email", placeholder="your@email.com", label_visibility="collapsed")
+                    st.markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
+                    password = st.text_input("Password", type="password", placeholder="Password", label_visibility="collapsed")
+                    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
                     submitted = st.form_submit_button("LOGIN →", use_container_width=True)
                     if submitted:
                         if not email or not password:
-                            st.warning("Please fill in all fields")
+                            st.warning("Please fill in both fields.")
                         else:
                             with st.spinner("Signing in..."):
                                 ok, msg = do_login(email, password)
@@ -4493,44 +4525,42 @@ def auth_page():
                             else:
                                 st.error(msg)
 
+            # ── SIGN UP ──────────────────────────────────────────────────────
             with tab2:
                 with st.form("signup_form"):
+                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
                     c1, c2    = st.columns(2)
                     full_name = c1.text_input("Full Name",  placeholder="Arjun Sharma")
-                    username  = c2.text_input("Username",   placeholder="arjun_ca")
-                    email2    = st.text_input("Email Address", placeholder="your@email.com")
-                    pass2     = st.text_input("Password (min 6 chars)", type="password")
+                    username  = c2.text_input("Username",   placeholder="arjun_st")
+                    email2    = st.text_input("Email", placeholder="your@email.com")
+                    pass2     = st.text_input("Password", type="password", placeholder="Min 6 characters")
 
-                    st.markdown("---")
                     ref_code_input = st.text_input(
-                        "🎁 Referral Code (optional)",
-                        placeholder="e.g. ARJUN-4X9K — gives your friend bonus days!",
-                        help="Got a code from a friend? Enter it here. They earn bonus when you subscribe."
+                        "Referral Code",
+                        placeholder="🎁 Have a referral code? (optional)",
                     )
 
-                    st.markdown("---")
-                    st.markdown("**📅 Your Exam**")
-                    ec1, ec2  = st.columns(2)
-                    exam_month = ec1.selectbox("Month", ["January", "May", "September"])
-                    exam_year  = ec2.selectbox("Year",  [2025, 2026, 2027, 2028], index=2)
+                    ec1, ec2   = st.columns(2)
+                    exam_month = ec1.selectbox("Exam Month", ["January", "May", "September"])
+                    exam_year  = ec2.selectbox("Exam Year",  [2025, 2026, 2027, 2028], index=2)
 
                     month_num      = {"January": 1, "May": 5, "September": 9}[exam_month]
                     preview        = date(int(exam_year), month_num, 1)
                     days_left_exam = max((preview - date.today()).days, 0)
-                    st.info(f"📅 Exam: **{exam_month} {exam_year}** — **{days_left_exam}** days remaining")
+                    st.caption(f"📅 {exam_month} {exam_year} — {days_left_exam} days away")
 
                     submitted2 = st.form_submit_button("CREATE ACCOUNT →", use_container_width=True)
                     if submitted2:
                         if not all([full_name, username, email2, pass2]):
-                            st.warning("Please fill in all fields")
+                            st.warning("Please fill in all fields.")
                         elif len(pass2) < 6:
-                            st.warning("Password must be at least 6 characters")
+                            st.warning("Password must be at least 6 characters.")
                         else:
                             _ref_valid = False; _ref_referrer = ""
                             if ref_code_input.strip():
                                 _ref_valid, _ref_referrer, _ref_err = validate_referral_code(ref_code_input.strip())
                                 if not _ref_valid:
-                                    st.error(f"❌ Referral code error: {_ref_err}")
+                                    st.error(f"❌ Referral code: {_ref_err}")
                                     st.stop()
                             with st.spinner("Creating account..."):
                                 ok, msg = do_signup(email2, pass2, username, full_name, exam_month, exam_year)
@@ -4541,10 +4571,12 @@ def auth_page():
                                     else:
                                         record_referral_use(ref_code_input.strip().upper(),
                                                             email2.strip().lower(), _ref_referrer)
-                                        st.success("🎁 Referral code accepted! Your friend earns a bonus when you subscribe.")
+                                        st.success("🎁 Referral accepted!")
                                 st.success(msg)
                             else:
                                 st.error(msg)
+
+            st.markdown('</div>', unsafe_allow_html=True)
 
     if st.session_state.get("show_paywall_email"):
         _trial_expired_screen(st.session_state["show_paywall_email"])
@@ -6066,7 +6098,7 @@ def dashboard(log, tst, rev, rev_sess, pend):
 # LOG STUDY
 # ══════════════════════════════════════════════════════════════════════════════
 def log_study(existing_log, rev_df, rev_sess):
-    st.markdown("<h1>📝 Log Study Session</h1>", unsafe_allow_html=True)
+    st.markdown('<div class="neon-header neon-header-glow">📝 Log Study Session</div>', unsafe_allow_html=True)
 
     prof         = st.session_state.profile
     r1_ratio     = float(prof.get("r1_ratio",    0.25))
@@ -6076,32 +6108,33 @@ def log_study(existing_log, rev_df, rev_sess):
     if "log_subj" not in st.session_state:
         st.session_state.log_subj = SUBJECTS[0]
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3, c4 = st.columns([1.2, 1.8, 1, 1.2])
     with c1:
         allow_bd = bool(prof.get("allow_backdate", False))
         min_date = date(2020, 1, 1) if allow_bd else date.today() - timedelta(days=3)
-        s_date = st.date_input("📅 Date *", value=date.today(),
+        s_date = st.date_input("📅 Date", value=date.today(),
                                min_value=min_date, max_value=date.today(), key="log_date")
         if allow_bd:
-            st.caption("⚠️ Backdated mode ON — go to Profile to disable")
-        subj = st.selectbox("📚 Subject *", SUBJECTS,
+            st.caption("⚠️ Backdated ON")
+    with c2:
+        subj = st.selectbox("📚 Subject", SUBJECTS,
                             index=SUBJECTS.index(st.session_state.log_subj),
                             format_func=lambda x: f"{x} — {SUBJ_FULL[x]}",
                             key="log_subj_sel")
         if subj != st.session_state.log_subj:
             st.session_state.log_subj = subj
             st.rerun()
-
-    with c2:
-        topic_list = TOPICS.get(st.session_state.log_subj, [])
-        topic = st.selectbox(f"📖 Topic * ({st.session_state.log_subj})", topic_list,
-                             key=f"log_topic_{st.session_state.log_subj}")
-        pages = st.number_input("📄 Pages / Questions Done *", 0, 500, 0, key="log_pages")
-        diff  = st.select_slider("💪 Difficulty *", options=[1,2,3,4,5],
-                                 format_func=lambda x: ["","⭐ Easy","⭐⭐ Moderate",
-                                                        "⭐⭐⭐ Hard","⭐⭐⭐⭐ Tough",
-                                                        "⭐⭐⭐⭐⭐ Brutal"][x],
+    with c3:
+        pages = st.number_input("📄 Pages", 0, 500, 0, key="log_pages")
+    with c4:
+        diff  = st.select_slider("💪 Difficulty", options=[1,2,3,4,5],
+                                 format_func=lambda x: ["","Easy","Moderate",
+                                                        "Hard","Tough","Brutal"][x],
                                  key="log_diff")
+
+    topic_list = TOPICS.get(st.session_state.log_subj, [])
+    topic = st.selectbox(f"📖 Topic ({st.session_state.log_subj})", topic_list,
+                         key=f"log_topic_{st.session_state.log_subj}")
 
     # ── Determine current topic status ────────────────────────────────────────
     t_status   = get_topic_status(subj, topic, rev_df)
@@ -6363,43 +6396,48 @@ def log_study(existing_log, rev_df, rev_sess):
 # ADD SCORE
 # ══════════════════════════════════════════════════════════════════════════════
 def add_test_score(tst):
-    st.markdown("<h1>🏆 Add Test Score</h1>", unsafe_allow_html=True)
+    st.markdown('<div class="neon-header neon-header-glow">🏆 Add Test Score</div>', unsafe_allow_html=True)
 
     if "score_subj" not in st.session_state:
         st.session_state.score_subj = SUBJECTS[0]
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3, c4 = st.columns([1.2, 1.8, 0.9, 0.9])
     with c1:
         allow_bd_s = bool(st.session_state.profile.get("allow_backdate", False))
         min_date_s = date(2020, 1, 1) if allow_bd_s else date.today() - timedelta(days=3)
-        t_date    = st.date_input("📅 Date *", value=date.today(),
+        t_date    = st.date_input("📅 Date", value=date.today(),
                                   min_value=min_date_s, max_value=date.today(),
                                   key="score_date")
         if allow_bd_s:
-            st.caption("⚠️ Backdated mode ON — go to 👤 Profile to disable")
+            st.caption("⚠️ Backdated ON")
+    with c2:
         subj_opts = SUBJECTS + ["All"]
         cur_idx   = subj_opts.index(st.session_state.score_subj) if st.session_state.score_subj in subj_opts else 0
-        subj      = st.selectbox("📚 Subject *", subj_opts,
+        subj      = st.selectbox("📚 Subject", subj_opts,
                                  index=cur_idx,
                                  format_func=lambda x: f"{x} — {SUBJ_FULL.get(x, 'Full Syllabus')}",
                                  key="score_subj_sel")
         if subj != st.session_state.score_subj:
             st.session_state.score_subj = subj
             st.rerun()
-        test_name = st.text_input("📝 Test Name *", placeholder="e.g. ICAI Mock 1 — FR", key="score_name")
+    with c3:
+        marks     = st.number_input("✅ Marks", 0, 200, 0, key="score_marks")
+    with c4:
+        max_marks = st.number_input("📊 Max Marks", 1, 200, 100, key="score_max")
 
-    with c2:
-        marks     = st.number_input("✅ Marks Obtained *", 0, 200, 0, key="score_marks")
-        max_marks = st.number_input("📊 Maximum Marks *",  1, 200, 100, key="score_max")
+    sc1, sc2 = st.columns([2.5, 1])
+    with sc1:
+        test_name = st.text_input("📝 Test Name", placeholder="e.g. ICAI Mock 1 — FR", key="score_name")
+    with sc2:
         pct  = round(marks / max_marks * 100, 1) if max_marks > 0 else 0
         icon = "🟢" if pct >= 60 else ("🟡" if pct >= 50 else "🔴")
         status = "PASS ✅" if pct >= 50 else "FAIL ❌"
-        st.metric("Live Score Preview", f"{icon} {pct}%", status)
+        st.metric("Score", f"{icon} {pct}%", status)
 
     c3, c4 = st.columns(2)
-    weak   = c3.text_area("❌ Weak Areas", placeholder="Topics to revisit...", key="score_weak")
-    strong = c4.text_area("✅ Strong Areas", placeholder="What went well...", key="score_strong")
-    action = st.text_area("📌 Action Plan", placeholder="What will you do differently?", key="score_action")
+    weak   = c3.text_area("❌ Weak Areas", placeholder="Topics to revisit...", height=80, key="score_weak")
+    strong = c4.text_area("✅ Strong Areas", placeholder="What went well...", height=80, key="score_strong")
+    action = st.text_area("📌 Action Plan", placeholder="What will you do differently?", height=70, key="score_action")
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("✅ Save Score", use_container_width=True, key="score_save"):
@@ -6483,7 +6521,7 @@ def add_test_score(tst):
 # REVISION TRACKER
 # ══════════════════════════════════════════════════════════════════════════════
 def revision(log_df, rev_df, rev_sess_df, pend):
-    st.markdown("<h1>🔄 Revision Tracker</h1>", unsafe_allow_html=True)
+    st.markdown('<div class="neon-header neon-header-glow">🔄 Revision Tracker</div>', unsafe_allow_html=True)
 
     prof        = st.session_state.profile
     r1_ratio    = float(prof.get("r1_ratio",    0.25))
