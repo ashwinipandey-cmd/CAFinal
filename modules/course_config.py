@@ -703,3 +703,24 @@ def list_courses_by_category() -> dict[str, list[tuple[str, dict]]]:
 # Legacy mapping — existing CA Final users auto-migrate to this level
 LEGACY_CA_FINAL_LEVEL = "ca_final"
 LEGACY_COURSE_ID      = "ca"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LEGACY CONSTANTS — compatibility shim for streamlit_app.py
+# These mirror the old hardcoded CA Final values so the main app
+# doesn't need to change any of its 89 usages of SUBJECTS, TOPICS etc.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _build_legacy_constants():
+    """Extract CA Final level data into legacy flat constants."""
+    ca_final_subjects = get_default_subjects("ca", "ca_final")
+
+    subjects   = [s["key"] for s in ca_final_subjects]
+    subj_full  = {s["key"]: s["label"] for s in ca_final_subjects}
+    target_hrs = {s["key"]: s["target_hrs"] for s in ca_final_subjects}
+    colors     = {s["key"]: s["color"] for s in ca_final_subjects}
+    topics     = {s["key"]: s["topics"] for s in ca_final_subjects}
+
+    return subjects, subj_full, target_hrs, colors, topics
+
+SUBJECTS, SUBJ_FULL, TARGET_HRS, COLORS, TOPICS = _build_legacy_constants()
