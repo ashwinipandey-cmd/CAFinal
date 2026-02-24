@@ -1793,6 +1793,19 @@ def do_login(email, password):
         st.session_state["trial_days_left"] = days_left_in_trial(email_clean)
         st.session_state["sub_info"]        = get_subscription_info(email_clean)
 
+        # ── Load custom syllabus into SUBJECTS/TOPICS globals ─────────────────
+        import json as _jsn
+        _raw_syl = profile_data.get("custom_syllabus", None)
+        if _raw_syl:
+            try:
+                _syl = _jsn.loads(_raw_syl) if isinstance(_raw_syl, str) else _raw_syl
+                SUBJECTS.clear()
+                SUBJECTS.extend(list(_syl.keys()))
+                TOPICS.clear()
+                TOPICS.update(_syl)
+            except Exception:
+                pass  # fallback to defaults if JSON is corrupt
+
         # ── Course module: migrate legacy users silently ────────────────────────
         if _MODULES_OK:
             ensure_legacy_migration(uid_val)
@@ -2983,7 +2996,8 @@ def update_profile(data):
         new_cols = {"r1_ratio","r2_ratio","num_revisions",
                     "target_hrs_fr","target_hrs_afm","target_hrs_aa","target_hrs_dt","target_hrs_idt",
                     "r1_days","r2_days","growth_factor","max_gap_days","daily_rev_cap",
-                    "study_phase","articleship_end_date","daily_study_hours","prep_mode"}
+                    "study_phase","articleship_end_date","daily_study_hours","prep_mode",
+                    "custom_syllabus"}
         if any(c in err for c in new_cols) or "column" in err.lower():
             safe_data = {k: v for k, v in data.items() if k not in new_cols}
             try:
@@ -3190,6 +3204,107 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
         if _MODULES_OK:
             with st.expander("🎓 Course & Level Management", expanded=False):
                 render_course_settings(st.session_state.get("user_id", ""))
+
+        # ── Subject & Topic Manager ───────────────────────────────────────────
+        with st.expander("📚 Subject & Topic Manager", expanded=False):
+            st.caption("Add, rename or remove subjects and topics. Changes apply immediately to Log Study and Revision dropdowns.")
+
+            import json as _json
+
+            def _load_custom_syllabus():
+                """Load from profile JSON field, fallback to SUBJECTS/TOPICS defaults."""
+                raw = prof.get("custom_syllabus", None)
+                if raw:
+                    try:
+                        return _json.loads(raw) if isinstance(raw, str) else raw
+                    except Exception:
+                        pass
+                # Build default structure from current SUBJECTS/TOPICS
+                return {s: list(TOPICS.get(s, [])) for s in SUBJECTS}
+
+            def _save_custom_syllabus(syllabus: dict):
+                update_profile({"custom_syllabus": _json.dumps(syllabus)})
+                st.session_state.profile["custom_syllabus"] = _json.dumps(syllabus)
+
+            _syllabus = _load_custom_syllabus()
+
+            # ── Subject list ─────────────────────────────────────────────────
+            _subject_keys = list(_syllabus.keys())
+
+            # Add new subject
+            sa1, sa2, sa3 = st.columns([3, 1, 1])
+            _new_subj_key   = sa1.text_input("New Subject Code (short, e.g. FR)", placeholder="e.g. FR", key="sm_new_subj_key").strip().upper()
+            _new_subj_label = sa2.text_input("Full Name", placeholder="Financial Reporting", key="sm_new_subj_label").strip()
+            if sa3.button("➕ Add Subject", key="sm_add_subj"):
+                if _new_subj_key and _new_subj_key not in _syllabus:
+                    _syllabus[_new_subj_key] = []
+                    # Also update SUBJ_FULL and TOPICS globals for this session
+                    SUBJ_FULL[_new_subj_key] = _new_subj_label or _new_subj_key
+                    TOPICS[_new_subj_key]    = []
+                    SUBJECTS.append(_new_subj_key)
+                    _save_custom_syllabus(_syllabus)
+                    st.success(f"Subject '{_new_subj_key}' added.")
+                    st.rerun()
+                elif _new_subj_key in _syllabus:
+                    st.warning("Subject code already exists.")
+                else:
+                    st.warning("Enter a subject code.")
+
+            st.markdown("---")
+
+            # ── Per-subject expanders ─────────────────────────────────────────
+            for _sk in list(_syllabus.keys()):
+                _topics = _syllabus[_sk]
+                _sk_label = SUBJ_FULL.get(_sk, _sk)
+                with st.expander(f"📖 {_sk} — {_sk_label} ({len(_topics)} topics)", expanded=False):
+                    # Rename subject code label
+                    _ren1, _ren2, _ren3 = st.columns([2, 2, 1])
+                    _new_label = _ren1.text_input("Subject Full Name", value=_sk_label, key=f"sm_ren_{_sk}")
+                    if _ren2.button("💾 Save Name", key=f"sm_save_name_{_sk}"):
+                        SUBJ_FULL[_sk] = _new_label
+                        _save_custom_syllabus(_syllabus)
+                        st.success("Name updated.")
+                        st.rerun()
+                    if _ren3.button("🗑 Delete Subject", key=f"sm_del_subj_{_sk}",
+                                    help="Removes subject and all its topics"):
+                        del _syllabus[_sk]
+                        if _sk in SUBJECTS: SUBJECTS.remove(_sk)
+                        if _sk in TOPICS:   del TOPICS[_sk]
+                        if _sk in SUBJ_FULL: del SUBJ_FULL[_sk]
+                        _save_custom_syllabus(_syllabus)
+                        st.warning(f"Subject '{_sk}' deleted.")
+                        st.rerun()
+
+                    st.markdown("**Topics**")
+                    # Add topic
+                    _ta1, _ta2 = st.columns([4, 1])
+                    _new_topic = _ta1.text_input("New Topic", placeholder="e.g. Ind AS 1 – Presentation of FS",
+                                                  key=f"sm_new_topic_{_sk}").strip()
+                    if _ta2.button("➕ Add", key=f"sm_add_topic_{_sk}"):
+                        if _new_topic and _new_topic not in _topics:
+                            _topics.append(_new_topic)
+                            TOPICS[_sk] = list(_topics)
+                            _save_custom_syllabus(_syllabus)
+                            st.rerun()
+                        elif _new_topic in _topics:
+                            st.warning("Topic already exists.")
+
+                    # List existing topics with rename & delete
+                    for _ti, _t in enumerate(_topics):
+                        _tc1, _tc2, _tc3 = st.columns([5, 1, 1])
+                        _t_new = _tc1.text_input("", value=_t, key=f"sm_t_{_sk}_{_ti}",
+                                                   label_visibility="collapsed")
+                        if _tc2.button("💾", key=f"sm_save_t_{_sk}_{_ti}", help="Rename"):
+                            if _t_new.strip() and _t_new.strip() != _t:
+                                _topics[_ti] = _t_new.strip()
+                                TOPICS[_sk] = list(_topics)
+                                _save_custom_syllabus(_syllabus)
+                                st.rerun()
+                        if _tc3.button("🗑", key=f"sm_del_t_{_sk}_{_ti}", help="Delete"):
+                            _topics.pop(_ti)
+                            TOPICS[_sk] = list(_topics)
+                            _save_custom_syllabus(_syllabus)
+                            st.rerun()
 
         with st.expander("✏️ Personal Details", expanded=False):
             p1, p2 = st.columns(2)
