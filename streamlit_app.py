@@ -3892,14 +3892,12 @@ def _render_admin_panel():
         _P    = get_plans()   # fetched once, bound to local var — never called inside loops
         _plan_keys = list(_P.keys())
 
-        _pending_rows  = [r for r in _rows if r.get("status") == "pending"]
         _approved_rows = [r for r in _rows if r.get("status") == "approved"]
         _revoked_rows  = [r for r in _rows if r.get("status") == "revoked"]
 
-        _m1, _m2, _m3 = st.columns(3)
-        _m1.metric("⏳ Pending",  len(_pending_rows))
-        _m2.metric("✅ Active",   len(_approved_rows))
-        _m3.metric("🚫 Revoked",  len(_revoked_rows))
+        _m1, _m2 = st.columns(2)
+        _m1.metric("✅ Active",   len(_approved_rows))
+        _m2.metric("🚫 Revoked",  len(_revoked_rows))
 
         st.markdown("---")
 
@@ -3935,79 +3933,6 @@ def _render_admin_panel():
                         st.error(_msg)
                 else:
                     st.warning("Enter an email address first.")
-
-        st.markdown("---")
-
-        # ══════════════════════════════════════════════════════════════════
-        # PENDING REQUESTS
-        # ══════════════════════════════════════════════════════════════════
-        st.markdown("### 🕐 Pending Requests")
-        if not _pending_rows:
-            st.info("No pending requests right now.")
-        else:
-            st.warning(f"⚠️ {len(_pending_rows)} user(s) waiting for approval")
-            for _row in _pending_rows:
-                _em    = _row.get("email", "")
-                _at    = str(_row.get("approved_at", ""))[:10]
-                # Use row's own approved_at — ZERO extra DB queries per user
-                _tdays = max(0, get_free_trial_days() - _days_since_row(_row))
-                _tc    = "34D399" if _tdays > 0 else "F87171"
-
-                st.markdown(f"""
-                <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);
-                            border-radius:10px;padding:10px 14px;margin-bottom:6px">
-                  <span style="color:#FBBF24;font-size:13px;font-weight:700">{_em}</span>
-                  <span style="color:#7BA7CC;font-size:11px;margin-left:10px">📅 Signed up: {_at}</span>
-                  <span style="color:#{_tc};font-size:11px;margin-left:10px">🕐 Trial: {_tdays}d left</span>
-                </div>""", unsafe_allow_html=True)
-
-                _pa1, _pa2, _pa3 = st.columns([1.6, 1.4, 1.0])
-                with _pa1:
-                    # format_func uses default arg to capture _P at definition time
-                    _plan_sel = st.selectbox("Plan", _plan_keys,
-                        format_func=lambda k, p=_P: f"{p[k]['label']} — ₹{p[k]['price']}",
-                        key=f"plan_{_em}")
-                with _pa2:
-                    _start_sel = st.date_input("Access starts", value=date.today(),
-                        key=f"start_{_em}", help="Usually today — day payment received")
-                with _pa3:
-                    _end_v = _end_date(_plan_sel, _start_sel)
-                    _exp_p = _expire_label(_plan_sel, _end_v)
-                    st.markdown(f"""
-                    <div style="margin-top:26px;background:rgba(56,189,248,0.08);
-                                border:1px solid rgba(56,189,248,0.30);border-radius:8px;
-                                padding:8px 12px;text-align:center">
-                        <div style="font-size:9px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:2px">EXPIRES</div>
-                        <div style="font-size:13px;font-weight:800;
-                                    color:{'#FBBF24' if _PLAN_DUR.get(_plan_sel) is None else '#38BDF8'}">{_exp_p}</div>
-                    </div>""", unsafe_allow_html=True)
-
-                _note_inp = st.text_input("Payment note (optional)",
-                    placeholder="e.g. GPay ₹399 received 22 Feb 2026", key=f"note_{_em}")
-
-                _btn1, _btn2 = st.columns([1, 1])
-                with _btn1:
-                    if st.button(f"✅ Approve {_em.split('@')[0]}", key=f"approve_{_em}", use_container_width=True):
-                        _full_note = f"plan:{_plan_sel} start:{_start_sel.isoformat()} | {_note_inp}".strip()
-                        _ok2, _msg2 = approve_email(_em, note=_full_note,
-                            plan_key=_plan_sel, plan_start_date=_start_sel, plan_end_date=_end_v)
-                        if _ok2:
-                            auto_validate_referral(_em, _plan_sel)
-                            st.success(f"✅ {_em} approved — {_P.get(_plan_sel,{}).get('label',_plan_sel)} · Expires: {_exp_p}")
-                            _admin_clear_user_cache()
-                            st.rerun()
-                        else:
-                            st.error(_msg2)
-                with _btn2:
-                    if st.button("🗑 Remove", key=f"rm_pend_{_em}", use_container_width=True):
-                        try:
-                            sb_admin.table("approved_emails").delete().eq("email", _em).execute()
-                            st.warning(f"🗑 {_em} removed")
-                            _admin_clear_user_cache()
-                            st.rerun()
-                        except Exception as _de:
-                            st.error(f"Error: {_de}")
-                st.markdown("<hr style='border-color:rgba(56,189,248,0.10);margin:8px 0'>", unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -4131,11 +4056,10 @@ def _render_admin_panel():
         <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);
                     border-radius:12px;padding:14px 18px">
             <div style="font-size:12px;color:#7BA7CC;line-height:1.9">
-                ℹ️ <b style="color:#38BDF8">Workflow:</b><br>
-                1. User signs up → auto-added as <b style="color:#FBBF24">Pending</b> (free trial starts)<br>
-                2. User pays via UPI → sends payment screenshot to WhatsApp / Email<br>
-                3. You verify → select plan + date → click <b>✅ Approve</b> (referral bonus auto-applied)<br>
-                4. User gets access on next login · To suspend: <b>🚫 Revoke</b> · To renew: use 🔁 Extend
+                ℹ️ <b style="color:#38BDF8">How it works:</b><br>
+                1. User signs up → free trial starts automatically<br>
+                2. User pays via Razorpay → access approved <b style="color:#34D399">automatically within seconds</b><br>
+                3. To suspend: <b>🚫 Revoke</b> · To extend: use 🔁 Extend
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -4252,21 +4176,6 @@ def _render_admin_panel():
                 "Validated At":   str(u.get("validated_at", ""))[:10] if u.get("validated_at") else "—",
             } for u in _all_uses]), use_container_width=True, hide_index=True)
 
-            st.markdown("---")
-            st.markdown("**🔧 Manually Validate a Referral**")
-            _pending_uses = [u for u in _all_uses if not u.get("validated")]
-            if _pending_uses:
-                _mv_opts = {f"{u['referred_email']} (code: {u['referral_code']})": u for u in _pending_uses}
-                _mv_sel  = st.selectbox("Select pending referral", list(_mv_opts.keys()), key="manual_val_sel")
-                _mv_P    = get_plans()
-                _mv_plan = st.selectbox("Plan to assign", list(_mv_P.keys()),
-                    format_func=lambda k, p=_mv_P: p[k]["label"], key="manual_val_plan")
-                if st.button("✅ Manually Validate", key="manual_val_btn"):
-                    auto_validate_referral(_mv_opts[_mv_sel]["referred_email"], _mv_plan)
-                    st.success(f"✅ Referral validated!")
-                    st.rerun()
-            else:
-                st.info("No pending referrals to validate.")
         else:
             st.info("No referral uses recorded yet.")
 
@@ -4340,10 +4249,8 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
 
         # Razorpay URL for this plan's Subscribe Now button
         _ep = wa_email if (wa_email and wa_email != "YOUR_EMAIL") else ""
-        _bl = RAZORPAY_LINKS.get(pk, "#") if RAZORPAY_ENABLED else wa_msg
-        rzp_url = (f"{_bl}?prefill[email]={_ep}&notes[email]={_ep}&notes[plan]={pk}"
-                   if (RAZORPAY_ENABLED and _ep) else
-                   (f"{_bl}?notes[plan]={pk}" if RAZORPAY_ENABLED else _bl))
+        _bl = RAZORPAY_LINKS.get(pk, "#")
+        rzp_url = f"{_bl}?prefill[email]={_ep}&notes[email]={_ep}&notes[plan]={pk}" if _ep else f"{_bl}?notes[plan]={pk}"
 
         cards += f"""
         <div style="flex:1;min-width:175px;max-width:210px;background:rgba(4,20,52,0.90);
@@ -4374,8 +4281,7 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
         """
 
     # ── Footer note below cards ──────────────────────────────────────────────
-    if RAZORPAY_ENABLED:
-        _payment_html = f"""
+    _payment_html = f"""
   <div style="font-size:11px;color:#7BA7CC;text-align:center;margin-top:8px;line-height:1.8">
     Powered by <b>Razorpay</b> &middot; UPI / Card / NetBanking / Wallets
     &middot; Access granted <b style="color:#34D399">automatically</b> within seconds.<br>
@@ -4383,26 +4289,6 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
       Pay with the same email as your CA Tracker account:
       <b style="color:#38BDF8">{wa_email}</b>
     </span>
-  </div>"""
-    else:
-        _payment_html = f"""
-  <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.28);
-              border-radius:12px;padding:14px 16px;margin-top:4px">
-    <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
-                color:#38BDF8;letter-spacing:1.5px;margin-bottom:10px">HOW TO SUBSCRIBE</div>
-    <div style="font-size:12px;color:#C8E5F8;line-height:2.0">
-      <b style="color:#34D399">Step 1:</b> Pay via UPI / GPay / PhonePe to <b style="color:#FBBF24">8700428090</b><br>
-      <b style="color:#34D399">Step 2:</b> Screenshot the payment confirmation<br>
-      <b style="color:#34D399">Step 3:</b> Send screenshot + your email to:<br>
-      &nbsp;&nbsp;&#128241; <a href="{wa_msg}" target="_blank"
-           style="color:#25D366;font-weight:700">WhatsApp: +91 8700428090</a><br>
-      &nbsp;&nbsp;&#128231; <a href="{mail_to}"
-           style="color:#38BDF8;font-weight:700">{PAYMENT_EMAIL}</a><br>
-      <b style="color:#34D399">Step 4:</b> Admin approves &mdash; you get instant access!
-    </div>
-  </div>
-  <div style="font-size:10px;color:#3A5A7A;text-align:center;margin-top:8px">
-    Message format: &ldquo;Approve {wa_email} &mdash; [3 Months / 1 Year / Lifetime]&rdquo;
   </div>"""
 
     full_html = f"""<!DOCTYPE html>
@@ -7325,8 +7211,7 @@ else:
     _in_trial      = st.session_state.get("in_free_trial", True)
     _trial_days    = st.session_state.get("trial_days_left", get_free_trial_days())
     _sub_info      = st.session_state.get("sub_info", {})
-    _wa_sub_link   = f"https://wa.me/{PAYMENT_WHATSAPP}?text=Hi%2C+I+want+to+subscribe+to+CA+Final+Tracker.+Please+approve+my+email%3A+{_user_email_ss}"
-    _renew_label   = "💳 Renew via Razorpay" if RAZORPAY_ENABLED else "📱 Renew on WhatsApp"
+    _renew_label   = "💳 Renew via Razorpay"
 
     # Paid check first — paid users never see trial banners
     _has_active_paid = bool(_sub_info and _sub_info.get("active", False))
@@ -7338,7 +7223,7 @@ else:
         _is_life    = _sub_info.get("is_lifetime", False)
         _days_rem   = _sub_info.get("days_remaining", 0)
         _end_str    = _sub_info.get("plan_end", "")
-        _renew_link = RAZORPAY_LINKS.get(_pk, _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
+        _renew_link = RAZORPAY_LINKS.get(_pk, "#")
 
         if _is_life:
             # Lifetime — no nudges ever
