@@ -1,4 +1,6 @@
 import streamlit as st
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -6,8 +8,8 @@ from plotly.subplots import make_subplots
 from datetime import date, timedelta
 
 st.set_page_config(
-    page_title="CA Final Tracker",
-    page_icon="🎓",
+    page_title="StudyTracker",
+    page_icon="📚",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -36,10 +38,33 @@ def init_supabase_admin():
 try:
     sb       = init_supabase()
     sb_admin = init_supabase_admin()
+    st.session_state["_sb_admin"] = sb_admin
 
 except Exception as e:
     st.error(f"Database connection failed: {e}")
     st.stop()
+
+# ── Import course modules ─────────────────────────────────────────────────────
+try:
+    from modules.course_config   import (COURSES, get_level, get_next_level, list_courses_by_category,
+                                           SUBJECTS, SUBJ_FULL, TARGET_HRS, COLORS, TOPICS)
+    from modules.level_progression import (
+        get_enrolled_courses, get_active_course_for_session,
+        migrate_legacy_ca_final_user, get_primary_course
+    )
+    from modules.course_selector import (
+        needs_course_setup, ensure_legacy_migration,
+        render_first_login_course_selection, render_course_settings,
+        render_course_switcher
+    )
+    from modules.subject_manager import (
+        fetch_subjects, fetch_topics, render_subject_manager,
+        get_subjects_as_dict, get_topics_for_subject
+    )
+    _MODULES_OK = True
+except Exception as _mod_err:
+    _MODULES_OK = False
+    st.warning(f"⚠️ Course modules not loaded: {_mod_err}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACCESS CONTROL — DB-backed approved email list
@@ -478,76 +503,7 @@ PLAN_DURATION_DAYS = {"3mo": 90, "1yr": 365, "life": None}
 
 # ── CONSTANTS ─────────────────────────────────────────────────────────────────
 EXAM_DATE_DEFAULT = date(2027, 1, 1)
-SUBJECTS   = ["FR","AFM","AA","DT","IDT"]
-SUBJ_FULL  = {
-    "FR" :"Financial Reporting",
-    "AFM":"Adv. FM & Economics",
-    "AA" :"Advanced Auditing",
-    "DT" :"Direct Tax & Int'l Tax",
-    "IDT":"Indirect Tax"
-}
-TARGET_HRS = {"FR":200,"AFM":160,"AA":150,"DT":200,"IDT":180}
-COLORS     = {
-    "FR":"#7DD3FC","AFM":"#34D399",
-    "AA":"#FBBF24","DT":"#F87171","IDT":"#60A5FA"
-}
-TOPICS = {
-"FR":["Ind AS 1 – Presentation of FS","Ind AS 2 – Inventories",
-      "Ind AS 7 – Cash Flow Statements","Ind AS 8 – Accounting Policies",
-      "Ind AS 10 – Events after Reporting Period","Ind AS 12 – Deferred Tax",
-      "Ind AS 16 – Property Plant & Equipment","Ind AS 19 – Employee Benefits",
-      "Ind AS 20 – Government Grants","Ind AS 21 – Foreign Currency",
-      "Ind AS 23 – Borrowing Costs","Ind AS 24 – Related Party Disclosures",
-      "Ind AS 27 – Separate Financial Statements","Ind AS 28 – Associates & JV",
-      "Ind AS 32 – Financial Instruments: Presentation",
-      "Ind AS 33 – Earnings per Share","Ind AS 36 – Impairment of Assets",
-      "Ind AS 37 – Provisions & Contingencies","Ind AS 38 – Intangible Assets",
-      "Ind AS 40 – Investment Property","Ind AS 101 – First-time Adoption",
-      "Ind AS 102 – Share-based Payments","Ind AS 103 – Business Combinations",
-      "Ind AS 105 – Assets Held for Sale","Ind AS 108 – Operating Segments",
-      "Ind AS 109 – Financial Instruments","Ind AS 110 – Consolidated FS",
-      "Ind AS 111 – Joint Arrangements","Ind AS 113 – Fair Value Measurement",
-      "Ind AS 115 – Revenue from Contracts","Ind AS 116 – Leases",
-      "Analysis & Interpretation of FS"],
-"AFM":["Financial Policy & Corporate Strategy","Risk Management – Overview",
-       "Capital Budgeting under Risk & Uncertainty","Dividend Policy",
-       "Indian Capital Market & SEBI","Security Analysis – Fundamental & Technical",
-       "Portfolio Management & CAPM","Mutual Funds",
-       "Derivatives – Futures & Forwards","Derivatives – Options",
-       "Derivatives – Swaps & Interest Rate","Foreign Exchange Risk Management",
-       "International Financial Management","Mergers Acquisitions & Restructuring",
-       "Startup Finance & Venture Capital","Leasing & Hire Purchase",
-       "Bond Valuation & Interest Rate Risk","Economic Value Added (EVA)",
-       "Financial Modelling & Simulation"],
-"AA":["Nature Objective & Scope of Audit","Ethics & Independence (SA 200-299)",
-      "Audit Planning Materiality & Risk","Internal Control & Internal Audit",
-      "Audit Evidence – SA 500 series","Sampling & CAAT",
-      "Verification of Assets & Liabilities","Company Audit – Specific Areas",
-      "Audit Report & Modified Opinions","Special Audits – Banks Insurance NBFCs",
-      "Cost Audit","Forensic Accounting & Fraud Investigation",
-      "Peer Review & Quality Control (SQC 1)","Audit under IT Environment",
-      "Concurrent & Revenue Audit","Due Diligence & Investigations"],
-"DT":["Basic Concepts & Residential Status","Incomes Exempt from Tax",
-      "Income from Salaries","Income from House Property",
-      "Profits & Gains – Business/Profession","Capital Gains",
-      "Income from Other Sources","Clubbing Set-off & Carry Forward",
-      "Deductions under Chapter VIA","Assessment – Individuals HUF Firms",
-      "Assessment – Companies & Other Entities","MAT & AMT",
-      "TDS & TCS Provisions","Advance Tax & Interest",
-      "Return Filing & Assessment Procedure","Appeals & Revision",
-      "International Taxation – Transfer Pricing","DTAA & OECD/UN Model",
-      "GAAR POEM & BEPS"],
-"IDT":["GST – Constitutional Background","GST – Levy & Exemptions",
-       "GST – Time Place & Value of Supply","GST – Input Tax Credit",
-       "GST – Registration","GST – Tax Invoice Credit & Debit Notes",
-       "GST – Returns","GST – Payment & Refund",
-       "GST – Import & Export (Zero-rated)","GST – Job Work & E-Commerce",
-       "GST – Assessment & Audit","GST – Demand Adjudication & Recovery",
-       "GST – Appeals & Revision","GST – Offences & Penalties",
-       "GST – Miscellaneous Provisions","Customs – Levy & Exemptions",
-       "Customs – Import/Export Procedure","Customs – Valuation & Baggage Rules",
-       "Customs – Refund Drawback & Special Provisions","FTP – Overview"]
-}
+# Subjects/topics/colors imported from modules.course_config (see import block above)
 
 # ── WORLD CLASS GLASSY NEON CSS ───────────────────────────────────────────────
 GLASSY_CSS = """
@@ -1836,6 +1792,11 @@ def do_login(email, password):
         st.session_state["in_free_trial"]   = _in_trial
         st.session_state["trial_days_left"] = days_left_in_trial(email_clean)
         st.session_state["sub_info"]        = get_subscription_info(email_clean)
+
+        # ── Course module: migrate legacy CA Final users silently ─────────────
+        if _MODULES_OK:
+            ensure_legacy_migration(uid_val)
+
         return True, "Login successful"
 
     except Exception as e:
@@ -3225,165 +3186,162 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
     # TAB 1 — General Settings
     # ════════════════════════════════
     with ptab1:
-        st.markdown("---")
-        st.markdown('<div class="neon-header">✏️ Personal Details</div>', unsafe_allow_html=True)
-        p1, p2 = st.columns(2)
-        new_full = p1.text_input("Full Name", value=prof.get("full_name",""), key="prof_full")
-        new_user = p2.text_input("Username",  value=prof.get("username",""),  key="prof_user")
+        # ── Course Management ────────────────────────────────────────────────
+        if _MODULES_OK:
+            with st.expander("🎓 Course & Level Management", expanded=False):
+                render_course_settings(st.session_state.get("user_id", ""))
 
-        p3, p4 = st.columns(2)
-        new_srn = p3.text_input("SRN No. (ICAI Registration)",
-                                 value=prof.get("srn_no",""),
-                                 placeholder="e.g. CRO0123456", key="prof_srn")
-        dob_val = prof.get("dob", None)
-        try:
-            dob_default = date.fromisoformat(dob_val) if dob_val else date(2000,1,1)
-        except:
-            dob_default = date(2000,1,1)
-        new_dob = p4.date_input("Date of Birth", value=dob_default,
-                                 min_value=date(1970,1,1), max_value=date.today(), key="prof_dob")
+        with st.expander("✏️ Personal Details", expanded=False):
+            p1, p2 = st.columns(2)
+            new_full = p1.text_input("Full Name", value=prof.get("full_name",""), key="prof_full")
+            new_user = p2.text_input("Username",  value=prof.get("username",""),  key="prof_user")
 
-        p5, p6 = st.columns(2)
-        gender_opts = ["Prefer not to say","Male","Female","Non-binary","Other"]
-        cur_gender  = prof.get("gender","Prefer not to say")
-        g_idx       = gender_opts.index(cur_gender) if cur_gender in gender_opts else 0
-        new_gender  = p5.selectbox("Gender", gender_opts, index=g_idx, key="prof_gender")
-        new_phone   = p6.text_input("Phone (optional)", value=prof.get("phone",""),
-                                     placeholder="+91 9XXXXXXXXX", key="prof_phone")
+            p3, p4 = st.columns(2)
+            new_srn = p3.text_input("SRN No. (ICAI Registration)",
+                                     value=prof.get("srn_no",""),
+                                     placeholder="e.g. CRO0123456", key="prof_srn")
+            dob_val = prof.get("dob", None)
+            try:
+                dob_default = date.fromisoformat(dob_val) if dob_val else date(2000,1,1)
+            except:
+                dob_default = date(2000,1,1)
+            new_dob = p4.date_input("Date of Birth", value=dob_default,
+                                     min_value=date(1970,1,1), max_value=date.today(), key="prof_dob")
 
-        st.markdown("---")
-        st.markdown('<div class="neon-header">📅 Exam Details</div>', unsafe_allow_html=True)
-        ep1, ep2 = st.columns(2)
-        month_list = ["January","May","September"]
-        cur_month  = prof.get("exam_month","January")
-        m_idx      = month_list.index(cur_month) if cur_month in month_list else 0
-        new_month  = ep1.selectbox("Exam Month", month_list, index=m_idx, key="prof_month")
-        new_year   = ep2.selectbox("Exam Year", [2025,2026,2027,2028],
-                                    index=[2025,2026,2027,2028].index(int(prof.get("exam_year",2027)))
-                                    if int(prof.get("exam_year",2027)) in [2025,2026,2027,2028] else 2,
-                                    key="prof_year")
+            p5, p6 = st.columns(2)
+            gender_opts = ["Prefer not to say","Male","Female","Non-binary","Other"]
+            cur_gender  = prof.get("gender","Prefer not to say")
+            g_idx       = gender_opts.index(cur_gender) if cur_gender in gender_opts else 0
+            new_gender  = p5.selectbox("Gender", gender_opts, index=g_idx, key="prof_gender")
+            new_phone   = p6.text_input("Phone (optional)", value=prof.get("phone",""),
+                                         placeholder="+91 9XXXXXXXXX", key="prof_phone")
 
-        st.markdown("---")
-        st.markdown('<div class="neon-header">📍 Study Phase</div>', unsafe_allow_html=True)
-        st.caption("Defines your current preparation phase — affects how study time is allocated between first read and revision.")
-        sp1, sp2 = st.columns(2)
-        phase_opts = ["articleship", "post_articleship"]
-        phase_labels = {"articleship": "🔵 During Articleship (4–7 hrs/day)", "post_articleship": "🟢 Post Articleship (10–14 hrs/day)"}
-        cur_phase = prof.get("study_phase", "articleship")
-        new_phase = sp1.selectbox("Current Phase", phase_opts,
-                                   index=phase_opts.index(cur_phase) if cur_phase in phase_opts else 0,
-                                   format_func=lambda x: phase_labels[x], key="prof_phase")
-        art_end_val = prof.get("articleship_end_date")
-        try:
-            art_end_default = date.fromisoformat(str(art_end_val)[:10]) if art_end_val else date.today() + timedelta(days=180)
-        except:
-            art_end_default = date.today() + timedelta(days=180)
-        new_art_end = sp2.date_input("Articleship End Date (approx.)", value=art_end_default,
-                                     min_value=date(2023,1,1), max_value=date(2030,1,1), key="prof_art_end")
-        phase_key = new_phase
-        study_hrs_default = {"articleship": 5, "post_articleship": 12}
-        cur_study_hrs = int(prof.get("daily_study_hours", study_hrs_default[phase_key]))
-        new_study_hrs = sp1.slider("Avg Study Hours/Day", 1, 16, cur_study_hrs, 1, key="prof_study_hrs",
-                                    help="Used for daily time allocation suggestions (PWDAM engine)")
+        with st.expander("📅 Exam Details", expanded=False):
+            ep1, ep2 = st.columns(2)
+            month_list = ["January","May","September"]
+            cur_month  = prof.get("exam_month","January")
+            m_idx      = month_list.index(cur_month) if cur_month in month_list else 0
+            new_month  = ep1.selectbox("Exam Month", month_list, index=m_idx, key="prof_month")
+            new_year   = ep2.selectbox("Exam Year", [2025,2026,2027,2028],
+                                        index=[2025,2026,2027,2028].index(int(prof.get("exam_year",2027)))
+                                        if int(prof.get("exam_year",2027)) in [2025,2026,2027,2028] else 2,
+                                        key="prof_year")
 
-        st.markdown("---")
-        st.markdown('<div class="neon-header">⚙️ Preparation Mode</div>', unsafe_allow_html=True)
-        st.caption("Clearance Mode optimizes for passing. Rank Mode increases intensity for All India Rank aspirants.")
-        mode_opts = ["clearance", "rank"]
-        mode_labels = {"clearance": "🎯 Clearance Mode (default — stable, focused on passing)", "rank": "🏆 Rank Mode (aggressive — higher density, more pressure)"}
-        cur_mode = prof.get("prep_mode", "clearance")
-        new_mode = st.selectbox("Preparation Mode", mode_opts,
-                                 index=mode_opts.index(cur_mode) if cur_mode in mode_opts else 0,
-                                 format_func=lambda x: mode_labels[x], key="prof_mode")
-        if new_mode == "rank":
-            st.warning("⚠️ Rank Mode increases workload significantly. Suitable only for aspirants targeting AIR positions.")
+        with st.expander("📍 Study Phase", expanded=False):
+            st.caption("Defines your current preparation phase — affects how study time is allocated between first read and revision.")
+            sp1, sp2 = st.columns(2)
+            phase_opts = ["articleship", "post_articleship"]
+            phase_labels = {"articleship": "🔵 During Articleship (4–7 hrs/day)", "post_articleship": "🟢 Post Articleship (10–14 hrs/day)"}
+            cur_phase = prof.get("study_phase", "articleship")
+            new_phase = sp1.selectbox("Current Phase", phase_opts,
+                                       index=phase_opts.index(cur_phase) if cur_phase in phase_opts else 0,
+                                       format_func=lambda x: phase_labels[x], key="prof_phase")
+            art_end_val = prof.get("articleship_end_date")
+            try:
+                art_end_default = date.fromisoformat(str(art_end_val)[:10]) if art_end_val else date.today() + timedelta(days=180)
+            except:
+                art_end_default = date.today() + timedelta(days=180)
+            new_art_end = sp2.date_input("Articleship End Date (approx.)", value=art_end_default,
+                                         min_value=date(2023,1,1), max_value=date(2030,1,1), key="prof_art_end")
+            phase_key = new_phase
+            study_hrs_default = {"articleship": 5, "post_articleship": 12}
+            cur_study_hrs = int(prof.get("daily_study_hours", study_hrs_default[phase_key]))
+            new_study_hrs = sp1.slider("Avg Study Hours/Day", 1, 16, cur_study_hrs, 1, key="prof_study_hrs",
+                                        help="Used for daily time allocation suggestions (PWDAM engine)")
 
-        st.markdown("---")
-        st.markdown('<div class="neon-header">🔄 Revision Engine — CGSM Settings</div>', unsafe_allow_html=True)
-        st.caption("Gap Engine uses Controlled Growth Spaced Model. R1 & R2 set by you — all later gaps auto-calculated. Growth Factor controls acceleration.")
+        with st.expander("⚙️ Preparation Mode", expanded=False):
+            st.caption("Clearance Mode optimizes for passing. Rank Mode increases intensity for All India Rank aspirants.")
+            mode_opts = ["clearance", "rank"]
+            mode_labels = {"clearance": "🎯 Clearance Mode (default — stable, focused on passing)", "rank": "🏆 Rank Mode (aggressive — higher density, more pressure)"}
+            cur_mode = prof.get("prep_mode", "clearance")
+            new_mode = st.selectbox("Preparation Mode", mode_opts,
+                                     index=mode_opts.index(cur_mode) if cur_mode in mode_opts else 0,
+                                     format_func=lambda x: mode_labels[x], key="prof_mode")
+            if new_mode == "rank":
+                st.warning("⚠️ Rank Mode increases workload significantly. Suitable only for aspirants targeting AIR positions.")
 
-        re1, re2, re3 = st.columns(3)
-        cur_r1_days  = int(prof.get("r1_days", 3))
-        cur_r2_days  = int(prof.get("r2_days", 7))
-        cur_nrev     = int(prof.get("num_revisions", 6))
-        new_r1_days  = re1.number_input("R1 Gap (days after completion)", min_value=1, max_value=14,
-                                         value=cur_r1_days, step=1, key="prof_r1_days",
-                                         help="Days to wait before first revision after topic completion")
-        new_r2_days  = re2.number_input("R2 Gap (days after R1)", min_value=2, max_value=21,
-                                         value=cur_r2_days, step=1, key="prof_r2_days",
-                                         help="Days to wait before second revision after R1")
-        new_nrev     = re3.slider("Total Revisions (1–10)", 3, 10, cur_nrev, 1, key="prof_nrev")
+        with st.expander("🔄 Revision Engine (CGSM Settings)", expanded=False):
+            st.caption("Gap Engine uses Controlled Growth Spaced Model. R1 & R2 set by you — all later gaps auto-calculated. Growth Factor controls acceleration.")
 
-        re4, re5, re6 = st.columns(3)
-        cur_gf    = float(prof.get("growth_factor", 1.30))
-        cur_maxg  = int(prof.get("max_gap_days", 120))
-        cur_dcap  = int(prof.get("daily_rev_cap", 5))
-        new_gf    = re4.slider("Growth Factor (f)", 1.0, 2.0, cur_gf, 0.05, key="prof_gf",
-                                help="Controls how fast gaps grow. 1.3 = recommended. Higher = more spacing.")
-        new_maxg  = re5.number_input("Max Gap Cap (days)", min_value=30, max_value=120,
-                                      value=cur_maxg, step=5, key="prof_maxg",
-                                      help="No revision gap will exceed this value")
-        new_dcap  = re6.number_input("Daily Revision Cap", min_value=1, max_value=15,
-                                      value=cur_dcap, step=1, key="prof_dcap",
-                                      help="Max revisions per day (prospective only — past is never changed)")
+            re1, re2, re3 = st.columns(3)
+            cur_r1_days  = int(prof.get("r1_days", 3))
+            cur_r2_days  = int(prof.get("r2_days", 7))
+            cur_nrev     = int(prof.get("num_revisions", 6))
+            new_r1_days  = re1.number_input("R1 Gap (days after completion)", min_value=1, max_value=14,
+                                             value=cur_r1_days, step=1, key="prof_r1_days",
+                                             help="Days to wait before first revision after topic completion")
+            new_r2_days  = re2.number_input("R2 Gap (days after R1)", min_value=2, max_value=21,
+                                             value=cur_r2_days, step=1, key="prof_r2_days",
+                                             help="Days to wait before second revision after R1")
+            new_nrev     = re3.slider("Total Revisions (1–10)", 3, 10, cur_nrev, 1, key="prof_nrev")
 
-        # Live gap preview
-        days_left_preview = max((get_exam_date() - date.today()).days, 0)
-        preview_gaps = get_cgsm_gaps(new_r1_days, new_r2_days, new_nrev, new_gf, new_maxg, days_left_preview)
-        gaps_str = " → ".join([f"R{i+1}:{g}d" for i, g in enumerate(preview_gaps)])
-        st.markdown(f"""
-        <div style="background:rgba(56,189,248,0.07);border:1.5px solid rgba(56,189,248,0.20);
-                    border-radius:10px;padding:10px 14px;margin:6px 0;font-size:11px">
-            <span style="color:#7BA7CC;font-weight:700">Gap Preview → </span>
-            <span style="color:#7DD3FC;font-family:'DM Mono',monospace">{gaps_str}</span>
-            <span style="color:#6B91B8;margin-left:12px">(capped at {new_maxg}d)</span>
-        </div>
-        """, unsafe_allow_html=True)
+            re4, re5, re6 = st.columns(3)
+            cur_gf    = float(prof.get("growth_factor", 1.30))
+            cur_maxg  = int(prof.get("max_gap_days", 120))
+            cur_dcap  = int(prof.get("daily_rev_cap", 5))
+            new_gf    = re4.slider("Growth Factor (f)", 1.0, 2.0, cur_gf, 0.05, key="prof_gf",
+                                    help="Controls how fast gaps grow. 1.3 = recommended. Higher = more spacing.")
+            new_maxg  = re5.number_input("Max Gap Cap (days)", min_value=30, max_value=120,
+                                          value=cur_maxg, step=5, key="prof_maxg",
+                                          help="No revision gap will exceed this value")
+            new_dcap  = re6.number_input("Daily Revision Cap", min_value=1, max_value=15,
+                                          value=cur_dcap, step=1, key="prof_dcap",
+                                          help="Max revisions per day (prospective only — past is never changed)")
 
-        st.markdown("---")
-        st.markdown('<div class="neon-header">📊 Revision Duration Ratios (% of TFR)</div>', unsafe_allow_html=True)
-        st.caption("R1 & R2 durations as % of Total First Reading time. Later revisions auto-decay (each 15% shorter).")
-        rd1, rd2 = st.columns(2)
-        cur_r1   = float(prof.get("r1_ratio", 0.25))
-        cur_r2   = float(prof.get("r2_ratio", 0.25))
-        new_r1   = rd1.slider("R1 Duration (% of TFR)", 5, 80, int(cur_r1*100), 5, key="prof_r1",
-                               help="R1 duration = TFR × this ratio") / 100
-        new_r2   = rd2.slider("R2 Duration (% of TFR)", 5, 80, int(cur_r2*100), 5, key="prof_r2",
-                               help="R2 duration = TFR × this ratio") / 100
-        ratios   = get_revision_ratios(new_r1, new_r2, new_nrev)
-        st.caption("Duration decay: " + " → ".join([f"R{i+1}:{r*100:.0f}%" for i,r in enumerate(ratios)]))
+            # Live gap preview
+            days_left_preview = max((get_exam_date() - date.today()).days, 0)
+            preview_gaps = get_cgsm_gaps(new_r1_days, new_r2_days, new_nrev, new_gf, new_maxg, days_left_preview)
+            gaps_str = " → ".join([f"R{i+1}:{g}d" for i, g in enumerate(preview_gaps)])
+            st.markdown(f"""
+            <div style="background:rgba(56,189,248,0.07);border:1.5px solid rgba(56,189,248,0.20);
+                        border-radius:10px;padding:10px 14px;margin:6px 0;font-size:11px">
+                <span style="color:#7BA7CC;font-weight:700">Gap Preview → </span>
+                <span style="color:#7DD3FC;font-family:'DM Mono',monospace">{gaps_str}</span>
+                <span style="color:#6B91B8;margin-left:12px">(capped at {new_maxg}d)</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.markdown("---")
-        st.markdown('<div class="neon-header">📚 First Reading Targets (hours per subject)</div>', unsafe_allow_html=True)
-        th_cols = st.columns(5)
-        new_target_hrs = {}
-        for i, s in enumerate(SUBJECTS):
-            cur_tgt = int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s]))
-            new_target_hrs[s] = th_cols[i].number_input(f"{s}", min_value=50, max_value=500,
-                                                          value=cur_tgt, step=10, key=f"prof_tgt_{s}")
+        with st.expander("📊 Revision Duration Ratios", expanded=False):
+            st.caption("R1 & R2 durations as % of Total First Reading time. Later revisions auto-decay (each 15% shorter).")
+            rd1, rd2 = st.columns(2)
+            cur_r1   = float(prof.get("r1_ratio", 0.25))
+            cur_r2   = float(prof.get("r2_ratio", 0.25))
+            new_r1   = rd1.slider("R1 Duration (% of TFR)", 5, 80, int(cur_r1*100), 5, key="prof_r1",
+                                   help="R1 duration = TFR × this ratio") / 100
+            new_r2   = rd2.slider("R2 Duration (% of TFR)", 5, 80, int(cur_r2*100), 5, key="prof_r2",
+                                   help="R2 duration = TFR × this ratio") / 100
+            ratios   = get_revision_ratios(new_r1, new_r2, new_nrev)
+            st.caption("Duration decay: " + " → ".join([f"R{i+1}:{r*100:.0f}%" for i,r in enumerate(ratios)]))
 
-        st.markdown("---")
-        st.markdown('<div class="neon-header">📅 Backdated Entry Access</div>', unsafe_allow_html=True)
-        cur_backdate = bool(prof.get("allow_backdate", False))
-        bd1, bd2 = st.columns([2,1])
-        with bd1:
-            st.markdown(f"""<div style="background:{'rgba(251,191,36,0.10)' if cur_backdate else 'rgba(14,60,140,0.25)'};
-                border:2px solid {'rgba(251,191,36,0.35)' if cur_backdate else 'rgba(14,60,140,0.35)'};
-                border-radius:10px;padding:12px 14px;font-size:12px;color:#C8E5F8">
-                {'⚠️ <b>Backdated entries enabled</b> — all past dates accessible'
-                 if cur_backdate else '🔒 <b>Backdated entries restricted</b> — only last 3 days'}
-            </div>""", unsafe_allow_html=True)
-        with bd2:
-            if cur_backdate:
-                if st.button("🔒 Disable Backdating", use_container_width=True, key="bd_disable"):
-                    ok, msg = update_profile({"allow_backdate": False})
-                    if ok: st.rerun()
-            else:
-                if st.button("🔓 Enable Backdating", use_container_width=True, key="bd_enable"):
-                    ok, msg = update_profile({"allow_backdate": True})
-                    if ok: st.rerun()
+        with st.expander("📚 First Reading Targets", expanded=False):
+            th_cols = st.columns(5)
+            new_target_hrs = {}
+            for i, s in enumerate(SUBJECTS):
+                cur_tgt = int(prof.get(f"target_hrs_{s.lower()}", TARGET_HRS[s]))
+                new_target_hrs[s] = th_cols[i].number_input(f"{s}", min_value=50, max_value=500,
+                                                              value=cur_tgt, step=10, key=f"prof_tgt_{s}")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        with st.expander("📅 Backdated Entry Access", expanded=False):
+            cur_backdate = bool(prof.get("allow_backdate", False))
+            bd1, bd2 = st.columns([2,1])
+            with bd1:
+                st.markdown(f"""<div style="background:{'rgba(251,191,36,0.10)' if cur_backdate else 'rgba(14,60,140,0.25)'};
+                    border:2px solid {'rgba(251,191,36,0.35)' if cur_backdate else 'rgba(14,60,140,0.35)'};
+                    border-radius:10px;padding:12px 14px;font-size:12px;color:#C8E5F8">
+                    {'⚠️ <b>Backdated entries enabled</b> — all past dates accessible'
+                     if cur_backdate else '🔒 <b>Backdated entries restricted</b> — only last 3 days'}
+                </div>""", unsafe_allow_html=True)
+            with bd2:
+                if cur_backdate:
+                    if st.button("🔒 Disable Backdating", use_container_width=True, key="bd_disable"):
+                        ok, msg = update_profile({"allow_backdate": False})
+                        if ok: st.rerun()
+                else:
+                    if st.button("🔓 Enable Backdating", use_container_width=True, key="bd_enable"):
+                        ok, msg = update_profile({"allow_backdate": True})
+                        if ok: st.rerun()
+
+            st.markdown("<br>", unsafe_allow_html=True)
         if st.button("💾 SAVE ALL SETTINGS", use_container_width=True, key="prof_save"):
             errors = []
             if not new_full.strip(): errors.append("Full Name cannot be empty")
@@ -3411,9 +3369,8 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 else:  st.error(msg)
 
         # ── EXPORT DATA AS CSV ───────────────────────────────────────────────
-        st.markdown("---")
-        st.markdown('<div class="neon-header">📤 Export My Data</div>', unsafe_allow_html=True)
-        st.markdown('<p style="font-size:12px;color:#7BA7CC;margin-bottom:14px">Download all your study data as CSV files. Your data belongs to you — always exportable.</p>', unsafe_allow_html=True)
+        with st.expander("📤 Export My Data", expanded=False):
+            st.markdown('<p style="font-size:12px;color:#7BA7CC;margin-bottom:14px">Download all your study data as CSV files. Your data belongs to you — always exportable.</p>', unsafe_allow_html=True)
         _ecol1, _ecol2, _ecol3 = st.columns(3)
         with _ecol1:
             if not log_df.empty:
@@ -3459,12 +3416,12 @@ def profile_page(log_df, rev_df, rev_sess, test_df):
                 st.info("No revision data yet.")
 
         # ── DANGER ZONE — Reset Account Data ─────────────────────────────────
-        st.markdown("---")
-        st.markdown("""
-        <div style="background:rgba(248,113,113,0.06);border:2px solid rgba(248,113,113,0.28);
-                    border-radius:14px;padding:18px 20px;margin-bottom:4px">
-            <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;
-                        color:#F87171;letter-spacing:2px;margin-bottom:8px">⚠️ DANGER ZONE</div>
+        with st.expander("⚠️ Danger Zone — Reset Account Data", expanded=False):
+            st.markdown("""
+            <div style="background:rgba(248,113,113,0.06);border:2px solid rgba(248,113,113,0.28);
+                        border-radius:14px;padding:18px 20px;margin-bottom:4px">
+                <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;
+                            color:#F87171;letter-spacing:2px;margin-bottom:8px">⚠️ DANGER ZONE</div>
             <div style="font-size:13px;color:#FCA5A5;line-height:1.6;margin-bottom:4px">
                 <b>Reset Account Data</b> permanently deletes all study logs, test scores, and revision sessions.
                 Your profile, login credentials, and settings are <b>NOT</b> affected.
@@ -3892,12 +3849,14 @@ def _render_admin_panel():
         _P    = get_plans()   # fetched once, bound to local var — never called inside loops
         _plan_keys = list(_P.keys())
 
+        _pending_rows  = [r for r in _rows if r.get("status") == "pending"]
         _approved_rows = [r for r in _rows if r.get("status") == "approved"]
         _revoked_rows  = [r for r in _rows if r.get("status") == "revoked"]
 
-        _m1, _m2 = st.columns(2)
-        _m1.metric("✅ Active",   len(_approved_rows))
-        _m2.metric("🚫 Revoked",  len(_revoked_rows))
+        _m1, _m2, _m3 = st.columns(3)
+        _m1.metric("⏳ Pending",  len(_pending_rows))
+        _m2.metric("✅ Active",   len(_approved_rows))
+        _m3.metric("🚫 Revoked",  len(_revoked_rows))
 
         st.markdown("---")
 
@@ -3933,6 +3892,79 @@ def _render_admin_panel():
                         st.error(_msg)
                 else:
                     st.warning("Enter an email address first.")
+
+        st.markdown("---")
+
+        # ══════════════════════════════════════════════════════════════════
+        # PENDING REQUESTS
+        # ══════════════════════════════════════════════════════════════════
+        st.markdown("### 🕐 Pending Requests")
+        if not _pending_rows:
+            st.info("No pending requests right now.")
+        else:
+            st.warning(f"⚠️ {len(_pending_rows)} user(s) waiting for approval")
+            for _row in _pending_rows:
+                _em    = _row.get("email", "")
+                _at    = str(_row.get("approved_at", ""))[:10]
+                # Use row's own approved_at — ZERO extra DB queries per user
+                _tdays = max(0, get_free_trial_days() - _days_since_row(_row))
+                _tc    = "34D399" if _tdays > 0 else "F87171"
+
+                st.markdown(f"""
+                <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);
+                            border-radius:10px;padding:10px 14px;margin-bottom:6px">
+                  <span style="color:#FBBF24;font-size:13px;font-weight:700">{_em}</span>
+                  <span style="color:#7BA7CC;font-size:11px;margin-left:10px">📅 Signed up: {_at}</span>
+                  <span style="color:#{_tc};font-size:11px;margin-left:10px">🕐 Trial: {_tdays}d left</span>
+                </div>""", unsafe_allow_html=True)
+
+                _pa1, _pa2, _pa3 = st.columns([1.6, 1.4, 1.0])
+                with _pa1:
+                    # format_func uses default arg to capture _P at definition time
+                    _plan_sel = st.selectbox("Plan", _plan_keys,
+                        format_func=lambda k, p=_P: f"{p[k]['label']} — ₹{p[k]['price']}",
+                        key=f"plan_{_em}")
+                with _pa2:
+                    _start_sel = st.date_input("Access starts", value=date.today(),
+                        key=f"start_{_em}", help="Usually today — day payment received")
+                with _pa3:
+                    _end_v = _end_date(_plan_sel, _start_sel)
+                    _exp_p = _expire_label(_plan_sel, _end_v)
+                    st.markdown(f"""
+                    <div style="margin-top:26px;background:rgba(56,189,248,0.08);
+                                border:1px solid rgba(56,189,248,0.30);border-radius:8px;
+                                padding:8px 12px;text-align:center">
+                        <div style="font-size:9px;color:#7BA7CC;font-weight:700;letter-spacing:1px;margin-bottom:2px">EXPIRES</div>
+                        <div style="font-size:13px;font-weight:800;
+                                    color:{'#FBBF24' if _PLAN_DUR.get(_plan_sel) is None else '#38BDF8'}">{_exp_p}</div>
+                    </div>""", unsafe_allow_html=True)
+
+                _note_inp = st.text_input("Payment note (optional)",
+                    placeholder="e.g. GPay ₹399 received 22 Feb 2026", key=f"note_{_em}")
+
+                _btn1, _btn2 = st.columns([1, 1])
+                with _btn1:
+                    if st.button(f"✅ Approve {_em.split('@')[0]}", key=f"approve_{_em}", use_container_width=True):
+                        _full_note = f"plan:{_plan_sel} start:{_start_sel.isoformat()} | {_note_inp}".strip()
+                        _ok2, _msg2 = approve_email(_em, note=_full_note,
+                            plan_key=_plan_sel, plan_start_date=_start_sel, plan_end_date=_end_v)
+                        if _ok2:
+                            auto_validate_referral(_em, _plan_sel)
+                            st.success(f"✅ {_em} approved — {_P.get(_plan_sel,{}).get('label',_plan_sel)} · Expires: {_exp_p}")
+                            _admin_clear_user_cache()
+                            st.rerun()
+                        else:
+                            st.error(_msg2)
+                with _btn2:
+                    if st.button("🗑 Remove", key=f"rm_pend_{_em}", use_container_width=True):
+                        try:
+                            sb_admin.table("approved_emails").delete().eq("email", _em).execute()
+                            st.warning(f"🗑 {_em} removed")
+                            _admin_clear_user_cache()
+                            st.rerun()
+                        except Exception as _de:
+                            st.error(f"Error: {_de}")
+                st.markdown("<hr style='border-color:rgba(56,189,248,0.10);margin:8px 0'>", unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -4056,10 +4088,11 @@ def _render_admin_panel():
         <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);
                     border-radius:12px;padding:14px 18px">
             <div style="font-size:12px;color:#7BA7CC;line-height:1.9">
-                ℹ️ <b style="color:#38BDF8">How it works:</b><br>
-                1. User signs up → free trial starts automatically<br>
-                2. User pays via Razorpay → access approved <b style="color:#34D399">automatically within seconds</b><br>
-                3. To suspend: <b>🚫 Revoke</b> · To extend: use 🔁 Extend
+                ℹ️ <b style="color:#38BDF8">Workflow:</b><br>
+                1. User signs up → auto-added as <b style="color:#FBBF24">Pending</b> (free trial starts)<br>
+                2. User pays via UPI → sends payment screenshot to WhatsApp / Email<br>
+                3. You verify → select plan + date → click <b>✅ Approve</b> (referral bonus auto-applied)<br>
+                4. User gets access on next login · To suspend: <b>🚫 Revoke</b> · To renew: use 🔁 Extend
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -4176,6 +4209,21 @@ def _render_admin_panel():
                 "Validated At":   str(u.get("validated_at", ""))[:10] if u.get("validated_at") else "—",
             } for u in _all_uses]), use_container_width=True, hide_index=True)
 
+            st.markdown("---")
+            st.markdown("**🔧 Manually Validate a Referral**")
+            _pending_uses = [u for u in _all_uses if not u.get("validated")]
+            if _pending_uses:
+                _mv_opts = {f"{u['referred_email']} (code: {u['referral_code']})": u for u in _pending_uses}
+                _mv_sel  = st.selectbox("Select pending referral", list(_mv_opts.keys()), key="manual_val_sel")
+                _mv_P    = get_plans()
+                _mv_plan = st.selectbox("Plan to assign", list(_mv_P.keys()),
+                    format_func=lambda k, p=_mv_P: p[k]["label"], key="manual_val_plan")
+                if st.button("✅ Manually Validate", key="manual_val_btn"):
+                    auto_validate_referral(_mv_opts[_mv_sel]["referred_email"], _mv_plan)
+                    st.success(f"✅ Referral validated!")
+                    st.rerun()
+            else:
+                st.info("No pending referrals to validate.")
         else:
             st.info("No referral uses recorded yet.")
 
@@ -4281,7 +4329,8 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
         """
 
     # ── Footer note below cards ──────────────────────────────────────────────
-    _payment_html = f"""
+    if RAZORPAY_ENABLED:
+        _payment_html = f"""
   <div style="font-size:11px;color:#7BA7CC;text-align:center;margin-top:8px;line-height:1.8">
     Powered by <b>Razorpay</b> &middot; UPI / Card / NetBanking / Wallets
     &middot; Access granted <b style="color:#34D399">automatically</b> within seconds.<br>
@@ -4289,6 +4338,26 @@ def _pricing_cards_html(show_heading=True, user_email="") -> str:
       Pay with the same email as your CA Tracker account:
       <b style="color:#38BDF8">{wa_email}</b>
     </span>
+  </div>"""
+    else:
+        _payment_html = f"""
+  <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.28);
+              border-radius:12px;padding:14px 16px;margin-top:4px">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;
+                color:#38BDF8;letter-spacing:1.5px;margin-bottom:10px">HOW TO SUBSCRIBE</div>
+    <div style="font-size:12px;color:#C8E5F8;line-height:2.0">
+      <b style="color:#34D399">Step 1:</b> Pay via UPI / GPay / PhonePe to <b style="color:#FBBF24">8700428090</b><br>
+      <b style="color:#34D399">Step 2:</b> Screenshot the payment confirmation<br>
+      <b style="color:#34D399">Step 3:</b> Send screenshot + your email to:<br>
+      &nbsp;&nbsp;&#128241; <a href="{wa_msg}" target="_blank"
+           style="color:#25D366;font-weight:700">WhatsApp: +91 8700428090</a><br>
+      &nbsp;&nbsp;&#128231; <a href="{mail_to}"
+           style="color:#38BDF8;font-weight:700">{PAYMENT_EMAIL}</a><br>
+      <b style="color:#34D399">Step 4:</b> Admin approves &mdash; you get instant access!
+    </div>
+  </div>
+  <div style="font-size:10px;color:#3A5A7A;text-align:center;margin-top:8px">
+    Message format: &ldquo;Approve {wa_email} &mdash; [3 Months / 1 Year / Lifetime]&rdquo;
   </div>"""
 
     full_html = f"""<!DOCTYPE html>
@@ -7055,6 +7124,9 @@ st.markdown(GLASSY_CSS, unsafe_allow_html=True)
 
 if not st.session_state.logged_in:
     auth_page()
+elif _MODULES_OK and needs_course_setup(st.session_state.get("user_id", "")):
+    # ── COURSE SELECTION SCREEN — shown to new users before main app ──────────
+    render_first_login_course_selection(st.session_state.get("user_id", ""))
 else:
     profile   = st.session_state.profile
     prof      = profile                              # single source of truth
@@ -7211,7 +7283,8 @@ else:
     _in_trial      = st.session_state.get("in_free_trial", True)
     _trial_days    = st.session_state.get("trial_days_left", get_free_trial_days())
     _sub_info      = st.session_state.get("sub_info", {})
-    _renew_label   = "💳 Renew via Razorpay"
+    _wa_sub_link   = f"https://wa.me/{PAYMENT_WHATSAPP}?text=Hi%2C+I+want+to+subscribe+to+CA+Final+Tracker.+Please+approve+my+email%3A+{_user_email_ss}"
+    _renew_label   = "💳 Renew via Razorpay" if RAZORPAY_ENABLED else "📱 Renew on WhatsApp"
 
     # Paid check first — paid users never see trial banners
     _has_active_paid = bool(_sub_info and _sub_info.get("active", False))
@@ -7223,7 +7296,7 @@ else:
         _is_life    = _sub_info.get("is_lifetime", False)
         _days_rem   = _sub_info.get("days_remaining", 0)
         _end_str    = _sub_info.get("plan_end", "")
-        _renew_link = RAZORPAY_LINKS.get(_pk, "#")
+        _renew_link = RAZORPAY_LINKS.get(_pk, _wa_sub_link) if RAZORPAY_ENABLED else _wa_sub_link
 
         if _is_life:
             # Lifetime — no nudges ever
@@ -7392,6 +7465,11 @@ else:
                 st.session_state.show_how_to_use = False
                 st.rerun()
         st.markdown("---")
+
+    # ── COURSE SWITCHER ──────────────────────────────────────────────────────
+    if _MODULES_OK:
+        _uid_now = st.session_state.get("user_id", "")
+        render_course_switcher(_uid_now)
 
     # ── MAIN NAV TABS ─────────────────────────────────────────────────────────
     # Admin tab is shown ONLY to the admin user, after Account tab.
