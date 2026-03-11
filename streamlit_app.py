@@ -4547,151 +4547,242 @@ def _trial_expired_screen(email: str):
         do_logout()
 
 
-def auth_page():
-    _auth_slot = st.empty()
+def _handle_google_oauth_callback():
+    """
+    Called on every page load. If Supabase redirected back with an active session
+    (access_token in URL fragment → exchanged by Supabase JS SDK, or via pkce flow),
+    we detect the logged-in user via sb.auth.get_user() and populate session state.
+    Returns True if a user was found and session state was populated.
+    """
+    try:
+        session = sb.auth.get_session()
+        if not session or not session.user:
+            return False
 
-    # ── Auth page CSS ─────────────────────────────────────────────────────────
+        user       = session.user
+        uid_val    = user.id
+        email_clean = (user.email or "").strip().lower()
+        if not email_clean:
+            return False
+
+        # ── Access gate: free trial OR paid plan ──────────────────────────────
+        _in_trial = is_in_free_trial(email_clean)
+        _has_plan = has_paid_plan(email_clean)
+        if not _in_trial and not _has_plan:
+            try:
+                sb.auth.sign_out()
+            except Exception:
+                pass
+            st.session_state["show_paywall_email"] = email_clean
+            return False
+
+        # ── Profile lookup — create if first Google login ─────────────────────
+        prof = sb_admin.table("profiles").select("*").eq("id", uid_val).execute()
+        if not prof.data:
+            # Auto-create a minimal profile for Google OAuth users
+            display_name = (user.user_metadata or {}).get("full_name", "") or email_clean.split("@")[0]
+            username_raw = email_clean.split("@")[0].replace(".", "_")[:20]
+            try:
+                sb_admin.table("profiles").insert({
+                    "id":         uid_val,
+                    "full_name":  display_name,
+                    "username":   username_raw,
+                    "exam_month": "May",
+                    "exam_year":  2027,
+                }).execute()
+                prof = sb_admin.table("profiles").select("*").eq("id", uid_val).execute()
+            except Exception:
+                pass
+
+        profile_data = prof.data[0] if prof.data else {}
+
+        # ── Populate session state ────────────────────────────────────────────
+        month_map = {"January": 1, "May": 5, "September": 9}
+        exam_m = month_map.get(profile_data.get("exam_month", "May"), 5)
+        exam_y = int(profile_data.get("exam_year", 2027))
+
+        st.session_state.exam_date          = date(exam_y, exam_m, 1)
+        st.session_state.logged_in          = True
+        st.session_state.user_id            = uid_val
+        st.session_state.profile            = profile_data
+        st.session_state["user_email"]      = email_clean
+        st.session_state["in_free_trial"]   = _in_trial
+        st.session_state["trial_days_left"] = days_left_in_trial(email_clean)
+        st.session_state["sub_info"]        = get_subscription_info(email_clean)
+
+        # ── Auto-approve on first Google login (free trial) ───────────────────
+        try:
+            existing_ae = sb_admin.table("approved_emails").select("email").eq("email", email_clean).execute()
+            if not existing_ae.data:
+                approve_email(email_clean, note="google-oauth-auto")
+        except Exception:
+            pass
+
+        # ── Load custom syllabus ──────────────────────────────────────────────
+        import json as _jsn
+        _raw_syl = profile_data.get("custom_syllabus", None)
+        if _raw_syl:
+            try:
+                _syl = _jsn.loads(_raw_syl) if isinstance(_raw_syl, str) else _raw_syl
+                SUBJECTS.clear(); SUBJECTS.extend(list(_syl.keys()))
+                TOPICS.clear();   TOPICS.update(_syl)
+            except Exception:
+                pass
+
+        if _MODULES_OK:
+            ensure_legacy_migration(uid_val)
+
+        return True
+    except Exception:
+        return False
+
+
+def auth_page():
+    # ── Try to restore session from Supabase (handles OAuth redirect) ─────────
+    if _handle_google_oauth_callback():
+        st.rerun()
+        return
+
+    # ── CSS ───────────────────────────────────────────────────────────────────
     st.markdown("""
     <style>
-    /* Tighten Streamlit default padding on auth page inputs */
-    .auth-wrap .stTextInput > div > div { border-radius:8px !important; }
-    .auth-wrap .stFormSubmitButton button {
-        background:linear-gradient(135deg,#0EA5E9,#38BDF8) !important;
-        color:#fff !important; font-weight:700 !important;
-        border:none !important; border-radius:8px !important;
-        font-size:13px !important; letter-spacing:0.5px !important;
+    /* Google button */
+    .google-btn {
+        display:flex;align-items:center;justify-content:center;gap:12px;
+        background:#fff;color:#1F1F1F;border:1.5px solid #DADCE0;
+        border-radius:10px;padding:12px 24px;cursor:pointer;
+        font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;
+        width:100%;transition:all .18s ease;box-shadow:0 2px 8px rgba(0,0,0,0.10);
+        text-decoration:none;
     }
-    .auth-wrap .stFormSubmitButton button:hover {
-        background:linear-gradient(135deg,#0284C7,#0EA5E9) !important;
+    .google-btn:hover {
+        box-shadow:0 4px 16px rgba(0,0,0,0.18);
+        border-color:#B0B8C4;background:#FAFAFA;
     }
-    /* Compact tab labels */
-    .auth-wrap .stTabs [data-baseweb="tab"] {
-        font-size:12px !important; padding:6px 18px !important;
+    .google-btn svg { flex-shrink:0; }
+    /* Auth card */
+    .auth-card {
+        background:linear-gradient(135deg,rgba(4,16,52,0.97),rgba(6,20,64,0.97));
+        border:1px solid rgba(56,189,248,0.22);border-radius:20px;
+        padding:36px 32px 32px;box-shadow:0 0 60px rgba(56,189,248,0.12),0 12px 60px rgba(0,0,0,0.70);
+    }
+    .auth-divider {
+        display:flex;align-items:center;gap:12px;margin:20px 0;
+    }
+    .auth-divider hr {
+        flex:1;border:none;border-top:1px solid rgba(56,189,248,0.12);
+    }
+    .auth-divider span {
+        font-size:11px;color:#4A6A8A;letter-spacing:1px;
+        white-space:nowrap;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    with _auth_slot.container():
-        # ── 3-column centering: narrow card in middle ─────────────────────────
-        _, mid, _ = st.columns([1, 1.4, 1])
-        with mid:
-            st.markdown('<div class="auth-wrap">', unsafe_allow_html=True)
+    # ── 3-column centering ────────────────────────────────────────────────────
+    _, mid, _ = st.columns([1, 1.3, 1])
+    with mid:
 
-            # ── Brand header ─────────────────────────────────────────────────
-            st.markdown("""
-            <div style="text-align:center;padding:28px 0 16px">
-                <div style="font-size:44px;line-height:1;margin-bottom:6px;
-                            filter:drop-shadow(0 0 16px rgba(56,189,248,0.85))">🎓</div>
-                <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;
-                            letter-spacing:4px;color:#E0F2FE">STUDY TRACKER</div>
-                <div style="font-size:11px;color:#4A90B8;letter-spacing:2px;
-                            margin-top:4px;text-transform:uppercase">Track · Analyse · Conquer</div>
-            </div>
-            """, unsafe_allow_html=True)
+        # ── Brand header ──────────────────────────────────────────────────────
+        st.markdown("""
+        <div style="text-align:center;padding:32px 0 20px">
+            <div style="font-size:48px;line-height:1;margin-bottom:8px;
+                        filter:drop-shadow(0 0 20px rgba(56,189,248,0.90))">🎓</div>
+            <div style="font-family:'DM Mono',monospace;font-size:23px;font-weight:700;
+                        letter-spacing:4px;color:#E0F2FE">STUDY TRACKER</div>
+            <div style="font-size:11px;color:#4A90B8;letter-spacing:2.5px;
+                        margin-top:6px;text-transform:uppercase">Track · Analyse · Conquer</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-            # ── Free trial banner ────────────────────────────────────────────
-            _cfg  = get_pricing_cfg()
-            _fomo = _cfg.get("fomo_message","") if _cfg.get("fomo_enabled", True) else ""
+        # ── Free trial + FOMO banners ─────────────────────────────────────────
+        _cfg  = get_pricing_cfg()
+        _fomo = _cfg.get("fomo_message", "") if _cfg.get("fomo_enabled", True) else ""
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg,rgba(52,211,153,0.10),rgba(56,189,248,0.06));
+                    border:1px solid rgba(52,211,153,0.30);border-radius:10px;
+                    padding:9px 16px;margin-bottom:{'6' if _fomo else '12'}px;text-align:center">
+            <span style="font-size:13px;color:#34D399;font-weight:700">
+                🎁 {get_free_trial_days()} Days FREE
+            </span>
+            <span style="font-size:11px;color:#5A8FAA;margin-left:8px">
+                · No payment needed to start
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if _fomo:
             st.markdown(f"""
-            <div style="background:linear-gradient(135deg,rgba(52,211,153,0.10),rgba(56,189,248,0.06));
-                        border:1px solid rgba(52,211,153,0.30);border-radius:10px;
-                        padding:8px 14px;margin-bottom:{'4' if _fomo else '10'}px;text-align:center">
-                <span style="font-size:12px;color:#34D399;font-weight:700">
-                    🎁 {get_free_trial_days()} Days FREE
-                </span>
-                <span style="font-size:11px;color:#5A8FAA;margin-left:8px">
-                    · No payment needed to start
-                </span>
+            <div style="background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.35);
+                        border-radius:8px;padding:7px 14px;margin-bottom:10px;text-align:center">
+                <span style="font-size:11px;font-weight:700;color:#FCA5A5">{_fomo}</span>
             </div>
             """, unsafe_allow_html=True)
 
-            if _fomo:
-                st.markdown(f"""
-                <div style="background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.35);
-                            border-radius:8px;padding:6px 12px;margin-bottom:8px;text-align:center">
-                    <span style="font-size:11px;font-weight:700;color:#FCA5A5">{_fomo}</span>
-                </div>
-                """, unsafe_allow_html=True)
+        # ── Auth card ─────────────────────────────────────────────────────────
+        st.markdown('<div class="auth-card">', unsafe_allow_html=True)
 
-            # ── Login / Signup tabs ──────────────────────────────────────────
-            tab1, tab2 = st.tabs(["⚡ Login", "🚀 Sign Up"])
+        st.markdown("""
+        <div style="text-align:center;margin-bottom:6px">
+            <div style="font-size:16px;font-weight:700;color:#C8E5F8;margin-bottom:4px">
+                Welcome back
+            </div>
+            <div style="font-size:12px;color:#5A8FAA">
+                Sign in or create your account — it only takes a second
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-            # ── LOGIN ────────────────────────────────────────────────────────
-            with tab1:
-                with st.form("login_form"):
-                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-                    email    = st.text_input("Email", placeholder="your@email.com", label_visibility="collapsed")
-                    st.markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
-                    password = st.text_input("Password", type="password", placeholder="Password", label_visibility="collapsed")
-                    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-                    submitted = st.form_submit_button("LOGIN →", use_container_width=True)
-                    if submitted:
-                        if not email or not password:
-                            st.warning("Please fill in both fields.")
-                        else:
-                            with st.spinner("Signing in..."):
-                                ok, msg = do_login(email, password)
-                            if ok:
-                                _auth_slot.empty()
-                                st.rerun()
-                            elif msg == "TRIAL_EXPIRED":
-                                st.session_state["show_paywall_email"] = email.strip().lower()
-                                st.rerun()
-                            else:
-                                st.error(msg)
+        st.markdown("""
+        <div style="height:18px"></div>
+        """, unsafe_allow_html=True)
 
-            # ── SIGN UP ──────────────────────────────────────────────────────
-            with tab2:
-                with st.form("signup_form"):
-                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-                    c1, c2    = st.columns(2)
-                    full_name = c1.text_input("Full Name",  placeholder="Arjun Sharma")
-                    username  = c2.text_input("Username",   placeholder="arjun_st")
-                    email2    = st.text_input("Email", placeholder="your@email.com")
-                    pass2     = st.text_input("Password", type="password", placeholder="Min 6 characters")
+        # ── Google Sign-In button ─────────────────────────────────────────────
+        # Build the OAuth URL via Supabase
+        _redirect_uri = st.secrets.get("SITE_URL", "http://localhost:8501")
+        try:
+            _oauth_resp = sb.auth.sign_in_with_oauth({
+                "provider": "google",
+                "options": {
+                    "redirect_to": _redirect_uri,
+                    "query_params": {"access_type": "offline", "prompt": "select_account"},
+                }
+            })
+            _google_url = _oauth_resp.url if _oauth_resp else "#"
+        except Exception:
+            _google_url = "#"
 
-                    ref_code_input = st.text_input(
-                        "Referral Code",
-                        placeholder="🎁 Have a referral code? (optional)",
-                    )
+        st.markdown(f"""
+        <a href="{_google_url}" class="google-btn" target="_self">
+            <svg width="20" height="20" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                <path fill="none" d="M0 0h48v48H0z"/>
+            </svg>
+            Continue with Google
+        </a>
+        """, unsafe_allow_html=True)
 
-                    ec1, ec2   = st.columns(2)
-                    exam_month = ec1.selectbox("Exam Month", ["January", "May", "September"])
-                    exam_year  = ec2.selectbox("Exam Year",  [2025, 2026, 2027, 2028], index=2)
+        st.markdown("""
+        <div style="height:16px"></div>
+        <div style="text-align:center;font-size:11px;color:#3A5A7A;line-height:1.6">
+            By continuing you agree to our Terms of Service.<br>
+            Your Google account email will be used to identify your account.
+        </div>
+        """, unsafe_allow_html=True)
 
-                    month_num      = {"January": 1, "May": 5, "September": 9}[exam_month]
-                    preview        = date(int(exam_year), month_num, 1)
-                    days_left_exam = max((preview - date.today()).days, 0)
-                    st.caption(f"📅 {exam_month} {exam_year} — {days_left_exam} days away")
+        st.markdown('</div>', unsafe_allow_html=True)  # close auth-card
 
-                    submitted2 = st.form_submit_button("CREATE ACCOUNT →", use_container_width=True)
-                    if submitted2:
-                        if not all([full_name, username, email2, pass2]):
-                            st.warning("Please fill in all fields.")
-                        elif len(pass2) < 6:
-                            st.warning("Password must be at least 6 characters.")
-                        else:
-                            _ref_valid = False; _ref_referrer = ""
-                            if ref_code_input.strip():
-                                _ref_valid, _ref_referrer, _ref_err = validate_referral_code(ref_code_input.strip())
-                                if not _ref_valid:
-                                    st.error(f"❌ Referral code: {_ref_err}")
-                                    st.stop()
-                            with st.spinner("Creating account..."):
-                                ok, msg = do_signup(email2, pass2, username, full_name, exam_month, exam_year)
-                            if ok:
-                                if _ref_valid and _ref_referrer:
-                                    if _ref_referrer.lower() == email2.strip().lower():
-                                        st.warning("⚠️ You cannot use your own referral code.")
-                                    else:
-                                        record_referral_use(ref_code_input.strip().upper(),
-                                                            email2.strip().lower(), _ref_referrer)
-                                        st.success("🎁 Referral accepted!")
-                                st.success(msg)
-                            else:
-                                st.error(msg)
-
-            st.markdown('</div>', unsafe_allow_html=True)
+        # ── Features strip ────────────────────────────────────────────────────
+        st.markdown("""
+        <div style="display:flex;justify-content:center;gap:28px;margin-top:18px;flex-wrap:wrap">
+            <span style="font-size:11px;color:#3A6A8A">📊 Progress Dashboard</span>
+            <span style="font-size:11px;color:#3A6A8A">🔄 Smart Revision</span>
+            <span style="font-size:11px;color:#3A6A8A">🏆 Score Tracker</span>
+        </div>
+        """, unsafe_allow_html=True)
 
     if st.session_state.get("show_paywall_email"):
         _trial_expired_screen(st.session_state["show_paywall_email"])
