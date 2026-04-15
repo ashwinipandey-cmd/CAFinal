@@ -4549,12 +4549,22 @@ def _trial_expired_screen(email: str):
 
 def _handle_google_oauth_callback():
     """
-    Called on every page load. If Supabase redirected back with an active session
-    (access_token in URL fragment → exchanged by Supabase JS SDK, or via pkce flow),
-    we detect the logged-in user via sb.auth.get_user() and populate session state.
+    Called on every page load. Handles PKCE OAuth callback by exchanging the
+    ?code= URL parameter for a Supabase session, then populates session state.
     Returns True if a user was found and session state was populated.
     """
     try:
+        # ── PKCE: exchange ?code= for a real session ──────────────────────────
+        _params = st.query_params
+        _code   = _params.get("code", None)
+        if _code:
+            try:
+                sb.auth.exchange_code_for_session({"auth_code": _code})
+            except Exception:
+                pass
+            # Clear the code from the URL so it doesn't re-trigger on rerun
+            st.query_params.clear()
+
         session = sb.auth.get_session()
         if not session or not session.user:
             return False
