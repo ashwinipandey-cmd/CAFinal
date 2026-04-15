@@ -4739,18 +4739,24 @@ def auth_page():
 
         # ── Google Sign-In button ─────────────────────────────────────────────
         # Build the OAuth URL via Supabase
-        _redirect_uri = st.secrets.get("SITE_URL", "http://localhost:8501")
+        _redirect_uri = st.secrets.get("SITE_URL", "http://localhost:8501").rstrip("/") + "/"
+        _oauth_error  = None
         try:
             _oauth_resp = sb.auth.sign_in_with_oauth({
                 "provider": "google",
                 "options": {
                     "redirect_to": _redirect_uri,
+                    "scopes": "email profile",
                     "query_params": {"access_type": "offline", "prompt": "select_account"},
                 }
             })
             _google_url = _oauth_resp.url if _oauth_resp else "#"
-        except Exception:
-            _google_url = "#"
+        except Exception as _e:
+            _google_url  = "#"
+            _oauth_error = str(_e)
+
+        if _oauth_error:
+            st.error(f"⚠️ Google Sign-In setup error: {_oauth_error}")
 
         st.markdown(f"""
         <a href="{_google_url}" class="google-btn" target="_self">
