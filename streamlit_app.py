@@ -4777,6 +4777,7 @@ def auth_page():
                 "options": {
                     "redirect_to": _redirect_uri,
                     "scopes": "email profile",
+                    "skip_browser_redirect": True,
                     "query_params": {"access_type": "offline", "prompt": "select_account"},
                 }
             })
@@ -4788,26 +4789,30 @@ def auth_page():
         if _oauth_error:
             st.error(f"⚠️ Google Sign-In setup error: {_oauth_error}")
 
-        # Use st.components to inject a proper redirect that bypasses Streamlit's iframe CSP
+        # Use st.components to inject inside its own iframe with target="_top"
+        # which navigates the top-level browser window to Google
         import streamlit.components.v1 as _components
         _components.html(f"""
         <style>
+        * {{ margin:0; padding:0; box-sizing:border-box; }}
+        body {{ background: transparent; }}
         .google-btn {{
             display:flex;align-items:center;justify-content:center;gap:12px;
             background:#fff;color:#1F1F1F;border:1.5px solid #DADCE0;
             border-radius:10px;padding:12px 24px;cursor:pointer;
             font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;
-            width:100%;transition:all .18s ease;box-shadow:0 2px 8px rgba(0,0,0,0.10);
-            text-decoration:none;outline:none;
+            width:100%;transition:all .18s ease;
+            box-shadow:0 2px 8px rgba(0,0,0,0.10);
+            text-decoration:none;
         }}
         .google-btn:hover {{
             box-shadow:0 4px 16px rgba(0,0,0,0.18);
             border-color:#B0B8C4;background:#FAFAFA;
         }}
         </style>
-        <a href="{_google_url}" target="_top" style="text-decoration:none;">
+        <a href="{_google_url}" target="_top" style="text-decoration:none;display:block;">
             <div class="google-btn">
-                <svg width="20" height="20" viewBox="0 0 48 48">
+                <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                     <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
                     <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
@@ -4816,6 +4821,13 @@ def auth_page():
                 Continue with Google
             </div>
         </a>
+        <script>
+        // Force all link clicks to navigate parent window
+        document.querySelector('a').addEventListener('click', function(e) {{
+            e.preventDefault();
+            window.top.location.href = this.href;
+        }});
+        </script>
         """, height=60)
 
         st.markdown("""
