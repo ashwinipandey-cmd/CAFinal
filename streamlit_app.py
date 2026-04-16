@@ -4800,31 +4800,44 @@ def auth_page():
             st.error(f"⚠️ Google Sign-In setup error: {_oauth_error}")
 
         if _google_url:
-            # Style the native st.link_button to look like Google button
-            st.markdown("""
+            # Use components.html with window.top.location.href for same-tab navigation
+            import streamlit.components.v1 as _components
+            _components.html(f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
             <style>
-            div[data-testid="stLinkButton"] a {
-                display:flex !important;align-items:center !important;
-                justify-content:center !important;gap:12px !important;
-                background:#fff !important;color:#1F1F1F !important;
-                border:1.5px solid #DADCE0 !important;
-                border-radius:10px !important;padding:12px 24px !important;
-                font-size:15px !important;font-weight:600 !important;
-                font-family:'DM Sans',sans-serif !important;
-                width:100% !important;box-shadow:0 2px 8px rgba(0,0,0,0.10) !important;
-                text-decoration:none !important;
-            }
-            div[data-testid="stLinkButton"] a:hover {
-                box-shadow:0 4px 16px rgba(0,0,0,0.18) !important;
-                border-color:#B0B8C4 !important;background:#FAFAFA !important;
-            }
+            * {{ margin:0; padding:0; box-sizing:border-box; }}
+            body {{ background:transparent; font-family:'DM Sans',sans-serif; }}
+            .gbtn {{
+                display:flex; align-items:center; justify-content:center; gap:12px;
+                background:#fff; color:#1F1F1F; border:1.5px solid #DADCE0;
+                border-radius:10px; padding:12px 24px; cursor:pointer;
+                font-size:15px; font-weight:600; width:100%;
+                box-shadow:0 2px 8px rgba(0,0,0,0.10);
+                transition:all .18s ease;
+            }}
+            .gbtn:hover {{ box-shadow:0 4px 16px rgba(0,0,0,0.18); border-color:#B0B8C4; background:#FAFAFA; }}
             </style>
-            """, unsafe_allow_html=True)
-            st.link_button(
-                "🔵  Continue with Google",
-                url=_google_url,
-                use_container_width=True,
-            )
+            </head>
+            <body>
+            <button class="gbtn" id="gbtn">
+                <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                Continue with Google
+            </button>
+            <script>
+            document.getElementById('gbtn').addEventListener('click', function() {{
+                window.top.location.href = '{_google_url}';
+            }});
+            </script>
+            </body>
+            </html>
+            """, height=58, scrolling=False)
         else:
             st.error("Could not generate Google Sign-In link. Please refresh and try again.")
 
