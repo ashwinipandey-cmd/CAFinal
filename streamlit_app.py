@@ -15,12 +15,10 @@ st.set_page_config(
 )
 
 # ── SUPABASE ──────────────────────────────────────────────────────────────────
-@st.cache_resource
-def init_supabase():
-    from supabase import create_client
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
-    return create_client(url, key)
+# IMPORTANT: sb (anon client) must NOT be cached with @st.cache_resource
+# because that shares the auth session across ALL users/devices.
+# Each user gets their own sb instance stored in st.session_state.
+# Only sb_admin (service role, no user auth) is safe to cache globally.
 
 @st.cache_resource
 def init_supabase_admin():
@@ -28,21 +26,31 @@ def init_supabase_admin():
     Add SUPABASE_SERVICE_ROLE_KEY to st.secrets. Falls back to anon key if not set."""
     from supabase import create_client
     url = st.secrets["SUPABASE_URL"]
-    # Try service role key first; fall back to anon key
     try:
         key = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
     except Exception:
         key = st.secrets["SUPABASE_KEY"]
     return create_client(url, key)
 
+def _get_sb():
+    """Return a per-session Supabase anon client. Creates one if not present."""
+    if "_sb" not in st.session_state:
+        from supabase import create_client
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        st.session_state["_sb"] = create_client(url, key)
+    return st.session_state["_sb"]
+
 try:
-    sb       = init_supabase()
     sb_admin = init_supabase_admin()
     st.session_state["_sb_admin"] = sb_admin
-
+    sb = _get_sb()   # per-user client — never shared across sessions
 except Exception as e:
     st.error(f"Database connection failed: {e}")
     st.stop()
+
+# Always keep sb in sync with the per-session client on every rerun
+sb = _get_sb()
 
 # ── Import course modules ─────────────────────────────────────────────────────
 try:
@@ -1833,6 +1841,8 @@ def do_logout():
         sb.auth.sign_out()
     except:
         pass
+    # Remove the per-session Supabase client so next login gets a fresh one
+    st.session_state.pop("_sb", None)
     st.session_state.logged_in = False
     st.session_state.user_id   = None
     st.session_state.profile   = {}
@@ -4557,15 +4567,25 @@ def _handle_google_oauth_callback():
         # ── PKCE: exchange ?code= for a real session ──────────────────────────
         _params = st.query_params
         _code   = _params.get("code", None)
+
+        # ── DEBUG: show what params we received ──────────────────────────────
+        if _params:
+            st.sidebar.write("🔍 DEBUG URL params:", dict(_params))
+
         if _code:
+            st.sidebar.write(f"🔑 DEBUG: Found code, attempting exchange...")
             try:
-                sb.auth.exchange_code_for_session({"auth_code": _code})
-            except Exception:
-                pass
+                _sess_resp = sb.auth.exchange_code_for_session({"auth_code": _code})
+                st.sidebar.write(f"✅ DEBUG: Exchange result: {_sess_resp}")
+            except Exception as _ex:
+                st.sidebar.write(f"❌ DEBUG: Exchange failed: {_ex}")
             # Clear the code from the URL so it doesn't re-trigger on rerun
             st.query_params.clear()
 
         session = sb.auth.get_session()
+        st.sidebar.write(f"🔐 DEBUG: Session exists: {session is not None}")
+        if session:
+            st.sidebar.write(f"👤 DEBUG: User: {session.user.email if session.user else 'None'}")
         if not session or not session.user:
             return False
 
