@@ -34,21 +34,21 @@ def init_supabase_admin():
 
 def _get_sb():
     """Return a per-session Supabase anon client. Creates one if not present.
-    Also restores any saved auth session from st.session_state on every call."""
+    Restores saved auth session tokens on first creation so session survives reruns."""
     if "_sb" not in st.session_state:
         from supabase import create_client
         url = st.secrets["SUPABASE_URL"]
         key = st.secrets["SUPABASE_KEY"]
-        st.session_state["_sb"] = create_client(url, key)
-    _client = st.session_state["_sb"]
-    # Restore saved session tokens if available (survives reruns)
-    if "_sb_session_tokens" in st.session_state:
-        try:
-            _tokens = st.session_state["_sb_session_tokens"]
-            _client.auth.set_session(_tokens["access_token"], _tokens["refresh_token"])
-        except Exception:
-            pass
-    return _client
+        _client = create_client(url, key)
+        # Restore saved session tokens if available (set after OAuth exchange)
+        if "_sb_session_tokens" in st.session_state:
+            try:
+                _tokens = st.session_state["_sb_session_tokens"]
+                _client.auth.set_session(_tokens["access_token"], _tokens["refresh_token"])
+            except Exception:
+                pass
+        st.session_state["_sb"] = _client
+    return st.session_state["_sb"]
 
 try:
     sb_admin = init_supabase_admin()
@@ -4581,15 +4581,18 @@ def _handle_google_oauth_callback():
         if _code:
             try:
                 _sess_resp = sb.auth.exchange_code_for_session({"auth_code": _code})
-                # Save tokens to session_state so they survive reruns
+                # Save tokens AND destroy cached sb client so next _get_sb()
+                # creates a fresh client with these tokens already set
                 if _sess_resp and _sess_resp.session:
                     st.session_state["_sb_session_tokens"] = {
                         "access_token":  _sess_resp.session.access_token,
                         "refresh_token": _sess_resp.session.refresh_token,
                     }
-            except Exception as _ex:
-                st.sidebar.write(f"❌ DEBUG exchange failed: {_ex}")
-            # Clear the code from the URL so it doesn't re-trigger on rerun
+                    # Force fresh client on next rerun so tokens are applied
+                    st.session_state.pop("_sb", None)
+            except Exception:
+                pass  # exchange failed
+            # Clear the code from the URL — triggers rerun
             st.query_params.clear()
 
         session = sb.auth.get_session()
