@@ -1,100 +1,37 @@
--- ============================================================
--- StudyTracker — Complete Supabase Schema
--- Run this entire file once in the Supabase SQL Editor.
--- Supabase project: ashwinipandey-cmd/cafinal
--- ============================================================
 
--- ============================================================
--- 1. PROFILES
---    One row per auth.users row.
---    Service-role (sb_admin) inserts on signup — RLS INSERT
---    policy uses auth.uid() = id so it also works when the
---    JWT is present (Google OAuth, confirmed email logins).
--- ============================================================
-CREATE TABLE IF NOT EXISTS profiles (
-    id                       UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    username                 TEXT UNIQUE NOT NULL,
-    full_name                TEXT NOT NULL DEFAULT '',
-    email                    TEXT,
-    -- Exam details
-    exam_month               TEXT NOT NULL DEFAULT 'May',   -- January | May | September
-    exam_year                INT  NOT NULL DEFAULT 2027,
-    -- CGSM revision settings
-    r1_days                  INT   NOT NULL DEFAULT 3,
-    r2_days                  INT   NOT NULL DEFAULT 7,
-    growth_factor            FLOAT NOT NULL DEFAULT 1.30,
-    num_revisions            INT   NOT NULL DEFAULT 6,
-    max_gap_days             INT   NOT NULL DEFAULT 120,
-    daily_rev_cap            INT   NOT NULL DEFAULT 3,
-    -- Legacy ratio fields (kept for backward compatibility)
-    r1_ratio                 FLOAT,
-    r2_ratio                 FLOAT,
-    -- CA-specific per-subject target hours (legacy, optional)
-    target_hrs_fr            INT,
-    target_hrs_afm           INT,
-    target_hrs_aa            INT,
-    target_hrs_dt            INT,
-    target_hrs_idt           INT,
-    -- Study phase
-    study_phase              TEXT DEFAULT 'articleship',    -- articleship | post_articleship
-    articleship_end_date     DATE,
-    daily_study_hours        FLOAT DEFAULT 4.0,
-    prep_mode                TEXT  DEFAULT 'balanced',
-    -- Custom syllabus JSON (overrides default SUBJECTS/TOPICS from course_config)
-    custom_syllabus          JSONB,
-    -- Leaderboard participation
-    leaderboard_opt_in       BOOLEAN NOT NULL DEFAULT FALSE,
-    -- Timestamps
-    created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+            st.error(f"⚠️ Google Sign-In setup error: {_oauth_error}")
 
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
--- Users can read and update only their own row
-CREATE POLICY profiles_select ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY profiles_insert ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY profiles_update ON profiles FOR UPDATE USING (auth.uid() = id);
-
-
--- ============================================================
--- 2. APPROVED EMAILS
---    Access control gate: pending → approved → revoked.
---    All operations use sb_admin (service role) — no user-
---    facing RLS policies needed.  RLS enabled to block anon
---    and authenticated clients; only service role bypasses it.
--- ============================================================
-CREATE TABLE IF NOT EXISTS approved_emails (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email       TEXT UNIQUE NOT NULL,
-    status      TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | revoked
-    note        TEXT DEFAULT '',
-    approved_at DATE,
-    -- Subscription plan columns
-    plan_key    TEXT DEFAULT '',                   -- 3mo | 1yr | life
-    plan_start  DATE,
-    plan_end    DATE                               -- NULL = lifetime (never expires)
-);
-
-ALTER TABLE approved_emails ENABLE ROW LEVEL SECURITY;
--- No user-level policies — service role (sb_admin) bypasses RLS entirely.
-
-
--- ============================================================
--- 3. REFERRAL CODES
---    One code per user, generated on first request.
---    All mutations use sb_admin — no user-level policies.
--- ============================================================
-CREATE TABLE IF NOT EXISTS referral_codes (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    code        TEXT UNIQUE NOT NULL,
-    created_at  DATE NOT NULL DEFAULT CURRENT_DATE,
-    UNIQUE(user_id)
-);
-
-ALTER TABLE referral_codes ENABLE ROW LEVEL SECURITY;
--- Service role only.
-
-
--- ============================================================
+        if _google_url:
+            # Use components.html with window.top.location.href for same-tab navigation
+            # Render as <a target="_top"> — anchor navigation works from sandboxed iframes
+            # where window.top.location.href is blocked by the browser's security policy.
+            import streamlit.components.v1 as _components
+            _components.html(f"""
+            <!DOCTYPE html>
+                font-size:15px; font-weight:600; width:100%;
+                box-shadow:0 2px 8px rgba(0,0,0,0.10);
+                transition:all .18s ease;
+                text-decoration:none;
+            }}
+            .gbtn:hover {{ box-shadow:0 4px 16px rgba(0,0,0,0.18); border-color:#B0B8C4; background:#FAFAFA; }}
+            </style>
+            </head>
+            <body>
+            <button class="gbtn" id="gbtn">
+            <a class="gbtn" href="{_google_url}" target="_top">
+                <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                Continue with Google
+            </button>
+            <script>
+            document.getElementById('gbtn').addEventListener('click', function() {{
+                window.top.location.href = '{_google_url}';
+            }});
+            </script>
+            </a>
+            </body>
+            </html>
+            """, height=58, scrolling=False)
